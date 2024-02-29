@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <application
-        android:name=".MyApplication"
+        android:name=".helper.MyApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -26,8 +26,8 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".HelloService"/>
-        <receiver android:name=".MyReceiver"/>
+        <service android:name=".service.HelloService"/>
+        <receiver android:name=".broadcast.MyReceiver"/>
     </application>
 
 </manifest>

@@ -6,4 +6,8 @@
     </style>
 
     <style name="Theme.ServiceAndroid" parent="Base.Theme.ServiceAndroid" />
+
+    //text
+    <color name="text_black" >#FF000000</color>
+    <color name="text_white" >#FFFFFFFF</color>
 </resources>

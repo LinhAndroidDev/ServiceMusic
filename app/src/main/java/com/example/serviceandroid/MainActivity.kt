@@ -11,6 +11,10 @@ import android.os.CountDownTimer
 import android.view.View
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.serviceandroid.databinding.ActivityMainBinding
+import com.example.serviceandroid.model.Action
+import com.example.serviceandroid.helper.Constants
+import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.service.HelloService
 
 class MainActivity : AppCompatActivity() {
     private lateinit var mSong: Song
@@ -55,7 +59,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun clickStartService() {
         val intent = Intent(this, HelloService::class.java)
-        val song = Song("Lạ Lùng", "Vũ", R.drawable.vu, R.raw.la_lung, 262)
+        val song = Song("Lạ Lùng", "Vũ", R.drawable.la_lung, R.raw.la_lung, 262)
         intent.putExtra(MESSAGE_MAIN, song)
         startService(intent)
     }
