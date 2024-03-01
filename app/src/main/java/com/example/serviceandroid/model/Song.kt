@@ -7,5 +7,6 @@ data class Song(
     val name: String,
     val avatar: Int,
     val sing: Int,
-    val time: Int
+    val time: Int,
+    val type: Int
 ): Serializable

@@ -5,7 +5,5 @@
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
     </style>
 
-    //text
-    <color name="text_black" >#FF000000</color>
-    <color name="text_white" >#FFFFFFFF</color>
+
 </resources>
