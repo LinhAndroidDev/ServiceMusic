@@ -6,7 +6,8 @@
     //text
     <color name="text_black" >#FF000000</color>
     <color name="text_white" >#FFFFFFFF</color>
-    <color name="txt_hint">#ECECEC</color>
+    <color name="txt_grey_blur">#ECECEC</color>
+    <color name="txt_hint">#818181</color>
 
     //background
     <color name="bg_blue">#1EB3F6</color>
@@ -15,4 +16,5 @@
     <color name="bg_pink">#E82D6C</color>
     <color name="bg_green1">#05CDBB</color>
     <color name="bg_green2">#68B16A</color>
+    <color name="purple_1">#673AB7</color>
 </resources>

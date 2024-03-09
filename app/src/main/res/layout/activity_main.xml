@@ -101,6 +101,85 @@
                 android:orientation="horizontal"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
 
+            <LinearLayout
+                android:id="@+id/titleNewRelease"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginTop="40dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/rcvTopic">
+
+                <TextView
+                    android:layout_marginStart="15dp"
+                    android:text="Mới phát "
+                    android:textSize="23sp"
+                    android:textColor="@color/text_black"
+                    android:textStyle="bold"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <ImageView
+                    android:layout_marginStart="10dp"
+                    android:src="@drawable/ic_back"
+                    android:rotation="180"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/catalogNational"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="20dp"
+                android:layout_marginStart="15dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/titleNewRelease">
+
+                <TextView
+                    android:id="@+id/tvAllNational"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="3dp"
+                    android:paddingHorizontal="20dp"
+                    android:background="@drawable/bg_tv_national"
+                    android:text="Tất cả"
+                    android:textSize="14sp"
+                    android:textColor="@drawable/color_tv_national" />
+
+                <TextView
+                    android:id="@+id/tvVietNam"
+                    android:layout_marginStart="15dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="3dp"
+                    android:paddingHorizontal="20dp"
+                    android:background="@drawable/bg_tv_national"
+                    android:text="Việt Nam"
+                    android:textSize="14sp"
+                    android:textColor="@drawable/color_tv_national" />
+
+                <TextView
+                    android:id="@+id/tvInternational"
+                    android:layout_marginStart="15dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="3dp"
+                    android:paddingHorizontal="20dp"
+                    android:background="@drawable/bg_tv_national"
+                    android:text="Quốc Tế"
+                    android:textSize="14sp"
+                    android:textColor="@drawable/color_tv_national" />
+            </LinearLayout>
+
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/pagerNewRelease"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="15dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/catalogNational"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
 

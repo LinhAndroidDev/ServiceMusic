@@ -27,7 +27,7 @@
                 android:id="@+id/update"
                 android:text="Hay nhất của V-Pop"
                 android:textSize="10sp"
-                android:textColor="@color/txt_hint"
+                android:textColor="@color/txt_grey_blur"
                 android:textStyle="bold|italic"
                 android:textAllCaps="true"
                 android:background="@drawable/bg_tv_highlight"

@@ -19,6 +19,7 @@ import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
 import com.example.serviceandroid.adapter.AdvertisementAdapter
+import com.example.serviceandroid.adapter.PagerNationalAdapter
 import com.example.serviceandroid.adapter.TopicAdapter
 import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.helper.Constants
@@ -69,8 +70,31 @@ class MainActivity : AppCompatActivity() {
             sendActionToService(Action.ACTION_CLEAR)
         }
 
+        binding.tvAllNational.setOnClickListener {
+            unSelectTvNational()
+            binding.tvAllNational.isSelected = true
+        }
+
+        binding.tvVietNam.setOnClickListener {
+            unSelectTvNational()
+            binding.tvVietNam.isSelected = true
+        }
+
+        binding.tvInternational.setOnClickListener {
+            unSelectTvNational()
+            binding.tvInternational.isSelected = true
+        }
+
+        binding.pagerNewRelease.adapter = PagerNationalAdapter()
+
         initAdvertisement()
         initTopic()
+    }
+
+    private fun unSelectTvNational() {
+        binding.tvAllNational.isSelected = false
+        binding.tvVietNam.isSelected = false
+        binding.tvInternational.isSelected = false
     }
 
     private fun initTopic() {
