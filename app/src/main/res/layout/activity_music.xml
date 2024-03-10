@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".service.MusicActivity"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_marginTop="40dp"
+        android:layout_marginHorizontal="15dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        
+        <ImageView
+            android:id="@+id/backMusic"
+            android:src="@drawable/ic_back"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            app:tint="@color/white" />
+        
+        <LinearLayout
+            android:layout_centerHorizontal="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+            
+            <TextView
+                android:text="PHÁT TỪ"
+                android:textColor="@color/txt_hint"
+                android:textSize="12sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:text="#zingchart"
+                android:textColor="@color/text_white"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_alignParentEnd="true"
+            android:src="@drawable/ic_menu"
+            app:tint="@color/white" />
+    </RelativeLayout>
+    
+    <de.hdodenhof.circleimageview.CircleImageView
+        android:id="@+id/imgSong"
+        android:layout_marginTop="30dp"
+        android:layout_gravity="center"
+        android:src="@drawable/la_lung"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:elevation="10dp"/>
+    
+    <RelativeLayout
+        android:layout_marginTop="40dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_share"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            app:tint="@color/white" />
+
+        <LinearLayout
+            android:layout_centerHorizontal="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/tvNameSong"
+                android:text="Thuỷ Triều"
+                android:textSize="18sp"
+                android:textColor="@color/text_white"
+                android:textStyle="bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/tvNameSinger"
+                android:text="Quang Hùng MasterD"
+                android:textSize="14sp"
+                android:textColor="@color/txt_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <ImageView
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_favourite_thin"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            app:tint="@color/white" />
+    </RelativeLayout>
+
+    <SeekBar
+        android:id="@+id/progressMusic"
+        android:layout_marginTop="30dp"
+        android:layout_marginHorizontal="5dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:min="0"
+        android:progress="20"
+        android:progressDrawable="@drawable/seekbar_progress"
+        android:splitTrack="false"
+        android:thumb="@drawable/circle_seekbar" />
+
+    <RelativeLayout
+        android:layout_marginTop="5dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/tvProgressTime"
+            android:text="0:00"
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/tvTotalTime"
+            android:layout_alignParentEnd="true"
+            android:text="3:06"
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_marginTop="20dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:layout_centerVertical="true"
+            android:src="@drawable/icon_random"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            app:tint="@color/white" />
+
+        <LinearLayout
+            android:layout_centerHorizontal="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+
+            <ImageView
+                android:src="@drawable/skip_previous"
+                android:layout_width="35dp"
+                android:layout_height="35dp"/>
+
+            <ImageView
+                android:id="@+id/imgPlay"
+                android:layout_marginHorizontal="20dp"
+                android:src="@drawable/ic_play_music"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                app:tint="@color/white" />
+
+            <ImageView
+                android:src="@drawable/skip_next"
+                android:layout_width="35dp"
+                android:layout_height="35dp"/>
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/imgRepeat"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_repeat"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            app:tint="@color/white" />
+    </RelativeLayout>
+</LinearLayout>

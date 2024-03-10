@@ -61,7 +61,7 @@ class HelloService : Service() {
             .setSmallIcon(R.drawable.music)
             .setSubText("Linh Nguyen")
             .setContentTitle(song.title)
-            .setContentText("Ca sĩ: ${song.name}")
+            .setContentText("Ca sĩ: ${song.nameSinger}")
             .setLargeIcon(bitmap)
             .setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()

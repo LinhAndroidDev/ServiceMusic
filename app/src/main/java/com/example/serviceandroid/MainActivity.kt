@@ -5,6 +5,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Shader
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.View
@@ -20,18 +23,24 @@ import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
 import com.example.serviceandroid.adapter.AdvertisementAdapter
 import com.example.serviceandroid.adapter.PagerNationalAdapter
+import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TopicAdapter
+import com.example.serviceandroid.adapter.TypeList
+import com.example.serviceandroid.base.BaseActivity
 import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.helper.Constants
+import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
 import com.example.serviceandroid.service.HelloService
+import com.example.serviceandroid.service.MusicActivity
 import kotlin.math.abs
 
 
-class MainActivity : AppCompatActivity() {
+@Suppress("DEPRECATION")
+class MainActivity : BaseActivity() {
     private lateinit var mSong: Song
     private var isPlaying: Boolean = false
     private lateinit var progressMusic: CountDownTimer
@@ -48,19 +57,31 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
+        const val OBJECT_MUSIC = "OBJECT_MUSIC"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-        window.decorView.systemUiVisibility = SYSTEM_UI_FLAG_FULLSCREEN  or
-                SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(Constants.SEND_DATA_TO_ACTIVITY))
+
+        binding.tvZingChat.let {
+            val paint = it.paint
+            val width = paint.measureText(it.text.toString())
+            val textShader: Shader = LinearGradient(
+                0f,
+                0f,
+                width,
+                it.textSize,
+                intArrayOf(Color.CYAN, Color.MAGENTA, Color.YELLOW),
+                null,
+                Shader.TileMode.CLAMP
+            )
+            it.paint.shader = textShader
+        }
+
 
         binding.startMusic.setOnClickListener {
             clickStartService()
@@ -70,6 +91,7 @@ class MainActivity : AppCompatActivity() {
             sendActionToService(Action.ACTION_CLEAR)
         }
 
+        binding.tvAllNational.isSelected = true
         binding.tvAllNational.setOnClickListener {
             unSelectTvNational()
             binding.tvAllNational.isSelected = true
@@ -85,10 +107,48 @@ class MainActivity : AppCompatActivity() {
             binding.tvInternational.isSelected = true
         }
 
-        binding.pagerNewRelease.adapter = PagerNationalAdapter()
-
         initAdvertisement()
         initTopic()
+        initNewRelease()
+        initNewUpdate()
+    }
+
+    private fun initNewUpdate() {
+        val adapter = PagerNewReleaseAdapter(this, type = TypeList.TYPE_NEW_UPDATE)
+        adapter.songs = Data.listMusic().take(5) as ArrayList<Song>
+        binding.rcvNewupdate.adapter = adapter
+        adapter.onClickItem = {
+            val intent = Intent(this, MusicActivity::class.java)
+            intent.putExtra(OBJECT_MUSIC, it)
+            startActivity(intent)
+        }
+    }
+
+    private fun initNewRelease() {
+        val adapter = PagerNationalAdapter(this, type = TypeList.TYPE_NATIONAL)
+        adapter.pagerSong = songsToHashMap(Data.listMusic())
+        binding.pagerNewRelease.adapter = adapter
+        setUpTransformer(binding.pagerNewRelease, 5, 1f, 0f)
+    }
+
+    private fun songsToHashMap(songs: ArrayList<Song>): HashMap<Int, ArrayList<Song>> {
+        val hashMap = HashMap<Int, ArrayList<Song>>()
+        var index = 0
+        var list = arrayListOf<Song>()
+        for (i in 0 until songs.size) {
+            if (list.size < 3) {
+                list.add(songs[i])
+                if((i+1) == songs.size) {
+                    hashMap[index] = list
+                }
+            } else {
+                hashMap[index] = list
+                list = ArrayList()
+                index++
+                list.add(songs[i])
+            }
+        }
+        return hashMap
     }
 
     private fun unSelectTvNational() {
@@ -127,9 +187,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun initAdvertisement() {
         val advertisements = arrayListOf<Advertisement>()
-        advertisements.add(Advertisement("https://photo-resize-zmp3.zmdcdn.me/w600_r1x1_jpeg/banner/2/7/b/d/27bdc67fef29c7928298c5759de08534.jpg", "Hay nhất của V-POP", "Thiên  Lý Ơi đưa  Jack - J97 trở lại với Top Trending"))
-        advertisements.add(Advertisement("https://source.boomplaymusic.com/group10/M00/02/06/f9d04bde573f4737a9859f386331d68b_320_320.jpg", "Mới Cập Nhật", "Có Lẽ Bên Nhau Là Sai và những bản Hit tiềm năng"))
-        advertisements.add(Advertisement("https://i.ytimg.com/vi/yF1rUhDRzG0/maxresdefault.jpg", "Mới Cập Nhật", "Bản Hit Đánh Mất Em mới lạ qua giọng hát của các ca sĩ trẻ"))
+        advertisements.add(
+            Advertisement(
+                "https://photo-resize-zmp3.zmdcdn.me/w600_r1x1_jpeg/banner/2/7/b/d/27bdc67fef29c7928298c5759de08534.jpg",
+                "Hay nhất của V-POP",
+                "Thiên  Lý Ơi đưa  Jack - J97 trở lại với Top Trending"
+            )
+        )
+        advertisements.add(
+            Advertisement(
+                "https://source.boomplaymusic.com/group10/M00/02/06/f9d04bde573f4737a9859f386331d68b_320_320.jpg",
+                "Mới Cập Nhật",
+                "Có Lẽ Bên Nhau Là Sai và những bản Hit tiềm năng"
+            )
+        )
+        advertisements.add(
+            Advertisement(
+                "https://i.ytimg.com/vi/yF1rUhDRzG0/maxresdefault.jpg",
+                "Mới Cập Nhật",
+                "Bản Hit Đánh Mất Em mới lạ qua giọng hát của các ca sĩ trẻ"
+            )
+        )
         val adapter = AdvertisementAdapter(this)
         adapter.advertisements = advertisements
         binding.advertisement.adapter = adapter
@@ -184,7 +262,7 @@ class MainActivity : AppCompatActivity() {
     private fun showInfoSong() {
         binding.avatar.setImageResource(mSong.avatar)
         binding.title.text = mSong.title
-        binding.nameSingle.text = "Ca sĩ: ${mSong.name}"
+        binding.nameSingle.text = "Ca sĩ: ${mSong.nameSinger}"
         binding.bottomPlay.visibility = View.VISIBLE
         binding.progressMusic.max = mSong.time
         binding.progressMusic.progress = 0
