@@ -1,4 +1,4 @@
-package com.example.serviceandroid.service
+package com.example.serviceandroid
 
 import android.animation.ObjectAnimator
 import android.media.MediaPlayer
@@ -8,15 +8,15 @@ import android.util.Log
 import android.view.animation.LinearInterpolator
 import android.widget.SeekBar
 import com.bumptech.glide.Glide
-import com.example.serviceandroid.MainActivity
-import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseActivity
 import com.example.serviceandroid.databinding.ActivityMusicBinding
+import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Song
 
+@Suppress("DEPRECATION")
 class MusicActivity : BaseActivity() {
     private val binding by lazy { ActivityMusicBinding.inflate(layoutInflater) }
-    private lateinit var timePlay: CountDownTimer
+    private var timePlay: CountDownTimer? = null
     private var mediaPlayer: MediaPlayer? = null
     private var isPlaying = false
     private lateinit var rotationAnimator: ObjectAnimator
@@ -24,12 +24,40 @@ class MusicActivity : BaseActivity() {
     private var minus = 0
     private var currentViewingAngle = 0f
     private var isRepeat = false
+    private var index = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
-        val song: Song = intent.getSerializableExtra(MainActivity.OBJECT_MUSIC) as Song
+        index = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
+
+        binding.backMusic.setOnClickListener {
+            onBackPressed()
+        }
+        binding.imgNext.setOnClickListener {
+            if(index < Data.listMusic().size - 1) {
+                index++
+            } else {
+                index = 0
+            }
+            resetMusic()
+        }
+        binding.imgPrevious.setOnClickListener {
+            if(index > 0) {
+                index--
+                resetMusic()
+            } else {
+                index = Data.listMusic().size - 1
+            }
+            resetMusic()
+        }
+
+        resetMusic()
+    }
+
+    private fun resetMusic() {
+        val song = Data.listMusic()[index]
         Glide.with(this)
             .load(song.avatar)
             .error(R.mipmap.ic_launcher)
@@ -42,44 +70,20 @@ class MusicActivity : BaseActivity() {
         binding.progressMusic.progress = 0
 
         playMusic(song)
-
-        binding.backMusic.setOnClickListener {
-            onBackPressed()
-        }
     }
 
     private fun playMusic(song: Song) {
         rotationAnimator = ObjectAnimator.ofFloat(binding.imgSong, "rotation", 0f, 360f)
-        rotationAnimator.duration = 15000 // Đặt thời gian hoàn thành xoay (10 giây ở đây)
+        rotationAnimator.duration = 20000 // Đặt thời gian hoàn thành xoay (10 giây ở đây)
         rotationAnimator.repeatCount = ObjectAnimator.INFINITE // Lặp vô hạn
         rotationAnimator.interpolator = LinearInterpolator()
 
         mediaPlayer = MediaPlayer.create(this, song.sing)
+        mediaPlayer?.isLooping = isRepeat
 
         binding.progressMusic.max = mediaPlayer!!.duration
         binding.progressMusic.progress = 0
-        timePlay = object : CountDownTimer((mediaPlayer!!.duration).toLong(), 1000) {
-            override fun onTick(p0: Long) {
-                binding.progressMusic.progress = mediaPlayer!!.currentPosition
-                if(sds == 59) {
-                    minus += 1
-                    sds = 0
-                } else {
-                    sds += 1
-                }
-                setProgressTime()
-            }
-
-            override fun onFinish() {
-                minus = 0
-                sds = 0
-                binding.progressMusic.progress = 0
-                if(isRepeat) {
-                    mediaPlayer?.isLooping = true
-                } else cancelMusic()
-            }
-
-        }
+        resetTimer()
 
         startMusic()
 
@@ -99,13 +103,24 @@ class MusicActivity : BaseActivity() {
             override fun onProgressChanged(p0: SeekBar?, progress: Int, fromUser: Boolean) {
                 if(fromUser) {
                     mediaPlayer?.seekTo(progress)
-                    Log.e("Tiến trình", "$progress")
                     minus = (progress/1000) / 60
                     sds = (progress/1000) % 60
                     setProgressTime()
                 }
-                if(progress >= binding.progressMusic.max) {
-                    cancelMusic()
+                Log.e("Progress: ", "$progress")
+                Log.e("Max: ", "${binding.progressMusic.max}")
+                //261642
+                if(progress >= binding.progressMusic.max - 200) {
+                    if(isRepeat) {
+                        minus = 0
+                        sds = 0
+                        binding.progressMusic.progress = 0
+                        timePlay = null
+                        resetTimer()
+                        timePlay?.start()
+                    } else {
+                        cancelMusic()
+                    }
                 }
             }
 
@@ -118,6 +133,26 @@ class MusicActivity : BaseActivity() {
             }
 
         })
+    }
+
+    private fun resetTimer() {
+        timePlay = object : CountDownTimer((mediaPlayer!!.duration).toLong(), 1000) {
+            override fun onTick(p0: Long) {
+                binding.progressMusic.progress = mediaPlayer!!.currentPosition
+                if(sds == 59) {
+                    minus += 1
+                    sds = 0
+                } else {
+                    sds += 1
+                }
+                setProgressTime()
+            }
+
+            override fun onFinish() {
+
+            }
+
+        }
     }
 
     private fun setProgressTime() {
@@ -143,14 +178,14 @@ class MusicActivity : BaseActivity() {
             binding.imgSong.rotation = currentViewingAngle
         }
         binding.imgPlay.setImageResource(R.drawable.ic_pause_music)
-        timePlay.start()
+        timePlay?.start()
         mediaPlayer?.start()
         rotationAnimator.start()
     }
 
     private fun cancelMusic() {
         binding.imgPlay.setImageResource(R.drawable.ic_play_music)
-        timePlay.cancel()
+        timePlay?.cancel()
         mediaPlayer?.pause()
         rotationAnimator.cancel()
         currentViewingAngle = binding.imgSong.rotation

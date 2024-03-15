@@ -52,7 +52,7 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
 class PagerNewReleaseAdapter(private val context: Context, private val type: TypeList) :
     Adapter<PagerNewReleaseAdapter.ViewHolder>() {
     var songs: ArrayList<Song> = arrayListOf()
-    var onClickItem: ((Song) -> Unit)? = null
+    var onClickItem: ((Int) -> Unit)? = null
 
     inner class ViewHolder(val v: ItemPagerNewReleaseBinding) : RecyclerView.ViewHolder(v.root)
 
@@ -100,7 +100,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
         }
 
         holder.itemView.setOnClickListener {
-            onClickItem?.invoke(songs[position])
+            onClickItem?.invoke(position)
         }
     }
 

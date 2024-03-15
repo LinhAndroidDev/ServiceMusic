@@ -18,7 +18,7 @@
         android:theme="@style/Theme.ServiceAndroid"
         tools:targetApi="31">
         <activity
-            android:name=".service.MusicActivity"
+            android:name=".MusicActivity"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

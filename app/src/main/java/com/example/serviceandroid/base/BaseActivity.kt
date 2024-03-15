@@ -6,6 +6,7 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.example.serviceandroid.R
 
+@Suppress("DEPRECATION")
 open class BaseActivity : AppCompatActivity(){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,6 +21,7 @@ open class BaseActivity : AppCompatActivity(){
         window.statusBarColor = Color.TRANSPARENT
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         super.onBackPressed()
         overridePendingTransition(R.anim.anim_normal, R.anim.slide_down)

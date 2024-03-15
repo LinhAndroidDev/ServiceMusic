@@ -11,11 +11,6 @@ import android.graphics.Shader
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.View
-import android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
-import android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-import android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-import android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-import androidx.appcompat.app.AppCompatActivity
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
@@ -35,7 +30,6 @@ import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
 import com.example.serviceandroid.service.HelloService
-import com.example.serviceandroid.service.MusicActivity
 import kotlin.math.abs
 
 
@@ -48,7 +42,7 @@ class MainActivity : BaseActivity() {
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            mSong = intent.getSerializableExtra(Constants.OBJECT_SONG) as Song
+            mSong = intent.getParcelableExtra<Song>(Constants.OBJECT_SONG) as Song
             isPlaying = intent.getBooleanExtra(Constants.STATUS_PLAYING, false)
             handleLayoutMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
         }
@@ -57,7 +51,7 @@ class MainActivity : BaseActivity() {
 
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
-        const val OBJECT_MUSIC = "OBJECT_MUSIC"
+        const val INDEX_MUSIC = "INDEX_MUSIC"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,7 +113,7 @@ class MainActivity : BaseActivity() {
         binding.rcvNewupdate.adapter = adapter
         adapter.onClickItem = {
             val intent = Intent(this, MusicActivity::class.java)
-            intent.putExtra(OBJECT_MUSIC, it)
+            intent.putExtra(INDEX_MUSIC, it)
             startActivity(intent)
         }
     }

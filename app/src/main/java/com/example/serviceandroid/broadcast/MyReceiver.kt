@@ -7,6 +7,7 @@ import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.service.HelloService
 
+@Suppress("DEPRECATION")
 class MyReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {

@@ -1,7 +1,9 @@
 package com.example.serviceandroid.model
 
-import java.io.Serializable
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class Song(
     val title: String,
     val nameSinger: String,
@@ -9,4 +11,4 @@ data class Song(
     val sing: Int,
     val time: Int,
     val type: Int
-): Serializable
+): Parcelable

@@ -20,6 +20,7 @@ import com.example.serviceandroid.broadcast.MyReceiver
 import com.example.serviceandroid.R
 import com.example.serviceandroid.model.Song
 
+@Suppress("DEPRECATION")
 class HelloService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var isPlaying = false
@@ -36,9 +37,9 @@ class HelloService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        intent?.getSerializableExtra(MainActivity.MESSAGE_MAIN).let {
+        intent?.getParcelableExtra<Song>(MainActivity.MESSAGE_MAIN).let {
             if (it != null) {
-                mSong = it as Song
+                mSong = it
                 startMusic(mSong)
                 sendNotificationMediaType(mSong)
             }
