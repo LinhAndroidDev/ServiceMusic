@@ -21,6 +21,7 @@ enum class TypeList {
 class PagerNationalAdapter(private val context: Context, private val type: TypeList) :
     Adapter<PagerNationalAdapter.ViewHolder>() {
     var pagerSong = HashMap<Int, ArrayList<Song>>()
+    var onClickItem: ((Int) -> Unit)? = null
 
     inner class ViewHolder(val v: PagerNewReleaseBinding) : RecyclerView.ViewHolder(v.root)
 
@@ -43,6 +44,9 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
             }
         }
         holder.v.rcvPagerRelease.adapter = adapter
+        adapter.onClickItem = {
+            onClickItem?.invoke(it + position * 3)
+        }
 
     }
 

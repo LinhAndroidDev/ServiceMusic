@@ -122,6 +122,11 @@ class MainActivity : BaseActivity() {
         val adapter = PagerNationalAdapter(this, type = TypeList.TYPE_NATIONAL)
         adapter.pagerSong = songsToHashMap(Data.listMusic())
         binding.pagerNewRelease.adapter = adapter
+        adapter.onClickItem = {
+            val intent = Intent(this, MusicActivity::class.java)
+            intent.putExtra(INDEX_MUSIC, it)
+            startActivity(intent)
+        }
         setUpTransformer(binding.pagerNewRelease, 5, 1f, 0f)
     }
 

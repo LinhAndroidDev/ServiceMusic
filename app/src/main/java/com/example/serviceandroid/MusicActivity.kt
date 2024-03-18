@@ -6,7 +6,7 @@ import android.annotation.SuppressLint
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.util.Log
+import android.view.animation.AnimationUtils
 import android.view.animation.LinearInterpolator
 import android.widget.SeekBar
 import com.bumptech.glide.Glide
@@ -23,40 +23,48 @@ class MusicActivity : BaseActivity() {
     private var mediaPlayer: MediaPlayer? = null
     private var isPlaying = true
     private lateinit var rotationAnimator: ObjectAnimator
-    private var currentViewingAngle = 0f
     private var isRepeat = false
     private var isFinish = false
     private var index = 0
+    private val fadeIn by lazy { AnimationUtils.loadAnimation(this, R.anim.anim_fade_in) }
+    private val rotate45 by lazy { AnimationUtils.loadAnimation(this, R.anim.rotation_45) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
 
         index = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
-
         rotationImage()
 
         binding.backMusic.setOnClickListener {
             onBackPressed()
         }
         binding.imgNext.setOnClickListener {
-            if(index < Data.listMusic().size - 1) {
-                index++
-            } else {
-                index = 0
-            }
-            resetMusic()
+            nextSong()
         }
         binding.imgPrevious.setOnClickListener {
-            if(index > 0) {
-                index--
-                resetMusic()
-            } else {
-                index = Data.listMusic().size - 1
-            }
-            resetMusic()
+            previousSong()
         }
 
+        resetMusic()
+    }
+
+    private fun previousSong() {
+        if (index > 0) {
+            index--
+            resetMusic()
+        } else {
+            index = Data.listMusic().size - 1
+        }
+        resetMusic()
+    }
+
+    private fun nextSong() {
+        if (index < Data.listMusic().size - 1) {
+            index++
+        } else {
+            index = 0
+        }
         resetMusic()
     }
 
@@ -76,9 +84,10 @@ class MusicActivity : BaseActivity() {
         val song = Data.listMusic()[index]
         Glide.with(this)
             .load(song.avatar)
-            .error(R.mipmap.ic_launcher)
-            .placeholder(R.mipmap.ic_launcher)
+            .error(R.drawable.ic_circle)
+            .placeholder(R.drawable.ic_circle)
             .into(binding.imgSong)
+        binding.imgSong.startAnimation(fadeIn)
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
 
@@ -102,28 +111,33 @@ class MusicActivity : BaseActivity() {
                 cancelMusic()
                 false
             }
+            binding.imgPlay.startAnimation(rotate45)
         }
 
         binding.imgRepeat.setOnClickListener {
             isRepeat = !isRepeat
             binding.imgRepeat.setImageResource(
-                if(isRepeat) R.drawable.ic_repeat_one else R.drawable.ic_repeat
+                if (isRepeat) R.drawable.ic_repeat_one else R.drawable.ic_repeat
             )
         }
 
-        binding.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener{
+        binding.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, progress: Int, fromUser: Boolean) {
-                if(fromUser) {
+                if (fromUser) {
                     mediaPlayer?.seekTo(progress)
                     setProgressTime()
                 }
-                if(isFinish) {
-                    if(isRepeat) {
+                if (isFinish) {
+                    isFinish = false
+                    if (isRepeat) {
+                        mediaPlayer?.isLooping = true
+                        mediaPlayer?.start()
                         timePlay = null
-                        resetMusic()
+                        resetTimer()
                         timePlay?.start()
                     } else {
-                        cancelMusic()
+                        mediaPlayer?.isLooping = false
+                        nextSong()
                     }
                 }
             }

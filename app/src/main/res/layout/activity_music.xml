@@ -5,43 +5,44 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
-    tools:context=".MusicActivity"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    tools:context=".MusicActivity">
 
     <RelativeLayout
-        android:layout_marginTop="40dp"
-        android:layout_marginHorizontal="15dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="15dp"
+        android:layout_marginTop="40dp">
+
         <ImageView
             android:id="@+id/backMusic"
-            android:src="@drawable/ic_back"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            app:tint="@color/white" />
-        
+            android:src="@drawable/ic_back"
+            app:tint="@color/white"
+            tools:ignore="ContentDescription" />
+
         <LinearLayout
-            android:layout_centerHorizontal="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
-            
-            <TextView
-                android:text="PHÁT TỪ"
-                android:textColor="@color/txt_hint"
-                android:textSize="12sp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+            android:layout_centerHorizontal="true"
+            android:gravity="center"
+            android:orientation="vertical">
 
             <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PHÁT TỪ"
+                android:textColor="@color/txt_hint"
+                android:textSize="12sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="#zingchart"
                 android:textColor="@color/text_white"
                 android:textSize="12sp"
-                android:textStyle="bold"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:textStyle="bold" />
         </LinearLayout>
 
         <ImageView
@@ -51,68 +52,69 @@
             android:src="@drawable/ic_menu"
             app:tint="@color/white" />
     </RelativeLayout>
-    
+
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/imgSong"
-        android:layout_marginTop="30dp"
-        android:layout_gravity="center"
-        android:src="@drawable/la_lung"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:elevation="10dp"/>
-    
+        android:layout_gravity="center"
+        android:layout_marginTop="30dp"
+        android:elevation="10dp" />
+
     <RelativeLayout
-        android:layout_marginTop="40dp"
-        android:layout_marginHorizontal="20dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="40dp">
 
         <ImageView
-            android:layout_centerVertical="true"
-            android:src="@drawable/ic_share"
             android:layout_width="25dp"
             android:layout_height="25dp"
+            android:layout_centerVertical="true"
+            android:src="@drawable/ic_share"
             app:tint="@color/white" />
 
         <LinearLayout
-            android:layout_centerHorizontal="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center">
+            android:layout_centerHorizontal="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
             <TextView
                 android:id="@+id/tvNameSong"
-                android:text="Thuỷ Triều"
-                android:textSize="18sp"
-                android:textColor="@color/text_white"
-                android:textStyle="bold"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:text="Thuỷ Triều"
+                android:textColor="@color/text_white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvNameSinger"
-                android:text="Quang Hùng MasterD"
-                android:textSize="14sp"
-                android:textColor="@color/txt_hint"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:text="Quang Hùng MasterD"
+                android:textColor="@color/txt_hint"
+                android:textSize="14sp" />
         </LinearLayout>
 
         <ImageView
+            android:layout_width="25dp"
+            android:layout_height="25dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:src="@drawable/ic_favourite_thin"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
-            app:tint="@color/white" />
+            app:tint="@color/white"
+            tools:ignore="ContentDescription" />
     </RelativeLayout>
 
     <SeekBar
         android:id="@+id/progressMusic"
-        android:layout_marginTop="30dp"
-        android:layout_marginHorizontal="5dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginHorizontal="5dp"
+        android:layout_marginTop="30dp"
         android:max="100"
         android:min="0"
         android:progress="20"
@@ -121,76 +123,76 @@
         android:thumb="@drawable/circle_seekbar" />
 
     <RelativeLayout
-        android:layout_marginTop="5dp"
-        android:layout_marginHorizontal="20dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="5dp">
 
         <TextView
             android:id="@+id/tvProgressTime"
-            android:text="0:00"
-            android:textSize="12sp"
-            android:textColor="@color/white"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:text="0:00"
+            android:textColor="@color/white"
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/tvTotalTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:text="3:06"
-            android:textSize="12sp"
             android:textColor="@color/white"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:textSize="12sp" />
     </RelativeLayout>
 
     <RelativeLayout
-        android:layout_marginTop="20dp"
-        android:layout_marginHorizontal="20dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginTop="20dp">
 
         <ImageView
-            android:layout_centerVertical="true"
-            android:src="@drawable/icon_random"
             android:layout_width="25dp"
             android:layout_height="25dp"
+            android:layout_centerVertical="true"
+            android:src="@drawable/icon_random"
             app:tint="@color/white" />
 
         <LinearLayout
-            android:layout_centerHorizontal="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
             android:gravity="center">
 
             <ImageView
                 android:id="@+id/imgPrevious"
-                android:src="@drawable/skip_previous"
                 android:layout_width="35dp"
-                android:layout_height="35dp"/>
+                android:layout_height="35dp"
+                android:src="@drawable/skip_previous" />
 
             <ImageView
                 android:id="@+id/imgPlay"
-                android:layout_marginHorizontal="20dp"
-                android:src="@drawable/ic_play_music"
                 android:layout_width="80dp"
                 android:layout_height="80dp"
+                android:layout_marginHorizontal="20dp"
+                android:src="@drawable/ic_play_music"
                 app:tint="@color/white" />
 
             <ImageView
                 android:id="@+id/imgNext"
-                android:src="@drawable/skip_next"
                 android:layout_width="35dp"
-                android:layout_height="35dp"/>
+                android:layout_height="35dp"
+                android:src="@drawable/skip_next" />
         </LinearLayout>
 
         <ImageView
             android:id="@+id/imgRepeat"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:src="@drawable/ic_repeat"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
             app:tint="@color/white" />
     </RelativeLayout>
 </LinearLayout>
