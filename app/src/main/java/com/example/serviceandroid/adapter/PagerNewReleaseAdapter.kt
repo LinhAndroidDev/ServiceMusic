@@ -2,13 +2,10 @@ package com.example.serviceandroid.adapter
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.Adapter
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.R
+import com.example.serviceandroid.base.BaseAdapter
 import com.example.serviceandroid.databinding.ItemPagerNewReleaseBinding
 import com.example.serviceandroid.databinding.PagerNewReleaseBinding
 import com.example.serviceandroid.model.Song
@@ -19,61 +16,48 @@ enum class TypeList {
 }
 
 class PagerNationalAdapter(private val context: Context, private val type: TypeList) :
-    Adapter<PagerNationalAdapter.ViewHolder>() {
+    BaseAdapter<HashMap<Int, ArrayList<Song>>, PagerNewReleaseBinding>() {
     var pagerSong = HashMap<Int, ArrayList<Song>>()
     var onClickItem: ((Int) -> Unit)? = null
+    private lateinit var adapterSong: PagerNewReleaseAdapter
 
-    inner class ViewHolder(val v: PagerNewReleaseBinding) : RecyclerView.ViewHolder(v.root)
+    override fun getLayout(): Int = R.layout.pager_new_release
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): PagerNationalAdapter.ViewHolder = ViewHolder(
-        PagerNewReleaseBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
-    )
+    @SuppressLint("NotifyDataSetChanged")
+    fun resetList(list: HashMap<Int, ArrayList<Song>>) {
+        pagerSong.clear()
+        pagerSong = list
+        notifyDataSetChanged()
+    }
 
-    override fun onBindViewHolder(holder: PagerNationalAdapter.ViewHolder, position: Int) {
-        val adapter = PagerNewReleaseAdapter(context, type)
+    override fun onBindViewHolder(holder: BaseViewHolder<PagerNewReleaseBinding>, position: Int) {
+        adapterSong = PagerNewReleaseAdapter(context, type)
         pagerSong[position].let {
             if (it != null) {
-                adapter.songs = it
+                adapterSong.items = it
             }
         }
-        holder.v.rcvPagerRelease.adapter = adapter
-        adapter.onClickItem = {
+        holder.v.rcvPagerRelease.adapter = adapterSong
+        adapterSong.onClickItem = {
             onClickItem?.invoke(it + position * 3)
         }
-
     }
 
     override fun getItemCount(): Int = pagerSong.size
 }
 
 class PagerNewReleaseAdapter(private val context: Context, private val type: TypeList) :
-    Adapter<PagerNewReleaseAdapter.ViewHolder>() {
-    var songs: ArrayList<Song> = arrayListOf()
+    BaseAdapter<Song, ItemPagerNewReleaseBinding>() {
     var onClickItem: ((Int) -> Unit)? = null
 
-    inner class ViewHolder(val v: ItemPagerNewReleaseBinding) : RecyclerView.ViewHolder(v.root)
-
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): PagerNewReleaseAdapter.ViewHolder = ViewHolder(
-        ItemPagerNewReleaseBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
-    )
+    override fun getLayout(): Int = R.layout.item_pager_new_release
 
     @SuppressLint("SetTextI18n")
-    override fun onBindViewHolder(holder: PagerNewReleaseAdapter.ViewHolder, position: Int) {
-        songs[position].let {
+    override fun onBindViewHolder(
+        holder: BaseViewHolder<ItemPagerNewReleaseBinding>,
+        position: Int
+    ) {
+        items[position].let {
             Glide.with(context)
                 .load(it.avatar)
                 .error(R.mipmap.ic_launcher)
@@ -95,10 +79,10 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
                     holder.v.tvIndex.text = "${position + 1}"
                     holder.v.tvNameSong.setTextColor(context.getColor(R.color.text_white))
                     holder.v.tvTime.visibility = View.GONE
-                    holder.v.cvRoundImg.layoutParams.width =
-                        context.resources.getDimensionPixelSize(R.dimen.width_img)
-                    holder.v.cvRoundImg.layoutParams.height =
-                        context.resources.getDimensionPixelSize(R.dimen.height_img)
+                    holder.v.cvRoundImg.layoutParams.apply {
+                        width = context.resources.getDimensionPixelSize(R.dimen.width_img)
+                        height = context.resources.getDimensionPixelSize(R.dimen.height_img)
+                    }
                 }
             }
         }
@@ -107,6 +91,4 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
             onClickItem?.invoke(position)
         }
     }
-
-    override fun getItemCount(): Int = songs.size
 }

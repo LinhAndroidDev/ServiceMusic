@@ -6,4 +6,6 @@ object Constants {
     const val ACTION_MUSIC = "ACTION_MUSIC"
     const val SEND_DATA_TO_ACTIVITY = "SEND_DATA_TO_ACTIVITY"
     const val RECEIVER_ACTION_MUSIC = "RECEIVER_ACTION_MUSIC"
+    const val MINUTES = "mm:ss"
+    const val TIME_ROTATE = 20000
 }

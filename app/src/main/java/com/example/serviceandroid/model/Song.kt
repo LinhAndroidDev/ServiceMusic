@@ -11,4 +11,12 @@ data class Song(
     val sing: Int,
     val time: Int,
     val type: Int
-): Parcelable
+) : Parcelable {
+    fun checkMusicNational(national: National): Boolean {
+        return when (national) {
+            National.VIETNAMESE -> type == 0
+            National.INTERNATIONAL -> type == 1
+            else -> true
+        }
+    }
+}

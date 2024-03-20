@@ -11,6 +11,7 @@ import android.graphics.Shader
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.View
+import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
@@ -27,9 +28,12 @@ import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Advertisement
+import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
 import com.example.serviceandroid.service.HelloService
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 
@@ -39,6 +43,8 @@ class MainActivity : BaseActivity() {
     private var isPlaying: Boolean = false
     private lateinit var progressMusic: CountDownTimer
     private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
+    private var national = National.ALL_NATIONAL
+    private lateinit var adapterNational: PagerNationalAdapter
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -87,18 +93,42 @@ class MainActivity : BaseActivity() {
 
         binding.tvAllNational.isSelected = true
         binding.tvAllNational.setOnClickListener {
-            unSelectTvNational()
-            binding.tvAllNational.isSelected = true
+            lifecycleScope.launch {
+                async {
+                    unSelectTvNational()
+                    binding.tvAllNational.isSelected = true
+                    national = National.ALL_NATIONAL
+                }.await()
+                async {
+                    resetInterNational()
+                }.await()
+            }
         }
 
         binding.tvVietNam.setOnClickListener {
-            unSelectTvNational()
-            binding.tvVietNam.isSelected = true
+            lifecycleScope.launch {
+                async {
+                    unSelectTvNational()
+                    binding.tvVietNam.isSelected = true
+                    national = National.VIETNAMESE
+                }.await()
+                async {
+                    resetInterNational()
+                }.await()
+            }
         }
 
         binding.tvInternational.setOnClickListener {
-            unSelectTvNational()
-            binding.tvInternational.isSelected = true
+            lifecycleScope.launch {
+                async {
+                    unSelectTvNational()
+                    binding.tvInternational.isSelected = true
+                    national = National.INTERNATIONAL
+                }.await()
+                async {
+                    resetInterNational()
+                }.await()
+            }
         }
 
         initAdvertisement()
@@ -107,9 +137,17 @@ class MainActivity : BaseActivity() {
         initNewUpdate()
     }
 
+    private fun resetInterNational() {
+        adapterNational.resetList(
+            songsToHashMap(Data.listMusic().filter {
+                it.checkMusicNational(national)
+            } as ArrayList<Song>)
+        )
+    }
+
     private fun initNewUpdate() {
         val adapter = PagerNewReleaseAdapter(this, type = TypeList.TYPE_NEW_UPDATE)
-        adapter.songs = Data.listMusic().take(5) as ArrayList<Song>
+        adapter.items = Data.listMusic().take(5) as ArrayList<Song>
         binding.rcvNewupdate.adapter = adapter
         adapter.onClickItem = {
             val intent = Intent(this, MusicActivity::class.java)
@@ -119,10 +157,10 @@ class MainActivity : BaseActivity() {
     }
 
     private fun initNewRelease() {
-        val adapter = PagerNationalAdapter(this, type = TypeList.TYPE_NATIONAL)
-        adapter.pagerSong = songsToHashMap(Data.listMusic())
-        binding.pagerNewRelease.adapter = adapter
-        adapter.onClickItem = {
+        adapterNational = PagerNationalAdapter(this, type = TypeList.TYPE_NATIONAL)
+        adapterNational.pagerSong = songsToHashMap(Data.listMusic())
+        binding.pagerNewRelease.adapter = adapterNational
+        adapterNational.onClickItem = {
             val intent = Intent(this, MusicActivity::class.java)
             intent.putExtra(INDEX_MUSIC, it)
             startActivity(intent)
@@ -299,7 +337,6 @@ class MainActivity : BaseActivity() {
     private fun sendActionToService(action: Action) {
         val intent = Intent(this, HelloService::class.java)
         intent.putExtra(Constants.RECEIVER_ACTION_MUSIC, action)
-
         startService(intent)
     }
 }
