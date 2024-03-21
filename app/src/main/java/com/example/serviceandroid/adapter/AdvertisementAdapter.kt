@@ -5,12 +5,11 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Adapter
-import com.bumptech.glide.Glide
-import com.example.serviceandroid.R
+import coil.load
 import com.example.serviceandroid.databinding.ItemAdvertisementBinding
 import com.example.serviceandroid.model.Advertisement
 
-class AdvertisementAdapter(private val context: Context) : Adapter<AdvertisementAdapter.ViewHolder>() {
+class AdvertisementAdapter : Adapter<AdvertisementAdapter.ViewHolder>() {
     var advertisements = arrayListOf<Advertisement>()
 
     inner class ViewHolder(val v: ItemAdvertisementBinding) : RecyclerView.ViewHolder(v.root)
@@ -24,11 +23,9 @@ class AdvertisementAdapter(private val context: Context) : Adapter<Advertisement
     }
 
     override fun onBindViewHolder(holder: AdvertisementAdapter.ViewHolder, position: Int) {
-        Glide.with(context)
-            .load(advertisements[position].image)
-            .error(R.drawable.ic_launcher_background)
-            .placeholder(R.mipmap.ic_launcher)
-            .centerCrop().into(holder.v.img)
+        holder.v.img.load(advertisements[position].image) {
+            crossfade(true)
+        }
 
         holder.v.update.text = advertisements[position].update
         holder.v.detail.text = advertisements[position].detail

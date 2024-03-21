@@ -7,4 +7,5 @@ enum class Action {
     ACTION_START,
     ACTION_NEXT,
     ACTION_PREVIOUS,
+    ACTION_FINISH,
 }

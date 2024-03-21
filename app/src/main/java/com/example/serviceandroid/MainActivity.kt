@@ -9,7 +9,9 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Shader
 import android.os.Bundle
-import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -32,17 +34,19 @@ import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
 import com.example.serviceandroid.service.HelloService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 
 @Suppress("DEPRECATION")
-class MainActivity : BaseActivity() {
+class MainActivity : BaseActivity<ActivityMainBinding>() {
     private lateinit var mSong: Song
     private var isPlaying: Boolean = false
-    private lateinit var progressMusic: CountDownTimer
-    private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
+    private var progressMusic = Handler(Looper.getMainLooper())
     private var national = National.ALL_NATIONAL
     private lateinit var adapterNational: PagerNationalAdapter
 
@@ -52,7 +56,6 @@ class MainActivity : BaseActivity() {
             isPlaying = intent.getBooleanExtra(Constants.STATUS_PLAYING, false)
             handleLayoutMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
         }
-
     }
 
     companion object {
@@ -62,11 +65,18 @@ class MainActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(binding.root)
 
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(Constants.SEND_DATA_TO_ACTIVITY))
 
+        initView()
+        onClickView()
+    }
+
+    private fun initView() {
+        /**
+         * Change Color According To Text Gradient
+         */
         binding.tvZingChat.let {
             val paint = it.paint
             val width = paint.measureText(it.text.toString())
@@ -82,7 +92,27 @@ class MainActivity : BaseActivity() {
             it.paint.shader = textShader
         }
 
+        lifecycleScope.launch {
+            delay(500)
+            withContext(Dispatchers.Main) {
+                initAdvertisement()
+                initTopic()
+                delay(1000)
+                withContext(Dispatchers.Main) {
+                    initNewRelease()
+                    delay(3000)
+                    withContext(Dispatchers.Main) {
+                        initNewUpdate()
+                    }
+                }
+            }
+        }
+    }
 
+    /**
+     * Catch Click View Components Event
+     */
+    private fun onClickView() {
         binding.startMusic.setOnClickListener {
             clickStartService()
         }
@@ -100,7 +130,7 @@ class MainActivity : BaseActivity() {
                     national = National.ALL_NATIONAL
                 }.await()
                 async {
-                    resetInterNational()
+                    resetMusicInterNational()
                 }.await()
             }
         }
@@ -113,7 +143,7 @@ class MainActivity : BaseActivity() {
                     national = National.VIETNAMESE
                 }.await()
                 async {
-                    resetInterNational()
+                    resetMusicInterNational()
                 }.await()
             }
         }
@@ -126,18 +156,25 @@ class MainActivity : BaseActivity() {
                     national = National.INTERNATIONAL
                 }.await()
                 async {
-                    resetInterNational()
+                    resetMusicInterNational()
                 }.await()
             }
         }
 
-        initAdvertisement()
-        initTopic()
-        initNewRelease()
-        initNewUpdate()
+        binding.play.setOnClickListener {
+            if (binding.progressMusic.progress == binding.progressMusic.max && !isPlaying) {
+                sendActionToService(Action.ACTION_START)
+            } else {
+                sendActionToService(if (isPlaying) Action.ACTION_PAUSE else Action.ACTION_RESUME)
+            }
+        }
+
+        binding.close.setOnClickListener {
+            sendActionToService(Action.ACTION_CLEAR)
+        }
     }
 
-    private fun resetInterNational() {
+    private fun resetMusicInterNational() {
         adapterNational.resetList(
             songsToHashMap(Data.listMusic().filter {
                 it.checkMusicNational(national)
@@ -215,11 +252,13 @@ class MainActivity : BaseActivity() {
             val r = 1 - abs(position)
             page.scaleY = a + r * b
         }
-        vpg2.setPageTransformer(transformer)
-        vpg2.offscreenPageLimit = 3
-        vpg2.clipToPadding = false
-        vpg2.clipChildren = false
-        vpg2.getChildAt(0).overScrollMode = RecyclerView.OVER_SCROLL_NEVER
+        vpg2.apply {
+            setPageTransformer(transformer)
+            offscreenPageLimit = 3
+            clipToPadding = false
+            clipChildren = false
+            getChildAt(0).overScrollMode = RecyclerView.OVER_SCROLL_NEVER
+        }
     }
 
     private fun initAdvertisement() {
@@ -245,10 +284,9 @@ class MainActivity : BaseActivity() {
                 "Bản Hit Đánh Mất Em mới lạ qua giọng hát của các ca sĩ trẻ"
             )
         )
-        val adapter = AdvertisementAdapter(this)
+        val adapter = AdvertisementAdapter()
         adapter.advertisements = advertisements
         binding.advertisement.adapter = adapter
-
         setUpTransformer(binding.advertisement, 5, 1f, 0f)
     }
 
@@ -279,18 +317,15 @@ class MainActivity : BaseActivity() {
             }
 
             Action.ACTION_RESUME -> {
-                progressMusic.start()
                 setStatusButtonPlay()
             }
 
             Action.ACTION_PAUSE -> {
-                progressMusic.cancel()
                 setStatusButtonPlay()
             }
 
             else -> {
                 binding.bottomPlay.visibility = View.GONE
-                progressMusic.cancel()
             }
         }
     }
@@ -304,28 +339,15 @@ class MainActivity : BaseActivity() {
         binding.progressMusic.max = mSong.time
         binding.progressMusic.progress = 0
 
-        progressMusic = object : CountDownTimer(((mSong.time * 1000).toLong()), 1000) {
-            override fun onTick(p0: Long) {
-                binding.progressMusic.progress += 1
+        progressMusic.postDelayed(object : Runnable {
+            override fun run() {
+                if(isPlaying) {
+                    binding.progressMusic.progress += 1
+                }
+                progressMusic.postDelayed(this, 1000)
             }
 
-            override fun onFinish() {
-                sendActionToService(Action.ACTION_PAUSE)
-            }
-
-        }.start()
-
-        binding.play.setOnClickListener {
-            if (binding.progressMusic.progress == binding.progressMusic.max && !isPlaying) {
-                sendActionToService(Action.ACTION_START)
-            } else {
-                sendActionToService(if (isPlaying) Action.ACTION_PAUSE else Action.ACTION_RESUME)
-            }
-        }
-
-        binding.close.setOnClickListener {
-            sendActionToService(Action.ACTION_CLEAR)
-        }
+        }, 0)
     }
 
     private fun setStatusButtonPlay() {
@@ -339,4 +361,7 @@ class MainActivity : BaseActivity() {
         intent.putExtra(Constants.RECEIVER_ACTION_MUSIC, action)
         startService(intent)
     }
+
+    override fun getActivityBinding(inflater: LayoutInflater) =
+        ActivityMainBinding.inflate(inflater)
 }

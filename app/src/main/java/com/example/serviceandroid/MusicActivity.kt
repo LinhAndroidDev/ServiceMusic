@@ -5,6 +5,7 @@ import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.LayoutInflater
 import android.view.animation.AnimationUtils
 import android.widget.SeekBar
 import com.bumptech.glide.Glide
@@ -18,8 +19,7 @@ import com.example.serviceandroid.utils.CustomAnimator
 import java.text.SimpleDateFormat
 
 @Suppress("DEPRECATION")
-class MusicActivity : BaseActivity() {
-    private val binding by lazy { ActivityMusicBinding.inflate(layoutInflater) }
+class MusicActivity : BaseActivity<ActivityMusicBinding>() {
     private val timePlay = Handler(Looper.getMainLooper())
     private var mediaPlayer: MediaPlayer? = null
     private var isPlaying = true
@@ -31,7 +31,6 @@ class MusicActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(binding.root)
 
         index = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
         CustomAnimator.rotationImage(binding.imgSong)
@@ -39,6 +38,9 @@ class MusicActivity : BaseActivity() {
         initMusic()
     }
 
+    /**
+     * Catch Click View Components Event
+     */
     private fun onClickView() {
         binding.backMusic.setOnClickListener {
             onBackPressed()
@@ -75,25 +77,13 @@ class MusicActivity : BaseActivity() {
                     setProgressTime()
                 }
                 if (isFinish) {
-                    isFinish = false
-                    if (isRepeat) {
-                        mediaPlayer?.isLooping = true
-                        mediaPlayer?.start()
-                        resetTimer()
-                    } else {
-                        mediaPlayer?.isLooping = false
-                        handlerActionMusic(Action.ACTION_NEXT)
-                    }
+                    handlerActionMusic(Action.ACTION_FINISH)
                 }
             }
 
-            override fun onStartTrackingTouch(p0: SeekBar?) {
+            override fun onStartTrackingTouch(p0: SeekBar?) {}
 
-            }
-
-            override fun onStopTrackingTouch(p0: SeekBar?) {
-
-            }
+            override fun onStopTrackingTouch(p0: SeekBar?) {}
 
         })
     }
@@ -111,12 +101,6 @@ class MusicActivity : BaseActivity() {
         binding.tvNameSinger.text = song.nameSinger
 
         playMusic(song)
-    }
-
-    private fun resetMusic() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
     }
 
     @SuppressLint("SimpleDateFormat")
@@ -147,37 +131,30 @@ class MusicActivity : BaseActivity() {
         }, 0)
     }
 
+    /**
+     * Handle Music Playing Actions Here
+     */
     private fun handlerActionMusic(action: Action) {
         when (action) {
-            Action.ACTION_START -> {
-                startMusic()
-            }
-
-            Action.ACTION_PAUSE -> {
-                pauseMusic()
-            }
-
-            Action.ACTION_RESUME -> {
-                startMusic()
-            }
-
-            Action.ACTION_NEXT -> {
-                nextSong()
-            }
-
-            Action.ACTION_PREVIOUS -> {
-                previousSong()
-            }
-
-            else -> {
-
-            }
+            Action.ACTION_START -> startMusic()
+            Action.ACTION_PAUSE -> pauseMusic()
+            Action.ACTION_RESUME -> startMusic()
+            Action.ACTION_NEXT -> nextSong()
+            Action.ACTION_PREVIOUS -> previousSong()
+            Action.ACTION_FINISH -> finishMusic()
+            else -> {}
         }
     }
 
     @SuppressLint("SimpleDateFormat")
     private fun setProgressTime() {
         binding.tvProgressTime.text = SimpleDateFormat(Constants.MINUTES).format(mediaPlayer?.currentPosition)
+    }
+
+    private fun resetMusic() {
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
 
     private fun startMusic() {
@@ -213,6 +190,18 @@ class MusicActivity : BaseActivity() {
         initMusic()
     }
 
+    private fun finishMusic() {
+        isFinish = false
+        if (isRepeat) {
+            mediaPlayer?.isLooping = true
+            mediaPlayer?.start()
+            resetTimer()
+        } else {
+            mediaPlayer?.isLooping = false
+            handlerActionMusic(Action.ACTION_NEXT)
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         handlerActionMusic(Action.ACTION_PAUSE)
@@ -222,4 +211,8 @@ class MusicActivity : BaseActivity() {
         super.onDestroy()
         handlerActionMusic(Action.ACTION_PAUSE)
     }
+
+    override fun getActivityBinding(inflater: LayoutInflater) =
+        ActivityMusicBinding.inflate(inflater)
+
 }

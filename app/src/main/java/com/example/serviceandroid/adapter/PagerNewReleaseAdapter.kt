@@ -3,7 +3,7 @@ package com.example.serviceandroid.adapter
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
-import com.bumptech.glide.Glide
+import coil.load
 import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseAdapter
 import com.example.serviceandroid.databinding.ItemPagerNewReleaseBinding
@@ -57,31 +57,35 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
         holder: BaseViewHolder<ItemPagerNewReleaseBinding>,
         position: Int
     ) {
-        items[position].let {
-            Glide.with(context)
-                .load(it.avatar)
-                .error(R.mipmap.ic_launcher)
-                .placeholder(R.mipmap.ic_launcher)
-                .into(holder.v.imgSong)
-
-            holder.v.tvNameSong.text = it.title
-            holder.v.tvNameSinger.text = it.nameSinger
+        holder.v.apply {
+            items[position].let {
+                imgSong.load(it.avatar) {
+                    crossfade(true)
+                    placeholder(R.drawable.bg_grey_corner_5)
+                }
+                tvNameSong.text = it.title
+                tvNameSinger.text = it.nameSinger
+            }
 
             when (type) {
                 TypeList.TYPE_NATIONAL -> {
-                    holder.v.layoutIndex.visibility = View.GONE
-                    holder.v.tvNameSong.setTextColor(context.getColor(R.color.text_black))
-                    holder.v.tvTime.visibility = View.VISIBLE
+                    holder.v.apply {
+                        layoutIndex.visibility = View.GONE
+                        tvNameSong.setTextColor(context.getColor(R.color.text_black))
+                        tvTime.visibility = View.VISIBLE
+                    }
                 }
 
                 else -> {
-                    holder.v.layoutIndex.visibility = View.VISIBLE
-                    holder.v.tvIndex.text = "${position + 1}"
-                    holder.v.tvNameSong.setTextColor(context.getColor(R.color.text_white))
-                    holder.v.tvTime.visibility = View.GONE
-                    holder.v.cvRoundImg.layoutParams.apply {
-                        width = context.resources.getDimensionPixelSize(R.dimen.width_img)
-                        height = context.resources.getDimensionPixelSize(R.dimen.height_img)
+                    holder.v.apply {
+                        layoutIndex.visibility = View.VISIBLE
+                        tvIndex.text = "${position + 1}"
+                        tvNameSong.setTextColor(context.getColor(R.color.text_white))
+                        tvTime.visibility = View.GONE
+                        cvRoundImg.layoutParams.apply {
+                            width = context.resources.getDimensionPixelSize(R.dimen.width_img)
+                            height = context.resources.getDimensionPixelSize(R.dimen.height_img)
+                        }
                     }
                 }
             }
