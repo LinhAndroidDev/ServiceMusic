@@ -1,5 +1,6 @@
 package com.example.serviceandroid.base
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
@@ -25,4 +26,11 @@ abstract class BaseAdapter<T : Any, VB : ViewDataBinding> :
         )
 
     override fun getItemCount(): Int = items.size
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun resetList(list: ArrayList<T>) {
+        items.clear()
+        items.addAll(list)
+        notifyDataSetChanged()
+    }
 }

@@ -16,9 +16,12 @@ abstract class BaseActivity<VB: ViewBinding> : AppCompatActivity(){
 
         binding = getActivityBinding(layoutInflater)
         setContentView(binding.root)
-
-        fullScreen()
         overridePendingTransition(R.anim.slide_up, R.anim.anim_normal)
+        changeColorStatusBar(Color.WHITE)
+    }
+
+    fun changeColorStatusBar(color: Int) {
+        window.statusBarColor = color
     }
 
     private fun fullScreen() {

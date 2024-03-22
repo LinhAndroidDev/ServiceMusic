@@ -1,6 +1,7 @@
 package com.example.serviceandroid
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
@@ -32,6 +33,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        changeColorStatusBar(Color.BLACK)
         index = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
         CustomAnimator.rotationImage(binding.imgSong)
         onClickView()

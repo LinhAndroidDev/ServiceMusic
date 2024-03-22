@@ -21,6 +21,7 @@ enum class ActionBottomBar {
 
 class CustomBottomBar : LinearLayout {
     private val binding by lazy { CustomBottomBarBinding.inflate(LayoutInflater.from(context)) }
+    var selectedItem: ((ActionBottomBar) -> Unit)? = null
 
     constructor(context: Context?) : super(context) {
         initView()
@@ -47,7 +48,7 @@ class CustomBottomBar : LinearLayout {
         addView(binding.root)
 
         binding.bgBottom.setOnTouchListener { _, _ -> true }
-
+        handlerActionBottomBar(ActionBottomBar.DISCOVER)
         binding.library.setOnClickListener {
             handlerActionBottomBar(ActionBottomBar.LIBRARY)
         }
@@ -68,38 +69,43 @@ class CustomBottomBar : LinearLayout {
     private fun handlerActionBottomBar(action: ActionBottomBar) {
         when (action) {
             ActionBottomBar.LIBRARY -> {
+                selectedItem?.invoke(ActionBottomBar.LIBRARY)
                 unSelectAllItem()
-                binding.tvLibrary.setTextColor(context.getColor(R.color.purple_1))
+                binding.tvLibrary.setTextColor(context.getColor(R.color.bg_purple))
                 binding.tvLibrary.typeface = Typeface.DEFAULT_BOLD
-                binding.imgLibrary.setColorFilter(context.getColor(R.color.purple_1))
+                binding.imgLibrary.setColorFilter(context.getColor(R.color.bg_purple))
             }
 
             ActionBottomBar.DISCOVER -> {
+                selectedItem?.invoke(ActionBottomBar.DISCOVER)
                 unSelectAllItem()
-                binding.tvDiscover.setTextColor(context.getColor(R.color.purple_1))
+                binding.tvDiscover.setTextColor(context.getColor(R.color.bg_purple))
                 binding.tvDiscover.typeface = Typeface.DEFAULT_BOLD
-                binding.imgDiscover.setColorFilter(context.getColor(R.color.purple_1))
+                binding.imgDiscover.setColorFilter(context.getColor(R.color.bg_purple))
             }
 
             ActionBottomBar.ZINGCHART -> {
+                selectedItem?.invoke(ActionBottomBar.ZINGCHART)
                 unSelectAllItem()
-                binding.tvZingchart.setTextColor(context.getColor(R.color.purple_1))
+                binding.tvZingchart.setTextColor(context.getColor(R.color.bg_purple))
                 binding.tvZingchart.typeface = Typeface.DEFAULT_BOLD
-                binding.imgZingchart.setColorFilter(context.getColor(R.color.purple_1))
+                binding.imgZingchart.setColorFilter(context.getColor(R.color.bg_purple))
             }
 
             ActionBottomBar.RADIO -> {
+                selectedItem?.invoke(ActionBottomBar.RADIO)
                 unSelectAllItem()
-                binding.tvRadio.setTextColor(context.getColor(R.color.purple_1))
+                binding.tvRadio.setTextColor(context.getColor(R.color.bg_purple))
                 binding.tvRadio.typeface = Typeface.DEFAULT_BOLD
-                binding.imgRadio.setColorFilter(context.getColor(R.color.purple_1))
+                binding.imgRadio.setColorFilter(context.getColor(R.color.bg_purple))
             }
 
-            else -> {
+            ActionBottomBar.PROFILE -> {
+                selectedItem?.invoke(ActionBottomBar.PROFILE)
                 unSelectAllItem()
-                binding.tvProfile.setTextColor(context.getColor(R.color.purple_1))
+                binding.tvProfile.setTextColor(context.getColor(R.color.bg_purple))
                 binding.tvProfile.typeface = Typeface.DEFAULT_BOLD
-                binding.imgProfile.setColorFilter(context.getColor(R.color.purple_1))
+                binding.imgProfile.setColorFilter(context.getColor(R.color.bg_purple))
             }
         }
     }
