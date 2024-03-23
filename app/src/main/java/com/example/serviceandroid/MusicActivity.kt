@@ -26,6 +26,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
     private var isPlaying = true
     private var isRepeat = false
     private var isFinish = false
+    private var dragToEnd = false
     private var index = 0
     private val fadeIn by lazy { AnimationUtils.loadAnimation(this, R.anim.anim_fade_in) }
     private val rotate45 by lazy { AnimationUtils.loadAnimation(this, R.anim.rotation_45) }
@@ -77,6 +78,9 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
                 if (fromUser) {
                     mediaPlayer?.seekTo(progress)
                     setProgressTime()
+                    if(progress == binding.progressMusic.max) {
+                        dragToEnd = true
+                    }
                 }
                 if (isFinish) {
                     handlerActionMusic(Action.ACTION_FINISH)
@@ -121,6 +125,10 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
     private fun resetTimer() {
         timePlay.postDelayed(object : Runnable {
             override fun run() {
+                if(dragToEnd) {
+                    dragToEnd = false
+                    handlerActionMusic(Action.ACTION_FINISH)
+                }
                 if (isPlaying) {
                     binding.progressMusic.progress = mediaPlayer!!.currentPosition
                     setProgressTime()
