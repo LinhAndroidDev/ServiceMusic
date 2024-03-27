@@ -11,7 +11,6 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import com.example.serviceandroid.base.BaseActivity
 import com.example.serviceandroid.custom.ActionBottomBar

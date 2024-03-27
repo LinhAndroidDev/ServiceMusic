@@ -99,6 +99,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
     }
 
+    /**
+     * Create Stick Header When Scroll
+     */
     @SuppressLint("SetTextI18n")
     private fun stickHeader() {
         binding.scrollHome.setOnScrollChangeListener { _, _, _, _, _ ->

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CustomBottomBar">
+        <attr name="item_selected" format="enum">
+            <enum name="library" value="0"/>
+            <enum name="discover" value="1"/>
+            <enum name="zingchart" value="2"/>
+            <enum name="radio" value="3"/>
+            <enum name="profile" value="4"/>
+        </attr>
+    </declare-styleable>
+</resources>
