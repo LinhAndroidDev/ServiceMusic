@@ -1,4 +1,4 @@
-package com.example.serviceandroid.fragment
+package com.example.serviceandroid.fragment.zingchart
 
 import android.graphics.Color
 import android.graphics.LinearGradient

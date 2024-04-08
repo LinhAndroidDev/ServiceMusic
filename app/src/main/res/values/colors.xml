@@ -10,6 +10,7 @@
     <color name="txt_hint">#818181</color>
 
     //background
+    <color name="background">#f7f7f7</color>
     <color name="bg_blue">#1EB3F6</color>
     <color name="bg_purple">#7B32AF</color>
     <color name="bg_orange">#FF9800</color>
@@ -17,4 +18,6 @@
     <color name="bg_green1">#05CDBB</color>
     <color name="bg_green2">#68B16A</color>
     <color name="purple_1">#673AB7</color>
+    <color name="yellow_dark">#FFC107</color>
+    <color name="grey_light">#EFEFEF</color>
 </resources>

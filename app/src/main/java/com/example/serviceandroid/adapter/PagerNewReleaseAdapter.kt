@@ -19,7 +19,7 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
     BaseAdapter<HashMap<Int, ArrayList<Song>>, PagerNewReleaseBinding>() {
     var pagerSong = HashMap<Int, ArrayList<Song>>()
     var onClickItem: ((Int) -> Unit)? = null
-    private lateinit var adapterSong: PagerNewReleaseAdapter
+    private val adapterSong by lazy { PagerNewReleaseAdapter(context, type) }
 
     override fun getLayout(): Int = R.layout.pager_new_release
 
@@ -31,7 +31,6 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
     }
 
     override fun onBindViewHolder(holder: BaseViewHolder<PagerNewReleaseBinding>, position: Int) {
-        adapterSong = PagerNewReleaseAdapter(context, type)
         pagerSong[position].let {
             if (it != null) {
                 adapterSong.items = it
@@ -57,7 +56,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
         holder: BaseViewHolder<ItemPagerNewReleaseBinding>,
         position: Int
     ) {
-        holder.v.apply {
+        with(holder.v) {
             items[position].let {
                 imgSong.load(it.avatar) {
                     crossfade(true)
@@ -69,23 +68,19 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
 
             when (type) {
                 TypeList.TYPE_NATIONAL -> {
-                    holder.v.apply {
-                        layoutIndex.visibility = View.GONE
-                        tvNameSong.setTextColor(context.getColor(R.color.text_black))
-                        tvTime.visibility = View.VISIBLE
-                    }
+                    layoutIndex.visibility = View.GONE
+                    tvNameSong.setTextColor(context.getColor(R.color.text_black))
+                    tvTime.visibility = View.VISIBLE
                 }
 
                 else -> {
-                    holder.v.apply {
-                        layoutIndex.visibility = View.VISIBLE
-                        tvIndex.text = "${position + 1}"
-                        tvNameSong.setTextColor(context.getColor(R.color.text_white))
-                        tvTime.visibility = View.GONE
-                        cvRoundImg.layoutParams.apply {
-                            width = context.resources.getDimensionPixelSize(R.dimen.width_img)
-                            height = context.resources.getDimensionPixelSize(R.dimen.height_img)
-                        }
+                    layoutIndex.visibility = View.VISIBLE
+                    tvIndex.text = "${position + 1}"
+                    tvNameSong.setTextColor(context.getColor(R.color.text_white))
+                    tvTime.visibility = View.GONE
+                    cvRoundImg.layoutParams.apply {
+                        width = context.resources.getDimensionPixelSize(R.dimen.width_img)
+                        height = context.resources.getDimensionPixelSize(R.dimen.height_img)
                     }
                 }
             }

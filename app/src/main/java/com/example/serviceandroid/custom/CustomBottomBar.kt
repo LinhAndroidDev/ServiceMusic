@@ -9,9 +9,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.example.serviceandroid.R
 import com.example.serviceandroid.databinding.CustomBottomBarBinding
-import com.example.serviceandroid.utils.Convert
 
 enum class ActionBottomBar {
     LIBRARY,
@@ -29,61 +29,49 @@ class CustomBottomBar @JvmOverloads constructor(
     var selectedItem: ((ActionBottomBar) -> Unit)? = null
     init {
         binding.root.layoutParams = LayoutParams(
-            Convert.getWidthDevice(context),
+            ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
         addView(binding.root)
         val array = context.theme.obtainStyledAttributes(attrs, R.styleable.CustomBottomBar, 0, 0)
         val action = array.getInt(R.styleable.CustomBottomBar_item_selected, 0)
         handlerActionBottomBar(ActionBottomBar.entries[action])
-        binding.bgBottom.setOnTouchListener { _, _ -> true }
+        binding.bgBottom.apply {
+            isClickable = true
+            isFocusable = true
+        }
         onClickView()
     }
 
     private fun handlerActionBottomBar(action: ActionBottomBar) {
-        when (action) {
-            ActionBottomBar.LIBRARY -> {
-                selectedItem?.invoke(ActionBottomBar.LIBRARY)
-                selectedItem(binding.tvLibrary, binding.imgLibrary)
-            }
-
-            ActionBottomBar.DISCOVER -> {
-                selectedItem?.invoke(ActionBottomBar.DISCOVER)
-                selectedItem(binding.tvDiscover, binding.imgDiscover)
-            }
-
-            ActionBottomBar.ZINGCHART -> {
-                selectedItem?.invoke(ActionBottomBar.ZINGCHART)
-                selectedItem(binding.tvZingchart, binding.imgZingchart)
-            }
-
-            ActionBottomBar.RADIO -> {
-                selectedItem?.invoke(ActionBottomBar.RADIO)
-                selectedItem(binding.tvRadio, binding.imgRadio)
-            }
-
-            ActionBottomBar.PROFILE -> {
-                selectedItem?.invoke(ActionBottomBar.PROFILE)
-                selectedItem(binding.tvProfile, binding.imgProfile)
-            }
+        unSelectAllItem()
+        val viewMap = mapOf(
+            ActionBottomBar.LIBRARY to Pair(binding.tvLibrary, binding.imgLibrary),
+            ActionBottomBar.DISCOVER to Pair(binding.tvDiscover, binding.imgDiscover),
+            ActionBottomBar.ZINGCHART to Pair(binding.tvZingchart, binding.imgZingchart),
+            ActionBottomBar.RADIO to Pair(binding.tvRadio, binding.imgRadio),
+            ActionBottomBar.PROFILE to Pair(binding.tvProfile, binding.imgProfile)
+        )
+        viewMap[action]?.let { (tv, img) ->
+            selectedItem?.invoke(action)
+            selectedItem(tv, img)
         }
     }
 
     private fun onClickView() {
-        binding.library.setOnClickListener {
-            handlerActionBottomBar(ActionBottomBar.LIBRARY)
-        }
-        binding.discover.setOnClickListener {
-            handlerActionBottomBar(ActionBottomBar.DISCOVER)
-        }
-        binding.zingchart.setOnClickListener {
-            handlerActionBottomBar(ActionBottomBar.ZINGCHART)
-        }
-        binding.radio.setOnClickListener {
-            handlerActionBottomBar(ActionBottomBar.RADIO)
-        }
-        binding.profile.setOnClickListener {
-            handlerActionBottomBar(ActionBottomBar.PROFILE)
+        val views = listOf(binding.library, binding.discover, binding.zingchart, binding.radio, binding.profile)
+        views.forEach { view ->
+            view.setOnClickListener {
+                val action = when(view) {
+                    binding.library -> ActionBottomBar.LIBRARY
+                    binding.discover -> ActionBottomBar.DISCOVER
+                    binding.zingchart -> ActionBottomBar.ZINGCHART
+                    binding.radio -> ActionBottomBar.RADIO
+                    binding.profile -> ActionBottomBar.PROFILE
+                    else -> throw IllegalArgumentException("Invalid view")
+                }
+                handlerActionBottomBar(action)
+            }
         }
     }
 
@@ -96,15 +84,14 @@ class CustomBottomBar @JvmOverloads constructor(
     }
 
     private fun selectedItem(tv: TextView, img: ImageView) {
-        unSelectAllItem()
-        tv.setTextColor(context.getColor(R.color.bg_purple))
+        tv.setTextColor(ContextCompat.getColor(context, R.color.bg_purple))
         tv.typeface = Typeface.DEFAULT_BOLD
-        img.setColorFilter(context.getColor(R.color.bg_purple))
+        img.setColorFilter(ContextCompat.getColor(context, R.color.bg_purple))
     }
 
     private fun unSelectedItem(tv: TextView, img: ImageView) {
-        tv.setTextColor(context.getColor(R.color.txt_hint))
+        tv.setTextColor(ContextCompat.getColor(context, R.color.txt_hint))
         tv.typeface = Typeface.DEFAULT
-        img.setColorFilter(context.getColor(R.color.txt_hint))
+        img.setColorFilter(ContextCompat.getColor(context, R.color.txt_hint))
     }
 }

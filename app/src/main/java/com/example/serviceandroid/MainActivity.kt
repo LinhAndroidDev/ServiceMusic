@@ -6,10 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
+import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.fragment.NavHostFragment
 import com.example.serviceandroid.base.BaseActivity
@@ -19,13 +18,18 @@ import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.service.HelloService
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.Polyline
+import java.util.Timer
+import java.util.TimerTask
 
 
 @Suppress("DEPRECATION")
 class MainActivity : BaseActivity<ActivityMainBinding>() {
     private lateinit var mSong: Song
     private var isPlaying: Boolean = false
-    private var progressMusic = Handler(Looper.getMainLooper())
+    private var timer: Timer? = null
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -54,31 +58,31 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
 
-        val currentDestination = navController.currentDestination
+        val destinationId = navController.currentDestination?.id
         binding.bottomBar.selectedItem = { action ->
             when (action) {
                 ActionBottomBar.LIBRARY -> {
-                    if (currentDestination!!.id != R.id.libraryFragment)
+                    if (destinationId != R.id.libraryFragment)
                         navController.navigate(R.id.libraryFragment)
                 }
 
                 ActionBottomBar.DISCOVER -> {
-                    if (currentDestination!!.id != R.id.homeFragment)
+                    if (destinationId != R.id.homeFragment)
                         navController.navigate(R.id.homeFragment)
                 }
 
                 ActionBottomBar.ZINGCHART -> {
-                    if (currentDestination!!.id != R.id.zingchartFragment)
+                    if (destinationId != R.id.zingchartFragment)
                         navController.navigate(R.id.zingchartFragment)
                 }
 
                 ActionBottomBar.RADIO -> {
-                    if (currentDestination!!.id != R.id.radioFragment)
+                    if (destinationId != R.id.radioFragment)
                         navController.navigate(R.id.radioFragment)
                 }
 
                 ActionBottomBar.PROFILE -> {
-                    if (currentDestination!!.id != R.id.profileFragment)
+                    if (destinationId != R.id.profileFragment)
                         navController.navigate(R.id.profileFragment)
                 }
             }
@@ -89,11 +93,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
 
         binding.play.setOnClickListener {
-            if (binding.progressMusic.progress == binding.progressMusic.max && !isPlaying) {
-                sendActionToService(Action.ACTION_START)
-            } else {
-                sendActionToService(if (isPlaying) Action.ACTION_PAUSE else Action.ACTION_RESUME)
-            }
+            sendActionToService(when {
+                (binding.progressMusic.progress == binding.progressMusic.max && !isPlaying) -> Action.ACTION_START
+                isPlaying -> Action.ACTION_PAUSE
+                else -> Action.ACTION_RESUME
+            })
         }
 
         binding.close.setOnClickListener {
@@ -110,7 +114,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         val intent = Intent(this, HelloService::class.java)
         val song = Song("Lạ Lùng", "Vũ", R.drawable.la_lung, R.raw.la_lung, 262, 0)
         intent.putExtra(MESSAGE_MAIN, song)
-        startService(intent)
+        ContextCompat.startForegroundService(this, intent)
     }
 
     override fun onDestroy() {
@@ -123,6 +127,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             Action.ACTION_START -> {
                 binding.bottomPlay.visibility = View.VISIBLE
                 showInfoSong()
+                setTimerPlay()
                 setStatusButtonPlay()
             }
 
@@ -140,6 +145,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
     }
 
+    private fun setTimerPlay() {
+        timer = Timer()
+        timer?.scheduleAtFixedRate(object : TimerTask() {
+            override fun run() {
+                if (isPlaying) {
+                    binding.progressMusic.progress += 1
+                }
+            }
+        }, 0, 1000)
+    }
+
     @SuppressLint("SetTextI18n")
     private fun showInfoSong() {
         binding.avatar.setImageResource(mSong.avatar)
@@ -148,16 +164,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         binding.bottomPlay.visibility = View.VISIBLE
         binding.progressMusic.max = mSong.time
         binding.progressMusic.progress = 0
-
-        progressMusic.postDelayed(object : Runnable {
-            override fun run() {
-                if (isPlaying) {
-                    binding.progressMusic.progress += 1
-                }
-                progressMusic.postDelayed(this, 1000)
-            }
-
-        }, 0)
     }
 
     private fun setStatusButtonPlay() {
@@ -175,16 +181,20 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     override fun getActivityBinding(inflater: LayoutInflater) =
         ActivityMainBinding.inflate(inflater)
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
 
-        val currentDestination = navController.currentDestination
-        when (currentDestination!!.id) {
+        when (navController.currentDestination?.id) {
             R.id.homeFragment -> this.finish()
             R.id.splashFragment -> {}
             else -> super.onBackPressed()
         }
+    }
+
+    fun handleGetDirectionsResult(result: ArrayList<*>) {
+
     }
 }

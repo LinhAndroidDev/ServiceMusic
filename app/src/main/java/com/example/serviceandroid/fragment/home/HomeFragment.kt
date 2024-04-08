@@ -1,15 +1,12 @@
-package com.example.serviceandroid.fragment
+package com.example.serviceandroid.fragment.home
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.LinearGradient
-import android.graphics.Shader
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.LinearLayout
 import androidx.core.view.isVisible
+import androidx.core.view.postDelayed
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
@@ -30,12 +27,10 @@ import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
+import com.example.serviceandroid.utils.ExtensionFunctions
 import com.example.serviceandroid.utils.ExtensionFunctions.isViewVisible
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 enum class Title {
@@ -59,7 +54,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
          * Visible Bottom Navigation Bar When Into Fragment Home
          */
         (activity as MainActivity).visibleBottomBar()
-        changeColorStatusBar(Color.WHITE)
+        activity?.let {
+            changeColorStatusBar(it.getColor(R.color.background))
+        }
 
         binding.titleCover.isVisible = binding.scrollHome.isViewVisible(binding.titleTopic)
         stickHeader()
@@ -67,34 +64,22 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         /**
          * Change Color According To Text Gradient
          */
-        binding.tvZingChat.let {
-            val paint = it.paint
-            val width = paint.measureText(it.text.toString())
-            val textShader: Shader = LinearGradient(
-                0f,
-                0f,
-                width,
-                it.textSize,
-                intArrayOf(Color.CYAN, Color.MAGENTA, Color.YELLOW),
-                null,
-                Shader.TileMode.CLAMP
-            )
-            it.paint.shader = textShader
-        }
+        ExtensionFunctions.gradientTextColor(binding.tvZingChat)
 
         lifecycleScope.launch {
-            delay(500)
-            withContext(Dispatchers.Main) {
-                initAdvertisement()
-                initTopic()
-                delay(1000)
-                withContext(Dispatchers.Main) {
-                    initNewRelease()
-                    delay(2000)
-                    withContext(Dispatchers.Main) {
-                        initNewUpdate()
-                    }
-                }
+            binding.root.postDelayed(500) {
+                initializeViews()
+            }
+        }
+    }
+
+    private fun initializeViews() {
+        initAdvertisement()
+        initTopic()
+        binding.root.postDelayed(1000) {
+            initNewRelease()
+            binding.root.postDelayed(2000) {
+                initNewUpdate()
             }
         }
     }
@@ -136,43 +121,24 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
      * Catch Click View Components Event
      */
     private fun onClickView() {
-        binding.tvAllNational.isSelected = true
-        binding.tvAllNational.setOnClickListener {
-            lifecycleScope.launch {
-                async {
-                    unSelectTvNational()
-                    binding.tvAllNational.isSelected = true
-                    national = National.ALL_NATIONAL
-                }.await()
-                async {
-                    resetMusicInterNational()
-                }.await()
-            }
-        }
+        val evenClick = mapOf(
+            binding.tvAllNational to Pair(National.ALL_NATIONAL, binding.tvAllNational),
+            binding.tvVietNam to Pair(National.VIETNAMESE, binding.tvVietNam),
+            binding.tvInternational to Pair(National.INTERNATIONAL, binding.tvInternational)
+        )
 
-        binding.tvVietNam.setOnClickListener {
-            lifecycleScope.launch {
-                async {
-                    unSelectTvNational()
-                    binding.tvVietNam.isSelected = true
-                    national = National.VIETNAMESE
-                }.await()
-                async {
-                    resetMusicInterNational()
-                }.await()
-            }
-        }
-
-        binding.tvInternational.setOnClickListener {
-            lifecycleScope.launch {
-                async {
-                    unSelectTvNational()
-                    binding.tvInternational.isSelected = true
-                    national = National.INTERNATIONAL
-                }.await()
-                async {
-                    resetMusicInterNational()
-                }.await()
+        evenClick.forEach { (view, pair) ->
+            view.setOnClickListener {
+                lifecycleScope.launch {
+                    async {
+                        unSelectTvNational()
+                        pair.second.isSelected = true
+                        national = pair.first
+                    }.await()
+                    async {
+                        resetMusicInterNational()
+                    }.await()
+                }
             }
         }
     }
@@ -205,7 +171,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             intent.putExtra(MainActivity.INDEX_MUSIC, it)
             startActivity(intent)
         }
-        setUpTransformer(binding.pagerNewRelease, 5, 1f, 0f)
+        setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)
     }
 
     private fun songsToHashMap(songs: ArrayList<Song>): HashMap<Int, ArrayList<Song>> {
@@ -248,7 +214,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.rcvTopic.adapter = adapter
     }
 
-    private fun setUpTransformer(vpg2: ViewPager2, margin: Int, a: Float, b: Float) {
+    private fun setUpViewPagerTransformer(vpg2: ViewPager2, margin: Int, a: Float, b: Float) {
         val transformer = CompositePageTransformer()
         transformer.addTransformer(MarginPageTransformer(margin))
         transformer.addTransformer { page, position ->
@@ -290,7 +256,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         val adapter = AdvertisementAdapter()
         adapter.advertisements = advertisements
         binding.advertisement.adapter = adapter
-        setUpTransformer(binding.advertisement, 5, 1f, 0f)
+        setUpViewPagerTransformer(binding.advertisement, 5, 1f, 0f)
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =

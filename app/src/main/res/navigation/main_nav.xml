@@ -17,7 +17,7 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.serviceandroid.fragment.HomeFragment"
+        android:name="com.example.serviceandroid.fragment.home.HomeFragment"
         android:label="home_fragment"
         tools:layout="@layout/fragment_home">
         <action
@@ -27,25 +27,25 @@
 
     <fragment
         android:id="@+id/libraryFragment"
-        android:name="com.example.serviceandroid.fragment.LibraryFragment"
+        android:name="com.example.serviceandroid.fragment.library.LibraryFragment"
         android:label="library_fragment"
         tools:layout="@layout/fragment_library" />
 
     <fragment
         android:id="@+id/zingchartFragment"
-        android:name="com.example.serviceandroid.fragment.ZingChartFragment"
+        android:name="com.example.serviceandroid.fragment.zingchart.ZingChartFragment"
         android:label="zing_chart_fragment"
         tools:layout="@layout/fragment_zing_chart" />
 
     <fragment
         android:id="@+id/radioFragment"
-        android:name="com.example.serviceandroid.fragment.RadioFragment"
+        android:name="com.example.serviceandroid.fragment.radio.RadioFragment"
         android:label="radio_fragment"
         tools:layout="@layout/fragment_radio" />
 
     <fragment
         android:id="@+id/profileFragment"
-        android:name="com.example.serviceandroid.fragment.ProfileFragment"
+        android:name="com.example.serviceandroid.fragment.profile.ProfileFragment"
         android:label="profile_fragment"
         tools:layout="@layout/fragment_profile" />
 

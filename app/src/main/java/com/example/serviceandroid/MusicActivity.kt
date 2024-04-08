@@ -1,6 +1,7 @@
 package com.example.serviceandroid
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.graphics.Color
 import android.media.MediaPlayer
 import android.os.Bundle
@@ -16,6 +17,7 @@ import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.service.HelloService
 import com.example.serviceandroid.utils.CustomAnimator
 import java.text.SimpleDateFormat
 
@@ -39,6 +41,13 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
         CustomAnimator.rotationImage(binding.imgSong)
         onClickView()
         initMusic()
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun startServiceMusic(song: Song) {
+        val intent = Intent(this, HelloService::class.java)
+        intent.putExtra(MainActivity.MESSAGE_MAIN, song)
+        startService(intent)
     }
 
     /**
@@ -111,6 +120,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
 
     @SuppressLint("SimpleDateFormat")
     private fun playMusic(song: Song) {
+        startServiceMusic(song)
         mediaPlayer = MediaPlayer.create(this, song.sing)
         binding.progressMusic.apply {
             max = mediaPlayer!!.duration
@@ -162,9 +172,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
     }
 
     private fun resetMusic() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        mediaPlayer?.reset()
     }
 
     private fun startMusic() {
@@ -210,11 +218,6 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
             mediaPlayer?.isLooping = false
             handlerActionMusic(Action.ACTION_NEXT)
         }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        handlerActionMusic(Action.ACTION_PAUSE)
     }
 
     override fun onDestroy() {

@@ -1,6 +1,7 @@
 package com.example.serviceandroid.helper
 
 import com.example.serviceandroid.R
+import com.example.serviceandroid.model.Address
 import com.example.serviceandroid.model.Song
 
 object Data {
@@ -20,4 +21,19 @@ object Data {
             Song("Yêu lại từ đầu", "Khắc Việt", R.drawable.yeu_lai_tu_dau, R.raw.yeu_lai_tu_dau, 207, 0),
         )
     }
+
+//    fun listAddress(): ArrayList<Address> {
+//        return arrayListOf(
+//            Address(21.009126380635323, 105.82881319521661, "12 P. Chùa Bộc, Quang Trung, Đống Đa, Hà Nội 100000, Việt Nam", "Học Viện Ngân Hàng"),
+//            Address(21.007326427857965, 105.84265432405154, "1 Đại Cồ Việt, Bách Khoa, Hai Bà Trưng, Hà Nội, Việt Nam"),
+//            Address(21.000204359074544, 105.84250992405134, "207 Giải Phóng, Đồng Tâm, Hai Bà Trưng, Hà Nội, Việt Nam"),
+//            Address(21.035522432956434, 106.27592126638233, "27PG+597, Mỹ Hương, Lương Tài, Bắc Ninh, Việt Nam"),
+//            Address(21.023083054040022, 105.80543699521698, "Học viện Ngân hàng"),
+//            Address(21.028511, 105.804817, "91 P. Chùa Láng, Láng Thượng, Đống Đa, Hà Nội, Việt Nam"),
+//            Address(21.028511, 105.804817, "Học viện Ngân hàng"),
+//            Address(21.028511, 105.804817, "Học viện Ngân hàng"),
+//            Address(21.028511, 105.804817, "Học viện Ngân hàng"),
+//            Address(21.028511, 105.804817, "Học viện Ngân hàng"),
+//        )
+//    }
 }

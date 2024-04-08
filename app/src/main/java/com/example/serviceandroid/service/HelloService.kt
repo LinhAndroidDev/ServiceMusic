@@ -37,18 +37,14 @@ class HelloService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        intent?.getParcelableExtra<Song>(MainActivity.MESSAGE_MAIN).let {
-            if (it != null) {
-                mSong = it
-                startMusic(mSong)
-                sendNotificationMediaType(mSong)
-            }
+        intent?.getParcelableExtra<Song>(MainActivity.MESSAGE_MAIN)?.let {
+            mSong = it
+            startMusic(mSong)
+            sendNotificationMediaType(mSong)
         }
 
-        intent?.getSerializableExtra(Constants.RECEIVER_ACTION_MUSIC).let {
-            if (it != null) {
-                handleActionMusic(it as Action)
-            }
+        intent?.getSerializableExtra(Constants.RECEIVER_ACTION_MUSIC)?.let {
+            handleActionMusic(it as Action)
         }
         return START_NOT_STICKY
     }
@@ -79,6 +75,7 @@ class HelloService : Service() {
                     getPendingIntent(this, Action.ACTION_PAUSE)
                 ) // #1
                 .addAction(R.drawable.skip_next, "Next", null) // #2
+                .setProgress(mediaPlayer!!.duration, mediaPlayer!!.currentPosition, false)
         } else {
             notification
                 .addAction(R.drawable.skip_previous, "Previous", null) // #0
@@ -88,6 +85,7 @@ class HelloService : Service() {
                     getPendingIntent(this, Action.ACTION_RESUME)
                 ) // #1
                 .addAction(R.drawable.skip_next, "Next", null) // #2
+                .setProgress(mediaPlayer!!.duration, mediaPlayer!!.currentPosition, false)
         }
 
         startForeground(1, notification.build())

@@ -1,6 +1,5 @@
 package com.example.serviceandroid.adapter
 
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -10,9 +9,19 @@ import com.example.serviceandroid.databinding.ItemAdvertisementBinding
 import com.example.serviceandroid.model.Advertisement
 
 class AdvertisementAdapter : Adapter<AdvertisementAdapter.ViewHolder>() {
-    var advertisements = arrayListOf<Advertisement>()
+    var advertisements = mutableListOf<Advertisement>()
 
-    inner class ViewHolder(val v: ItemAdvertisementBinding) : RecyclerView.ViewHolder(v.root)
+    class ViewHolder(private val v: ItemAdvertisementBinding) : RecyclerView.ViewHolder(v.root) {
+        fun bindData(advertisement: Advertisement) {
+            v.apply {
+                img.load(advertisement.image) {
+                    crossfade(true)
+                }
+                update.text = advertisement.update
+                detail.text = advertisement.detail
+            }
+        }
+    }
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
@@ -23,12 +32,8 @@ class AdvertisementAdapter : Adapter<AdvertisementAdapter.ViewHolder>() {
     }
 
     override fun onBindViewHolder(holder: AdvertisementAdapter.ViewHolder, position: Int) {
-        holder.v.img.load(advertisements[position].image) {
-            crossfade(true)
-        }
-
-        holder.v.update.text = advertisements[position].update
-        holder.v.detail.text = advertisements[position].detail
+        val advertisement = advertisements[position]
+        holder.bindData(advertisement)
     }
 
     override fun getItemCount(): Int = advertisements.size

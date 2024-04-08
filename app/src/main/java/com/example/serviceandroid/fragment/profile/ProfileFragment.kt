@@ -1,17 +1,17 @@
-package com.example.serviceandroid.fragment
+package com.example.serviceandroid.fragment.profile
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import com.example.serviceandroid.base.BaseFragment
-import com.example.serviceandroid.databinding.FragmentRadioBinding
+import com.example.serviceandroid.databinding.FragmentProfileBinding
 
-class RadioFragment : BaseFragment<FragmentRadioBinding>() {
+class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.header.title.text = "Radio"
+        binding.header.title.text = "Cá nhân"
     }
     override fun getFragmentBinding(inflater: LayoutInflater)
-    = FragmentRadioBinding.inflate(inflater)
+    = FragmentProfileBinding.inflate(inflater)
 }
