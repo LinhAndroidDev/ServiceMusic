@@ -3,6 +3,7 @@ package com.example.serviceandroid.adapter
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
+import androidx.core.view.isVisible
 import coil.load
 import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseAdapter
@@ -48,6 +49,7 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
 class PagerNewReleaseAdapter(private val context: Context, private val type: TypeList) :
     BaseAdapter<Song, ItemPagerNewReleaseBinding>() {
     var onClickItem: ((Int) -> Unit)? = null
+    var isFavourite = false
 
     override fun getLayout(): Int = R.layout.item_pager_new_release
 
@@ -68,6 +70,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
 
             when (type) {
                 TypeList.TYPE_NATIONAL -> {
+                    if(isFavourite) imgFavourite.isVisible = true
                     layoutIndex.visibility = View.GONE
                     tvNameSong.setTextColor(context.getColor(R.color.text_black))
                     tvTime.visibility = View.VISIBLE

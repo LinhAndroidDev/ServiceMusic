@@ -6,6 +6,7 @@ import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseAdapter
 import com.example.serviceandroid.databinding.ItemTopicBinding
 import com.example.serviceandroid.model.Topic
+import com.example.serviceandroid.utils.ExtensionFunctions.addCircleRipple
 
 class TopicAdapter(private val context: Context) : BaseAdapter<Topic, ItemTopicBinding>() {
     override fun getLayout(): Int = R.layout.item_topic

@@ -1,15 +1,20 @@
 package com.example.serviceandroid
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
+import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.SeekBar
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.base.BaseActivity
 import com.example.serviceandroid.databinding.ActivityMusicBinding
@@ -33,8 +38,19 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
     private val fadeIn by lazy { AnimationUtils.loadAnimation(this, R.anim.anim_fade_in) }
     private val rotate45 by lazy { AnimationUtils.loadAnimation(this, R.anim.rotation_45) }
 
+    private val broadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+//            mSong = intent.getParcelableExtra<Song>(Constants.OBJECT_SONG) as Song
+            isPlaying = intent.getBooleanExtra(Constants.STATUS_PLAYING, false)
+//            handleLayoutMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(broadcastReceiver, IntentFilter(Constants.SEND_DATA_TO_ACTIVITY))
 
         changeColorStatusBar(Color.BLACK)
         index = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
@@ -223,6 +239,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
     override fun onDestroy() {
         super.onDestroy()
         handlerActionMusic(Action.ACTION_PAUSE)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
     }
 
     override fun getActivityBinding(inflater: LayoutInflater) =

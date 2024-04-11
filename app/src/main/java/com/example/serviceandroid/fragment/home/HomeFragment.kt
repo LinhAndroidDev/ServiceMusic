@@ -28,6 +28,7 @@ import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
 import com.example.serviceandroid.utils.ExtensionFunctions
+import com.example.serviceandroid.utils.ExtensionFunctions.addCircleRipple
 import com.example.serviceandroid.utils.ExtensionFunctions.isViewVisible
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -121,6 +122,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
      * Catch Click View Components Event
      */
     private fun onClickView() {
+        binding.tvAllNational.isSelected = true
         val evenClick = mapOf(
             binding.tvAllNational to Pair(National.ALL_NATIONAL, binding.tvAllNational),
             binding.tvVietNam to Pair(National.VIETNAMESE, binding.tvVietNam),

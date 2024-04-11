@@ -15,12 +15,10 @@ import com.example.serviceandroid.base.BaseActivity
 import com.example.serviceandroid.custom.ActionBottomBar
 import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.helper.Constants
+import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.service.HelloService
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.Polyline
 import java.util.Timer
 import java.util.TimerTask
 
@@ -112,7 +110,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     @SuppressLint("SetTextI18n")
     private fun clickStartService() {
         val intent = Intent(this, HelloService::class.java)
-        val song = Song("Lạ Lùng", "Vũ", R.drawable.la_lung, R.raw.la_lung, 262, 0)
+        val song = Data.listMusic()[0]
         intent.putExtra(MESSAGE_MAIN, song)
         ContextCompat.startForegroundService(this, intent)
     }
@@ -192,9 +190,5 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             R.id.splashFragment -> {}
             else -> super.onBackPressed()
         }
-    }
-
-    fun handleGetDirectionsResult(result: ArrayList<*>) {
-
     }
 }

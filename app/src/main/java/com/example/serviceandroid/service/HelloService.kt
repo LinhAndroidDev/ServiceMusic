@@ -68,23 +68,23 @@ class HelloService : Service() {
 
         if (isPlaying && mediaPlayer != null) {
             notification
-                .addAction(R.drawable.skip_previous, "Previous", null) // #0
+                .addAction(R.drawable.skip_previous, "Previous", getPendingIntent(this, Action.ACTION_PREVIOUS)) // #0
                 .addAction(
                     R.drawable.pause,
                     "Pause",
                     getPendingIntent(this, Action.ACTION_PAUSE)
                 ) // #1
-                .addAction(R.drawable.skip_next, "Next", null) // #2
+                .addAction(R.drawable.skip_next, "Next", getPendingIntent(this, Action.ACTION_NEXT)) // #2
                 .setProgress(mediaPlayer!!.duration, mediaPlayer!!.currentPosition, false)
         } else {
             notification
-                .addAction(R.drawable.skip_previous, "Previous", null) // #0
+                .addAction(R.drawable.skip_previous, "Previous", getPendingIntent(this, Action.ACTION_PREVIOUS)) // #0
                 .addAction(
                     R.drawable.play,
                     "Pause",
                     getPendingIntent(this, Action.ACTION_RESUME)
                 ) // #1
-                .addAction(R.drawable.skip_next, "Next", null) // #2
+                .addAction(R.drawable.skip_next, "Next", getPendingIntent(this, Action.ACTION_NEXT)) // #2
                 .setProgress(mediaPlayer!!.duration, mediaPlayer!!.currentPosition, false)
         }
 

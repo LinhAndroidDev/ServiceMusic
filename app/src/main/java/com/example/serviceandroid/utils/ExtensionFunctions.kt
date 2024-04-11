@@ -4,10 +4,12 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Rect
 import android.graphics.Shader
+import android.util.TypedValue
 import android.view.View
 import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
@@ -40,5 +42,10 @@ object ExtensionFunctions {
             )
             it.paint.shader = textShader
         }
+    }
+
+    fun View.addCircleRipple() = with(TypedValue()) {
+        context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, this, true)
+        foreground = ContextCompat.getDrawable(context, resourceId)
     }
 }

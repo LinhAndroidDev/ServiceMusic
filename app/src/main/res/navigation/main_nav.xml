@@ -29,7 +29,11 @@
         android:id="@+id/libraryFragment"
         android:name="com.example.serviceandroid.fragment.library.LibraryFragment"
         android:label="library_fragment"
-        tools:layout="@layout/fragment_library" />
+        tools:layout="@layout/fragment_library">
+        <action
+            android:id="@+id/action_libraryFragment_to_favouriteSongFragment"
+            app:destination="@+id/favouriteSongFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/zingchartFragment"
@@ -49,4 +53,9 @@
         android:label="profile_fragment"
         tools:layout="@layout/fragment_profile" />
 
+    <fragment
+        android:id="@+id/favouriteSongFragment"
+        android:name="com.example.serviceandroid.fragment.favourite_song.FavouriteSongFragment"
+        android:label="favourite_song_fragment"
+        tools:layout="@layout/fragment_favourite_song" />
 </navigation>

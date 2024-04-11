@@ -3,6 +3,7 @@ package com.example.serviceandroid.fragment.library
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import androidx.navigation.fragment.NavHostFragment
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.LibraryAdapter
 import com.example.serviceandroid.base.BaseFragment
@@ -27,6 +28,14 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
         )
         val libraryAdapter = LibraryAdapter(requireActivity())
         libraryAdapter.items = librarys
+        libraryAdapter.onClickItem = {
+            if(it == 0) {
+                val navHostFragment =
+                    requireActivity().supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
+                val navController = navHostFragment.navController
+                navController.navigate(R.id.favouriteSongFragment)
+            }
+        }
         binding.rcvLibrary.adapter = libraryAdapter
     }
 
