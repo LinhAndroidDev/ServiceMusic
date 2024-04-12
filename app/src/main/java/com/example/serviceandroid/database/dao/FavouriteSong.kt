@@ -5,6 +5,6 @@ import androidx.room.Query
 
 @Dao
 interface FavouriteSong {
-    @Query("SELECT * FROM favourite_song")
+    @Query("SELECT * FROM favouriteSongEntity")
     fun getAll(): List<FavouriteSong>
 }

@@ -1,9 +1,13 @@
 package com.example.serviceandroid.utils
 
+import android.annotation.SuppressLint
+import android.content.ContentResolver
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Rect
 import android.graphics.Shader
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.TypedValue
 import android.view.View
 import android.widget.TextView
@@ -13,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
+import com.google.android.material.snackbar.Snackbar
 
 object ExtensionFunctions {
     fun <T : ViewDataBinding?> AppCompatActivity.getViewBinding(@LayoutRes resId: Int): T {
@@ -47,5 +52,26 @@ object ExtensionFunctions {
     fun View.addCircleRipple() = with(TypedValue()) {
         context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, this, true)
         foreground = ContextCompat.getDrawable(context, resourceId)
+    }
+
+    fun View.snackBar(message: String) {
+        Snackbar.make(this, message, Snackbar.LENGTH_SHORT)
+            .also { snackbar ->
+                snackbar.setAction("OK") {
+                    snackbar.dismiss()
+                }
+            }
+            .show()
+    }
+
+    @SuppressLint("Range")
+    fun ContentResolver.getFileName(uri: Uri): String {
+        var name = ""
+        val cursor = query(uri, null, null, null, null)
+        cursor?.use {
+            it.moveToFirst()
+            name = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+        }
+        return name
     }
 }
