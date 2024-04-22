@@ -39,7 +39,7 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
         }
         holder.v.rcvPagerRelease.adapter = adapterSong
         adapterSong.onClickItem = {
-            onClickItem?.invoke(it + position * 3)
+            onClickItem?.invoke(it)
         }
     }
 
@@ -59,13 +59,16 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
         position: Int
     ) {
         with(holder.v) {
-            items[position].let {
-                imgSong.load(it.avatar) {
+            items[position].let { item ->
+                imgSong.load(item.avatar) {
                     crossfade(true)
                     placeholder(R.drawable.bg_grey_corner_5)
                 }
-                tvNameSong.text = it.title
-                tvNameSinger.text = it.nameSinger
+                tvNameSong.text = item.title
+                tvNameSinger.text = item.nameSinger
+                holder.itemView.setOnClickListener {
+                    onClickItem?.invoke(item.id)
+                }
             }
 
             when (type) {
@@ -87,10 +90,6 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
                     }
                 }
             }
-        }
-
-        holder.itemView.setOnClickListener {
-            onClickItem?.invoke(position)
         }
     }
 }

@@ -91,42 +91,42 @@ class RadioFragment : BaseFragment<FragmentRadioBinding>(), OnMapReadyCallback {
      * 21.001762, 105.822424
      */
     override fun onMapReady(googleMap: GoogleMap) {
-//        this.map = googleMap
-//        currentLocation?.let {
-//            val sydney = LatLng(it.latitude, it.longitude)
-//            map?.addMarker(
-//                MarkerOptions()
-//                    .position(sydney)
-//                    .title("Marker in Sydney")
-//            )
-//            map?.animateCamera(CameraUpdateFactory.newLatLngZoom(sydney, 15f), 2000, null)
-//            map?.uiSettings?.apply {
-//                isZoomControlsEnabled = true
-//                isCompassEnabled = true
-//            }
-//        }
-
-        map = googleMap
-
-        // Add a marker in Sydney and move the camera
-
-        // Add a marker in Sydney and move the camera
-        AMSTERDAM = LatLng(21.0169598, 105.8114176)
-        AMSTERDAM?.let {
-            map?.addMarker(MarkerOptions().position(it).title("Marker in Sydney"))
-            map?.moveCamera(CameraUpdateFactory.newLatLng(it))
-
-            PARIS = LatLng(20.9889196, 105.8635858)
-
-            val md = GMapV2Direction()
-            // OnGetDataCompleteListener completeListener = null;
-            // OnGetDataCompleteListener completeListener = null;
-            findDirections(
-                it.latitude, it.longitude,
-                PARIS!!.latitude, PARIS!!.longitude,
-                GMapV2Direction.MODE_DRIVING
+        this.map = googleMap
+        currentLocation?.let {
+            val sydney = LatLng(it.latitude, it.longitude)
+            map?.addMarker(
+                MarkerOptions()
+                    .position(sydney)
+                    .title("Marker in Sydney")
             )
+            map?.animateCamera(CameraUpdateFactory.newLatLngZoom(sydney, 15f), 2000, null)
+            map?.uiSettings?.apply {
+                isZoomControlsEnabled = true
+                isCompassEnabled = true
+            }
         }
+
+//        map = googleMap
+//
+//        // Add a marker in Sydney and move the camera
+//
+//        // Add a marker in Sydney and move the camera
+//        AMSTERDAM = LatLng(21.0169598, 105.8114176)
+//        AMSTERDAM?.let {
+//            map?.addMarker(MarkerOptions().position(it).title("Marker in Sydney"))
+//            map?.moveCamera(CameraUpdateFactory.newLatLng(it))
+//
+//            PARIS = LatLng(20.9889196, 105.8635858)
+//
+//            val md = GMapV2Direction()
+//            // OnGetDataCompleteListener completeListener = null;
+//            // OnGetDataCompleteListener completeListener = null;
+//            findDirections(
+//                it.latitude, it.longitude,
+//                PARIS!!.latitude, PARIS!!.longitude,
+//                GMapV2Direction.MODE_DRIVING
+//            )
+//        }
     }
 
     override fun onRequestPermissionsResult(

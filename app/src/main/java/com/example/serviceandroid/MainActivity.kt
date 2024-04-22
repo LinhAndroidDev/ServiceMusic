@@ -19,10 +19,12 @@ import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.service.HelloService
+import dagger.hilt.android.AndroidEntryPoint
 import java.util.Timer
 import java.util.TimerTask
 
 
+@AndroidEntryPoint
 @Suppress("DEPRECATION")
 class MainActivity : BaseActivity<ActivityMainBinding>() {
     private lateinit var mSong: Song

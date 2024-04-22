@@ -11,9 +11,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
-import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.SeekBar
+import androidx.activity.viewModels
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.base.BaseActivity
@@ -24,16 +24,21 @@ import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.service.HelloService
 import com.example.serviceandroid.utils.CustomAnimator
+import com.example.serviceandroid.utils.DateUtils
+import dagger.hilt.android.AndroidEntryPoint
 import java.text.SimpleDateFormat
 
+@AndroidEntryPoint
 @Suppress("DEPRECATION")
 class MusicActivity : BaseActivity<ActivityMusicBinding>() {
+    private val viewModel by viewModels<MusicViewModel>()
     private val timePlay = Handler(Looper.getMainLooper())
     private var mediaPlayer: MediaPlayer? = null
     private var isPlaying = true
     private var isRepeat = false
     private var isFinish = false
     private var dragToEnd = false
+    private var isFavourite = false
     private var index = 0
     private val fadeIn by lazy { AnimationUtils.loadAnimation(this, R.anim.anim_fade_in) }
     private val rotate45 by lazy { AnimationUtils.loadAnimation(this, R.anim.rotation_45) }
@@ -53,7 +58,10 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
             .registerReceiver(broadcastReceiver, IntentFilter(Constants.SEND_DATA_TO_ACTIVITY))
 
         changeColorStatusBar(Color.BLACK)
-        index = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
+        val idSong = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
+        Data.listMusic().filter { it.id == idSong }.forEach {
+            index = Data.listMusic().indexOf(it)
+        }
         CustomAnimator.rotationImage(binding.imgSong)
         onClickView()
         initMusic()
@@ -117,6 +125,14 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
             override fun onStopTrackingTouch(p0: SeekBar?) {}
 
         })
+
+        binding.imgFavourite.setOnClickListener {
+            isFavourite = !isFavourite
+            binding.imgFavourite.setImageResource(if (isFavourite) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin)
+            val mSong = Data.listMusic()[index]
+            mSong.timeCreate = DateUtils.getTimeCurrent()
+            viewModel.insertSong(mSong)
+        }
     }
 
     private fun initMusic() {
@@ -136,7 +152,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
 
     @SuppressLint("SimpleDateFormat")
     private fun playMusic(song: Song) {
-        startServiceMusic(song)
+//        startServiceMusic(song)
         mediaPlayer = MediaPlayer.create(this, song.sing)
         binding.progressMusic.apply {
             max = mediaPlayer!!.duration

@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.MediaController
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.serviceandroid.base.BaseFragment
@@ -23,6 +24,7 @@ import java.io.FileOutputStream
 
 class ProfileFragment : BaseFragment<FragmentProfileBinding>(), UploadRequestBody.UploadCallback {
     private var uri: Uri? = null
+    private var myVideoController: MediaController? = null
 
     private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uriImage ->
         // Callback is invoked after the user selects a media item or closes the
@@ -51,7 +53,26 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>(), UploadRequestBod
         super.onViewCreated(view, savedInstanceState)
 
         binding.header.title.text = "Cá nhân"
+        setUpVideo()
         onClickView()
+    }
+
+    private fun setUpVideo() {
+        if(myVideoController == null) {
+            myVideoController = MediaController(context)
+            myVideoController?.setAnchorView(binding.videoView)
+        }
+
+        with(binding.videoView) {
+            setMediaController(myVideoController)
+            setVideoURI(Uri.parse("android.resource://" + context?.packageName + "/" + com.example.serviceandroid.R.raw.master_kotlin_android))
+            requestFocus()
+            start()
+            setOnCompletionListener {
+                this.rootView.snackBar("Video Completed")
+            }
+        }
+
     }
 
     private fun onClickView() {
