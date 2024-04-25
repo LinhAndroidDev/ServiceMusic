@@ -49,6 +49,7 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
 class PagerNewReleaseAdapter(private val context: Context, private val type: TypeList) :
     BaseAdapter<Song, ItemPagerNewReleaseBinding>() {
     var onClickItem: ((Int) -> Unit)? = null
+    var onClickUnFavourite: ((Int) -> Unit)? = null
     var isFavourite = false
 
     override fun getLayout(): Int = R.layout.item_pager_new_release
@@ -68,6 +69,9 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
                 tvNameSinger.text = item.nameSinger
                 holder.itemView.setOnClickListener {
                     onClickItem?.invoke(item.id)
+                }
+                holder.v.imgFavourite.setOnClickListener {
+                    onClickUnFavourite?.invoke(position)
                 }
             }
 

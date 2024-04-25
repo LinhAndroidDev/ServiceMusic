@@ -152,7 +152,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
 
     @SuppressLint("SimpleDateFormat")
     private fun playMusic(song: Song) {
-//        startServiceMusic(song)
+        startServiceMusic(song)
         mediaPlayer = MediaPlayer.create(this, song.sing)
         binding.progressMusic.apply {
             max = mediaPlayer!!.duration
@@ -221,6 +221,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
 
     private fun previousSong() {
         isPlaying = true
+        resetFavourite()
         if (index > 0) {
             index--
             initMusic()
@@ -232,6 +233,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
 
     private fun nextSong() {
         isPlaying = true
+        resetFavourite()
         if (index < Data.listMusic().size - 1) {
             index++
         } else {
@@ -250,6 +252,11 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
             mediaPlayer?.isLooping = false
             handlerActionMusic(Action.ACTION_NEXT)
         }
+    }
+
+    private fun resetFavourite() {
+        isFavourite = false
+        binding.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
     }
 
     override fun onDestroy() {
