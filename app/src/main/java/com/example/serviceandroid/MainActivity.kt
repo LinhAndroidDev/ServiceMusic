@@ -18,7 +18,7 @@ import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Song
-import com.example.serviceandroid.service.HelloService
+import com.example.serviceandroid.service.MusicService
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Timer
 import java.util.TimerTask
@@ -111,7 +111,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     @SuppressLint("SetTextI18n")
     private fun clickStartService() {
-        val intent = Intent(this, HelloService::class.java)
+        val intent = Intent(this, MusicService::class.java)
         val song = Data.listMusic()[0]
         intent.putExtra(MESSAGE_MAIN, song)
         ContextCompat.startForegroundService(this, intent)
@@ -173,7 +173,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun sendActionToService(action: Action) {
-        val intent = Intent(this, HelloService::class.java)
+        val intent = Intent(this, MusicService::class.java)
         intent.putExtra(Constants.RECEIVER_ACTION_MUSIC, action)
         startService(intent)
     }

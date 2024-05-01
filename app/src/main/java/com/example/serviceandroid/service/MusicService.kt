@@ -15,15 +15,21 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.MainActivity
+import com.example.serviceandroid.PlayCallback
 import com.example.serviceandroid.helper.MyApplication
 import com.example.serviceandroid.broadcast.MyReceiver
 import com.example.serviceandroid.R
 import com.example.serviceandroid.model.Song
 
 @Suppress("DEPRECATION")
-class HelloService : Service() {
-    private var mediaPlayer: MediaPlayer? = null
-    private var isPlaying = false
+class MusicService : Service(), PlayCallback {
+    override var mediaPlayer: MediaPlayer? = null
+    override var isPlaying = false
+    override var isRepeat = false
+    override var isFinish = false
+    override var dragToEnd= false
+    override var isFavourite= false
+    override var indexSong = 0
     private lateinit var mSong: Song
 
     override fun onCreate() {
@@ -116,6 +122,14 @@ class HelloService : Service() {
                 resumeMusic()
             }
 
+            Action.ACTION_NEXT -> {
+                nextMusic()
+            }
+
+            Action.ACTION_PREVIOUS -> {
+                previousMusic()
+            }
+
             else -> {
                 startMusic(mSong)
             }
@@ -124,14 +138,14 @@ class HelloService : Service() {
 
     private fun startMusic(song: Song) {
         mediaPlayer = MediaPlayer.create(this, song.sing)
-        mediaPlayer?.start()
+//        mediaPlayer?.start()
         isPlaying = true
         sendActionToActivity(Action.ACTION_START)
     }
 
     private fun resumeMusic() {
         if (!isPlaying) {
-            mediaPlayer?.start()
+//            mediaPlayer?.start()
             isPlaying = true
             sendNotificationMediaType(mSong)
             sendActionToActivity(Action.ACTION_RESUME)
@@ -140,11 +154,23 @@ class HelloService : Service() {
 
     private fun pauseMusic() {
         if (isPlaying) {
-            mediaPlayer?.pause()
+//            mediaPlayer?.pause()
             isPlaying = false
             sendNotificationMediaType(mSong)
             sendActionToActivity(Action.ACTION_PAUSE)
         }
+    }
+
+    private fun previousMusic() {
+        isPlaying = true
+        sendNotificationMediaType(mSong)
+        sendActionToActivity(Action.ACTION_PREVIOUS)
+    }
+
+    private fun nextMusic() {
+        isPlaying = true
+        sendNotificationMediaType(mSong)
+        sendActionToActivity(Action.ACTION_NEXT)
     }
 
     override fun onDestroy() {

@@ -22,7 +22,7 @@ import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Song
-import com.example.serviceandroid.service.HelloService
+import com.example.serviceandroid.service.MusicService
 import com.example.serviceandroid.utils.CustomAnimator
 import com.example.serviceandroid.utils.DateUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -30,16 +30,16 @@ import java.text.SimpleDateFormat
 
 @AndroidEntryPoint
 @Suppress("DEPRECATION")
-class MusicActivity : BaseActivity<ActivityMusicBinding>() {
+class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
     private val viewModel by viewModels<MusicViewModel>()
     private val timePlay = Handler(Looper.getMainLooper())
-    private var mediaPlayer: MediaPlayer? = null
-    private var isPlaying = true
-    private var isRepeat = false
-    private var isFinish = false
-    private var dragToEnd = false
-    private var isFavourite = false
-    private var index = 0
+    override var mediaPlayer: MediaPlayer? = null
+    override var isPlaying = true
+    override var isRepeat = false
+    override var isFinish = false
+    override var dragToEnd = false
+    override var isFavourite = false
+    override var indexSong = 0
     private val fadeIn by lazy { AnimationUtils.loadAnimation(this, R.anim.anim_fade_in) }
     private val rotate45 by lazy { AnimationUtils.loadAnimation(this, R.anim.rotation_45) }
 
@@ -47,6 +47,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
         override fun onReceive(context: Context, intent: Intent) {
 //            mSong = intent.getParcelableExtra<Song>(Constants.OBJECT_SONG) as Song
             isPlaying = intent.getBooleanExtra(Constants.STATUS_PLAYING, false)
+            handlerActionMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
 //            handleLayoutMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
         }
     }
@@ -60,7 +61,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
         changeColorStatusBar(Color.BLACK)
         val idSong = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
         Data.listMusic().filter { it.id == idSong }.forEach {
-            index = Data.listMusic().indexOf(it)
+            indexSong = Data.listMusic().indexOf(it)
         }
         CustomAnimator.rotationImage(binding.imgSong)
         onClickView()
@@ -69,7 +70,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
 
     @SuppressLint("SetTextI18n")
     private fun startServiceMusic(song: Song) {
-        val intent = Intent(this, HelloService::class.java)
+        val intent = Intent(this, MusicService::class.java)
         intent.putExtra(MainActivity.MESSAGE_MAIN, song)
         startService(intent)
     }
@@ -129,7 +130,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
         binding.imgFavourite.setOnClickListener {
             isFavourite = !isFavourite
             binding.imgFavourite.setImageResource(if (isFavourite) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin)
-            val mSong = Data.listMusic()[index]
+            val mSong = Data.listMusic()[indexSong]
             mSong.timeCreate = DateUtils.getTimeCurrent()
             viewModel.insertSong(mSong)
         }
@@ -137,7 +138,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
 
     private fun initMusic() {
         resetMusic()
-        val song = Data.listMusic()[index]
+        val song = Data.listMusic()[indexSong]
         Glide.with(this)
             .load(song.avatar)
             .error(R.drawable.ic_circle)
@@ -198,6 +199,15 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
         }
     }
 
+    /**
+     * Send Action To Notification Music
+     */
+    private fun sendActionToService(action: Action) {
+        val intent = Intent(this, MusicService::class.java)
+        intent.putExtra(Constants.RECEIVER_ACTION_MUSIC, action)
+        startService(intent)
+    }
+
     @SuppressLint("SimpleDateFormat")
     private fun setProgressTime() {
         binding.tvProgressTime.text = SimpleDateFormat(Constants.MINUTES).format(mediaPlayer?.currentPosition)
@@ -211,22 +221,24 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
         binding.imgPlay.setImageResource(R.drawable.ic_pause_music)
         mediaPlayer?.start()
         isPlaying = true
+        sendActionToService(Action.ACTION_RESUME)
     }
 
     private fun pauseMusic() {
         binding.imgPlay.setImageResource(R.drawable.ic_play_music)
         mediaPlayer?.pause()
         isPlaying = false
+        sendActionToService(Action.ACTION_PAUSE)
     }
 
     private fun previousSong() {
         isPlaying = true
         resetFavourite()
-        if (index > 0) {
-            index--
+        if (indexSong > 0) {
+            indexSong--
             initMusic()
         } else {
-            index = Data.listMusic().size - 1
+            indexSong = Data.listMusic().size - 1
         }
         initMusic()
     }
@@ -234,10 +246,10 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
     private fun nextSong() {
         isPlaying = true
         resetFavourite()
-        if (index < Data.listMusic().size - 1) {
-            index++
+        if (indexSong < Data.listMusic().size - 1) {
+            indexSong++
         } else {
-            index = 0
+            indexSong = 0
         }
         initMusic()
     }
