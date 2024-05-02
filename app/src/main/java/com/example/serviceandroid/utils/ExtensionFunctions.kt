@@ -1,6 +1,9 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.serviceandroid.utils
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.ContentResolver
 import android.graphics.Color
 import android.graphics.LinearGradient
@@ -10,6 +13,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.TypedValue
 import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +21,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
+import com.bumptech.glide.Glide
+import com.example.serviceandroid.R
 import com.google.android.material.snackbar.Snackbar
 
 object ExtensionFunctions {
