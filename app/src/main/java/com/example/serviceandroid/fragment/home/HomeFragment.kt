@@ -67,10 +67,8 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
          */
         ExtensionFunctions.gradientTextColor(binding.tvZingChat)
 
-        lifecycleScope.launch {
-            binding.root.postDelayed(500) {
-                initializeViews()
-            }
+        binding.root.postDelayed(500) {
+            initializeViews()
         }
     }
 
