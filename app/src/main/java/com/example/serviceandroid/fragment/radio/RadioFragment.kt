@@ -15,6 +15,8 @@ import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.data.DirectionsApiService
+import com.example.serviceandroid.data.DirectionsResponse
 import com.example.serviceandroid.databinding.FragmentRadioBinding
 import com.example.serviceandroid.map.MapData
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -24,17 +26,23 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.PolygonOptions
 import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.libraries.places.api.Places
 import com.google.gson.Gson
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 
 @Suppress("DEPRECATION")
 class RadioFragment : BaseFragment<FragmentRadioBinding>(), OnMapReadyCallback {
 
-    private var map: GoogleMap? = null
+    private var mMap: GoogleMap? = null
     private var currentLocation: Location? = null
     private var fusedLocation: FusedLocationProviderClient? = null
 
@@ -79,14 +87,14 @@ class RadioFragment : BaseFragment<FragmentRadioBinding>(), OnMapReadyCallback {
 
         binding.findLocal.setOnClickListener {
             (childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment).getMapAsync {
-                map = it
+                mMap = it
                 val originLocation = LatLng(originLatitude, originLongitude)
-                map?.addMarker(MarkerOptions().position(originLocation))
+                mMap?.addMarker(MarkerOptions().position(originLocation))
                 val destinationLocation = LatLng(destinationLatitude, destinationLongitude)
-                map?.addMarker(MarkerOptions().position(destinationLocation))
+                mMap?.addMarker(MarkerOptions().position(destinationLocation))
                 val urll = getDirectionURL(originLocation, destinationLocation, apiKey)
                 GetDirection(urll).execute()
-                map?.animateCamera(CameraUpdateFactory.newLatLngZoom(originLocation, 14F))
+                mMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(originLocation, 14F))
             }
         }
     }
@@ -124,26 +132,137 @@ class RadioFragment : BaseFragment<FragmentRadioBinding>(), OnMapReadyCallback {
      * 21.001762, 105.822424
      */
     override fun onMapReady(googleMap: GoogleMap) {
-//        this.map = googleMap
-//        currentLocation?.let {
-//            val sydney = LatLng(it.latitude, it.longitude)
-//            map?.addMarker(
-//                MarkerOptions()
-//                    .position(sydney)
-//                    .title("Marker in Sydney")
-//            )
-//            map?.animateCamera(CameraUpdateFactory.newLatLngZoom(sydney, 15f), 2000, null)
-//            map?.uiSettings?.apply {
-//                isZoomControlsEnabled = true
-//                isCompassEnabled = true
-//            }
-//        }
+        mMap = googleMap
 
-        map = googleMap
-        val originLocation = LatLng(originLatitude, originLongitude)
-        map?.clear()
-        map?.addMarker(MarkerOptions().position(originLocation))
-        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(originLocation, 18F))
+        val origin = LatLng(21.003626,105.824977) // Khuowng Thuong
+        val destination = LatLng(21.003613, 105.844088) //Bachs Khoa
+        val destination1 = LatLng(20.992254, 105.852681) //Hoang Mai
+        val destination2 = LatLng(21.0023104,105.8215982) //317
+
+        mMap?.addMarker(MarkerOptions().position(origin).title("San Francisco"))
+        mMap?.addMarker(MarkerOptions().position(destination).title("Los Angeles"))
+        mMap?.addMarker(MarkerOptions().position(destination1).title("Los Angeles"))
+        mMap?.addMarker(MarkerOptions().position(destination2).title("Los Angeles"))
+        mMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(origin, 14f))
+
+        // Vẽ đường thẳng nối hai điểm
+//        drawLine(origin, destination)
+//        drawLine(destination, destination1)
+//        drawLine(destination1, destination2)
+//        drawLine(destination2, origin)
+
+//        getDirections(origin, destination)
+
+        // Ve tu giac
+        drawPolygon(origin, destination, destination1, destination2)
+    }
+
+    private fun drawPolygon(vararg points: LatLng) {
+        val polygonOptions = PolygonOptions()
+            .add(*points)
+            .strokeWidth(10f)
+            .strokeColor(Color.BLUE)
+            .fillColor(0x5500FF00) // Màu xanh lá cây với độ trong suốt 50%
+
+        mMap?.addPolygon(polygonOptions)
+    }
+
+    private fun drawLine(origin: LatLng, destination: LatLng) {
+        val polylineOptions = PolylineOptions()
+            .add(origin)
+            .add(destination)
+            .width(10f)
+            .color(Color.BLUE)
+
+        mMap?.addPolyline(polylineOptions)
+    }
+
+    private fun getDirections(origin: LatLng, destination: LatLng) {
+        val url = getDirectionUrl(origin, destination, getString(R.string.google_maps_key))
+        // Sử dụng thư viện như Retrofit hoặc HttpURLConnection để gọi API Directions
+        // Ví dụ với Retrofit
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://maps.googleapis.com/maps/api/directions/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+        val service = retrofit.create(DirectionsApiService::class.java)
+        val call = service.getDirections(url)
+
+        call.enqueue(object : Callback<DirectionsResponse> {
+            override fun onResponse(call: Call<DirectionsResponse>, response: Response<DirectionsResponse>) {
+                val directions = response.body()
+                if (directions?.routes!!.isNotEmpty()) {
+                    drawRoute(directions)
+                }
+            }
+
+            override fun onFailure(call: Call<DirectionsResponse>, t: Throwable) {
+                // Handle error
+            }
+        })
+    }
+
+    private fun getDirectionUrl(origin: LatLng, destination: LatLng, apiKey: String): String {
+        val strOrigin = "origin=${origin.latitude},${origin.longitude}"
+        val strDest = "destination=${destination.latitude},${destination.longitude}"
+        val sensor = "sensor=false"
+        val mode = "mode=driving"
+        return "json?$strOrigin&$strDest&$sensor&$mode&key=$apiKey"
+    }
+
+    private fun drawRoute(directions: DirectionsResponse) {
+        val points = ArrayList<LatLng>()
+        val route = directions.routes[0]
+        val legs = route.legs
+        for (i in legs.indices) {
+            val steps = legs[i].steps
+            for (j in steps.indices) {
+                val polyline = steps[j].polyline
+                val list = decodePolyline(polyline.points)
+                points.addAll(list)
+            }
+        }
+        val polylineOptions = PolylineOptions()
+        polylineOptions.addAll(points)
+        polylineOptions.width(10f)
+        polylineOptions.color(Color.BLUE)
+        polylineOptions.geodesic(true)
+        mMap?.addPolyline(polylineOptions)
+    }
+
+    private fun decodePolyline(encoded: String): List<LatLng> {
+        val poly = ArrayList<LatLng>()
+        var index = 0
+        val len = encoded.length
+        var lat = 0
+        var lng = 0
+        while (index < len) {
+            var b: Int
+            var shift = 0
+            var result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lat += dlat
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lng += dlng
+            val p = LatLng(
+                lat / 1E5, lng / 1E5
+            )
+            poly.add(p)
+        }
+        return poly
     }
 
     override fun onRequestPermissionsResult(
@@ -200,41 +319,41 @@ class RadioFragment : BaseFragment<FragmentRadioBinding>(), OnMapReadyCallback {
                 lineoption.color(Color.GREEN)
                 lineoption.geodesic(true)
             }
-            map?.addPolyline(lineoption)
+            mMap?.addPolyline(lineoption)
         }
     }
 
-    fun decodePolyline(encoded: String): List<LatLng> {
-        val poly = ArrayList<LatLng>()
-        var index = 0
-        val len = encoded.length
-        var lat = 0
-        var lng = 0
-        while (index < len) {
-            var b: Int
-            var shift = 0
-            var result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or (b and 0x1f shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lat += dlat
-            shift = 0
-            result = 0
-            do {
-                b = encoded[index++].code - 63
-                result = result or (b and 0x1f shl shift)
-                shift += 5
-            } while (b >= 0x20)
-            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
-            lng += dlng
-            val latLng = LatLng((lat.toDouble() / 1E5),(lng.toDouble() / 1E5))
-            poly.add(latLng)
-        }
-        return poly
-    }
+//    fun decodePolyline(encoded: String): List<LatLng> {
+//        val poly = ArrayList<LatLng>()
+//        var index = 0
+//        val len = encoded.length
+//        var lat = 0
+//        var lng = 0
+//        while (index < len) {
+//            var b: Int
+//            var shift = 0
+//            var result = 0
+//            do {
+//                b = encoded[index++].code - 63
+//                result = result or (b and 0x1f shl shift)
+//                shift += 5
+//            } while (b >= 0x20)
+//            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+//            lat += dlat
+//            shift = 0
+//            result = 0
+//            do {
+//                b = encoded[index++].code - 63
+//                result = result or (b and 0x1f shl shift)
+//                shift += 5
+//            } while (b >= 0x20)
+//            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+//            lng += dlng
+//            val latLng = LatLng((lat.toDouble() / 1E5),(lng.toDouble() / 1E5))
+//            poly.add(latLng)
+//        }
+//        return poly
+//    }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =
         FragmentRadioBinding.inflate(inflater)
