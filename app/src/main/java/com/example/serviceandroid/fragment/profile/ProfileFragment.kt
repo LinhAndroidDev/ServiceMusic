@@ -1,5 +1,6 @@
 package com.example.serviceandroid.fragment.profile
 
+import android.R
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
@@ -7,9 +8,11 @@ import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.AutoCompleteTextView
 import android.widget.MediaController
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.widget.ListPopupWindow
+import com.example.serviceandroid.adapter.CustomArrayAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.databinding.FragmentProfileBinding
 import com.example.serviceandroid.utils.ExtensionFunctions.getFileName
@@ -21,6 +24,8 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.lang.reflect.Field
+
 
 class ProfileFragment : BaseFragment<FragmentProfileBinding>(), UploadRequestBody.UploadCallback {
     private var uri: Uri? = null
@@ -55,6 +60,36 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>(), UploadRequestBod
         binding.header.title.text = "Cá nhân"
         setUpVideo()
         onClickView()
+
+        binding.autoCompleteTextView.apply {
+            val data: List<String?> = mutableListOf<String?>("Apple", "Banana", "Cherry", "Date", "Grape", "Kiwi", "Lemon", "Mango", "Orange", "Pineapple")
+            val adapter = CustomArrayAdapter(requireActivity(), R.layout.simple_dropdown_item_1line, data)
+            setAdapter(adapter)
+            if(data.size > 5) dropDownHeight = 600
+
+            post {
+                try {
+                    val popupField: Field = AutoCompleteTextView::class.java.getDeclaredField("mPopup")
+                    popupField.isAccessible = true
+                    val popup: ListPopupWindow = popupField.get(this) as ListPopupWindow
+                    popup.width = this.width
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            // Hiển thị danh sách khi AutoCompleteTextView nhận được focus
+            setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    showDropDown()
+                }
+            }
+
+            // Hiển thị danh sách khi AutoCompleteTextView được click
+            setOnClickListener {
+                showDropDown()
+            }
+        }
     }
 
     private fun setUpVideo() {
