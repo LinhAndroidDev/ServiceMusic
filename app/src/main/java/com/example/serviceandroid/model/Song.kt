@@ -1,7 +1,6 @@
 package com.example.serviceandroid.model
 
 import android.os.Parcelable
-import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.parcelize.Parcelize
@@ -18,8 +17,6 @@ data class Song(
     val time: Int,
     val type: Int,
     var timeCreate: String? = null,
-//    @ColumnInfo(defaultValue = "0") var isDownloaded: Int = 0,
-//    @ColumnInfo(defaultValue = "0") var uploaded: Int = 0
 ) : Parcelable {
     fun checkMusicNational(national: National): Boolean {
         return when (national) {

@@ -1,76 +1,61 @@
 package com.example.serviceandroid.fragment.profile
 
 import android.R
+import android.annotation.SuppressLint
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
-import android.os.Parcelable
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.AutoCompleteTextView
 import android.widget.MediaController
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.ListPopupWindow
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.example.serviceandroid.adapter.CustomArrayAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.databinding.FragmentProfileBinding
+import com.example.serviceandroid.utils.ExtensionFunctions.getFileName
 import com.example.serviceandroid.utils.ExtensionFunctions.snackBar
 import com.example.serviceandroid.utils.UploadRequestBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.lang.reflect.Field
 
 
 class ProfileFragment : BaseFragment<FragmentProfileBinding>(), UploadRequestBody.UploadCallback {
     private var uri: Uri? = null
     private var myVideoController: MediaController? = null
-    private var imageUris = arrayListOf<Uri>()
 
-    companion object {
-        const val PICK_IMAGES_REQUEST = 1
-    }
-
-    private fun handleSendText(intent: Intent) {
-        intent.getStringExtra(Intent.EXTRA_TEXT)?.let {
-
+    private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uriImage ->
+        // Callback is invoked after the user selects a media item or closes the
+        // photo picker.
+        if (uriImage != null) {
+            uri = uriImage
+            binding.selectImage.setImageURI(uriImage)
+        } else {
+            Log.d("PhotoPicker", "No media selected")
         }
     }
 
-    private fun handleSendImage(intent: Intent) {
-        (intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri)?.let {
-            binding.selectImage.setImageURI(it)
-        }
-    }
-
-    private fun handleSendMultipleImages(intent: Intent) {
-        intent.getParcelableArrayListExtra<Parcelable>(Intent.EXTRA_STREAM)?.let {
-            // Update UI to reflect multiple images being shared
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uriImage ->
+        // Callback is invoked after the user selects a media item or closes the
+        // photo picker.
+        if (uriImage != null) {
+            uri = uriImage
+            binding.selectImage.setImageURI(uriImage)
+            binding.root.snackBar("Select Image Success")
+        } else {
+            Log.d("PhotoPicker", "No media selected")
         }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        activity?.apply {
-            when {
-                intent?.action == Intent.ACTION_SEND -> {
-                    if ("text/plain" == intent.type) {
-                        handleSendText(intent) // Handle text being sent
-                    } else if (intent.type?.startsWith("image/") == true) {
-                        handleSendImage(intent) // Handle single image being sent
-                    }
-                }
-                intent?.action == Intent.ACTION_SEND_MULTIPLE
-                        && intent.type?.startsWith("image/") == true -> {
-                    handleSendMultipleImages(intent) // Handle multiple images being sent
-                }
-                else -> {
-                    // Handle other intents, such as being started from the home screen
-                }
-            }
-        }
 
         binding.header.title.text = "Cá nhân"
         setUpVideo()
@@ -128,82 +113,43 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>(), UploadRequestBod
     private fun onClickView() {
         with(binding) {
             selectImage.setOnClickListener {
-                openImagePicker()
+//                pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                Intent(Intent.ACTION_PICK).also {
+                    it.type = "image/*"
+                    val mimeTypes = arrayOf("image/jpeg", "image/png")
+                    it.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+                    pickImage.launch("image/*")
+                }
             }
-
             convertUriToFile.setOnClickListener {
-                if(imageUris.isNotEmpty()) {
-                    val shareIntent = Intent().apply {
-                        action = Intent.ACTION_SEND_MULTIPLE
-                        putParcelableArrayListExtra(Intent.EXTRA_STREAM, imageUris)
-                        type = "image/*"
-                    }
-                    startActivity(Intent.createChooser(shareIntent, null))
-                }
+//                upload()
+                uploadImage()
             }
         }
     }
 
-    // Hàm để mở picker và chọn ảnh
-    private fun openImagePicker() {
-        // Kiểm tra xem quyền đã được cấp hay chưa
-        if (ContextCompat.checkSelfPermission(requireActivity(), android.Manifest.permission.READ_EXTERNAL_STORAGE)
-            != PackageManager.PERMISSION_GRANTED) {
+    @SuppressLint("Recycle")
+    private fun uploadImage() {
+        val parcelFileDescriptor =
+            context?.contentResolver?.openFileDescriptor(uri!!, "r", null) ?: return
+        val inputStream = FileInputStream(parcelFileDescriptor.fileDescriptor)
+        val file = context?.contentResolver?.getFileName(uri!!)?.let { File(context?.cacheDir, it) }
+        val outputStream = FileOutputStream(file)
+        inputStream.copyTo(outputStream)
 
-            // Nếu quyền chưa được cấp, yêu cầu người dùng cấp quyền
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE),
-                10
-            )
-        } else {
-            val intent = Intent().apply {
-                type = "image/*"
-                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                action = Intent.ACTION_OPEN_DOCUMENT
-            }
-            startActivityForResult(Intent.createChooser(intent, ""), PICK_IMAGES_REQUEST)
-        }
+        val body = UploadRequestBody(file!!, "image", this)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        when (requestCode) {
-            10 -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    val intent = Intent().apply {
-                        type = "image/*"
-                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                        action = Intent.ACTION_OPEN_DOCUMENT
-                    }
-                    startActivityForResult(Intent.createChooser(intent, ""), PICK_IMAGES_REQUEST)
-                } else {
-                    Toast.makeText(requireActivity(), "Chua cap quyen", Toast.LENGTH_SHORT).show()
-                }
-                return
-            }
-        }
-    }
+    private fun upload() {
+        val fileDir = context?.filesDir
+        val file = File(fileDir, "image.jpg")
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == PICK_IMAGES_REQUEST && resultCode == AppCompatActivity.RESULT_OK) {
-            if (data != null) {
-                if (data.clipData != null) {
-                    // Đã chọn nhiều ảnh
-                    val count = data.clipData!!.itemCount
-                    for (i in 0 until count) {
-                        val imageUri = data.clipData!!.getItemAt(i).uri
-                        imageUris.add(imageUri)
-                    }
-                } else {
-                    // Chỉ chọn một ảnh
-                    val imageUri = data.data
-                    imageUris.add(imageUri!!)
-                }
-            }
-        }
+        val inputStream = uri?.let { context?.contentResolver?.openInputStream(it) }
+        val outputStream = FileOutputStream(file)
+        inputStream?.copyTo(outputStream)
+        val requestBody = file.asRequestBody(("image/*").toMediaTypeOrNull())
+        val part = MultipartBody.Part.createFormData("profile", file.name, requestBody)
     }
-
 
     override fun getFragmentBinding(inflater: LayoutInflater)
     = FragmentProfileBinding.inflate(inflater)

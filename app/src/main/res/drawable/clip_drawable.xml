@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- res/drawable/clip_drawable.xml -->
-<clip xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/am_tham_ben_em"
-    android:clipOrientation="vertical"
-    android:gravity="bottom" />
