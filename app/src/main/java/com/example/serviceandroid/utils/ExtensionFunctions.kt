@@ -28,7 +28,6 @@ object ExtensionFunctions {
         val scrollBounds = Rect()
         this.getDrawingRect(scrollBounds)
         val top = view.y
-//        val bottom = view.height + top
         return scrollBounds.top > top
     }
 
