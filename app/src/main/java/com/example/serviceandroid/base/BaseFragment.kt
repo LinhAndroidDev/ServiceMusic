@@ -18,9 +18,5 @@ abstract class BaseFragment<VB: ViewBinding>: Fragment() {
         return binding.root
     }
 
-    fun changeColorStatusBar(color: Int) {
-        requireActivity().window.statusBarColor = color
-    }
-
     protected abstract fun getFragmentBinding(inflater: LayoutInflater): VB
 }

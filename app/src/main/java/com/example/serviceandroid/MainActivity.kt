@@ -41,7 +41,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
-        const val INDEX_MUSIC = "INDEX_MUSIC"
+        const val ID_MUSIC = "ID_MUSIC"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,6 +107,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     internal fun visibleBottomBar() {
         binding.bottomBar.visibility = View.VISIBLE
+    }
+
+    internal fun hideBottomBar() {
+        binding.bottomBar.visibility = View.GONE
     }
 
     @SuppressLint("SetTextI18n")

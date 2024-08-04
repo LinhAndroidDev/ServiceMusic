@@ -6,8 +6,10 @@ import android.graphics.Shader
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.databinding.FragmentZingChartBinding
+import com.example.serviceandroid.utils.ExtensionFunctions.setColorTint
 
 class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
 
@@ -29,6 +31,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             )
             it.paint.shader = textShader
         }
+        setColorTint(binding.header.search, R.color.white)
+        setColorTint(binding.header.micro, R.color.white)
     }
     override fun getFragmentBinding(inflater: LayoutInflater)
     = FragmentZingChartBinding.inflate(inflater)

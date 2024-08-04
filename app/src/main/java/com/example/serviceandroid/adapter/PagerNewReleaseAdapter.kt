@@ -68,7 +68,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
                 tvNameSong.text = item.title
                 tvNameSinger.text = item.nameSinger
                 holder.itemView.setOnClickListener {
-                    onClickItem?.invoke(item.id)
+                    onClickItem?.invoke(item.idSong)
                 }
                 holder.v.imgFavourite.setOnClickListener {
                     onClickUnFavourite?.invoke(position)

@@ -2,14 +2,18 @@ package com.example.serviceandroid.utils
 
 import android.annotation.SuppressLint
 import android.content.ContentResolver
+import android.content.Context
 import android.graphics.Color
 import android.graphics.LinearGradient
+import android.graphics.PorterDuff
 import android.graphics.Rect
 import android.graphics.Shader
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.TypedValue
 import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +21,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
+import androidx.fragment.app.Fragment
+import com.example.serviceandroid.R
+import com.example.serviceandroid.database.SongEntity
+import com.example.serviceandroid.model.Song
 import com.google.android.material.snackbar.Snackbar
 
 object ExtensionFunctions {
@@ -73,5 +81,27 @@ object ExtensionFunctions {
             name = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
         }
         return name
+    }
+
+    fun SongEntity.toSong(): Song {
+        return Song(
+            this.idSong,
+            this.title,
+            this.nameSinger,
+            this.avatar,
+            this.sing,
+            this.time,
+            this.type
+        )
+    }
+
+    fun View.showKeyboard() {
+        this.requestFocus()
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    fun Fragment.setColorTint(imageView: ImageView, color: Int) {
+        imageView.setColorFilter(ContextCompat.getColor(requireActivity(), color), PorterDuff.Mode.SRC_IN)
     }
 }

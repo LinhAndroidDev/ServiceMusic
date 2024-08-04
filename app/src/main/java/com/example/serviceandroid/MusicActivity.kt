@@ -13,10 +13,13 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.animation.AnimationUtils
 import android.widget.SeekBar
+import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.base.BaseActivity
+import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.ActivityMusicBinding
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.Data
@@ -26,6 +29,7 @@ import com.example.serviceandroid.service.MusicService
 import com.example.serviceandroid.utils.CustomAnimator
 import com.example.serviceandroid.utils.DateUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 
 @AndroidEntryPoint
@@ -58,9 +62,14 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(Constants.SEND_DATA_TO_ACTIVITY))
 
-        changeColorStatusBar(Color.BLACK)
-        val idSong = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
-        Data.listMusic().filter { it.id == idSong }.forEach {
+        val idSong = intent.getIntExtra(MainActivity.ID_MUSIC, 0)
+        lifecycleScope.launch {
+            viewModel.isFavourite.collect {
+                isFavourite = it
+                binding.imgFavourite.setImageResource(if (it) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin)
+            }
+        }
+        Data.listMusic().filter { it.idSong == idSong }.forEach {
             indexSong = Data.listMusic().indexOf(it)
         }
         CustomAnimator.rotationImage(binding.imgSong)
@@ -128,11 +137,32 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
         })
 
         binding.imgFavourite.setOnClickListener {
-            isFavourite = !isFavourite
-            binding.imgFavourite.setImageResource(if (isFavourite) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin)
-            val mSong = Data.listMusic()[indexSong]
-            mSong.timeCreate = DateUtils.getTimeCurrent()
-            viewModel.insertSong(mSong)
+            if (!isFavourite) {
+                isFavourite = true
+                binding.imgFavourite.setImageResource(R.drawable.ic_favourite_fill)
+                val mSong = Data.listMusic()[indexSong]
+                viewModel.insertSong(mSong, DateUtils.getTimeCurrent()) {
+                    Toast.makeText(
+                        this@MusicActivity,
+                        "Đã thêm vào bài hát yêu thích",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } else {
+                DialogConfirm().apply {
+                    title = Data.listMusic()[indexSong].title
+                    onClickRemove = {
+                        viewModel.deleteSongById(Data.listMusic()[indexSong].idSong) {
+                            Toast.makeText(
+                                this@MusicActivity,
+                                "Đã xoá khỏi bài hát yêu thích",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            isFavourite = false
+                        }
+                    }
+                }.show(supportFragmentManager, "")
+            }
         }
     }
 
@@ -147,6 +177,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
         binding.imgSong.startAnimation(fadeIn)
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
+        lifecycleScope.launch { viewModel.checkSongById(Data.listMusic()[indexSong].idSong) }
 
         playMusic(song)
     }

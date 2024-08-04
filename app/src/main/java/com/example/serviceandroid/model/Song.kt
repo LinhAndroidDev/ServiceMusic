@@ -1,23 +1,18 @@
 package com.example.serviceandroid.model
 
 import android.os.Parcelable
-import androidx.room.Entity
-import androidx.room.PrimaryKey
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-@Entity(tableName = "songEntity")
 data class Song(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int,
+    val idSong: Int,
     val title: String,
     val nameSinger: String,
     val avatar: Int,
     val sing: Int,
     val time: Int,
     val type: Int,
-    var timeCreate: String? = null,
-) : Parcelable {
+): Parcelable {
     fun checkMusicNational(national: National): Boolean {
         return when (national) {
             National.VIETNAMESE -> type == 0
@@ -26,7 +21,7 @@ data class Song(
         }
     }
 
-    fun getSongById(idSong: Int): Boolean {
-        return idSong == id
-    }
+//    fun getSongById(idSong: Int): Boolean {
+//        return idSong == id
+//    }
 }

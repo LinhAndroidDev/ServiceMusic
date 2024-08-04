@@ -12,16 +12,14 @@ import javax.inject.Inject
 @HiltViewModel
 class FragmentFavouriteSongViewModel @Inject constructor(private val repository: FavouriteSongRepository) : ViewModel() {
     val songs = MutableStateFlow<MutableList<Song>?>(null)
-    suspend fun getAll() = viewModelScope.launch {
+    fun getAll() = viewModelScope.launch {
         songs.value = repository.getAll()
+        val t = 1
     }
 
-    fun insertSong(song: Song) = viewModelScope.launch {
-        repository.insertSong(song)
-    }
-
-    fun deleteSongById(id: Int) = viewModelScope.launch {
+    fun deleteSongById(id: Int, callBackDeleteSong: () -> Unit) = viewModelScope.launch {
         repository.deleteSongById(id)
         getAll()
+        callBackDeleteSong.invoke()
     }
 }

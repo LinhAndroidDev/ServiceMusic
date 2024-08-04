@@ -8,6 +8,7 @@ import android.view.View
 import androidx.core.view.isVisible
 import androidx.core.view.postDelayed
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
@@ -28,7 +29,6 @@ import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
 import com.example.serviceandroid.utils.ExtensionFunctions
-import com.example.serviceandroid.utils.ExtensionFunctions.addCircleRipple
 import com.example.serviceandroid.utils.ExtensionFunctions.isViewVisible
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -55,9 +55,6 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
          * Visible Bottom Navigation Bar When Into Fragment Home
          */
         (activity as MainActivity).visibleBottomBar()
-        activity?.let {
-            changeColorStatusBar(it.getColor(R.color.background))
-        }
 
         binding.titleCover.isVisible = binding.scrollHome.isViewVisible(binding.titleTopic)
         stickHeader()
@@ -141,6 +138,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                 }
             }
         }
+
+        binding.header.search.setOnClickListener {
+            findNavController().navigate(R.id.action_homeFragment_to_fragmentSearchSong)
+        }
     }
 
     private fun resetMusicInterNational() {
@@ -157,7 +158,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.rcvNewupdate.adapter = adapter
         adapter.onClickItem = {
             val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.INDEX_MUSIC, it)
+            intent.putExtra(MainActivity.ID_MUSIC, it)
             startActivity(intent)
         }
     }
@@ -168,7 +169,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.pagerNewRelease.adapter = adapterNational
         adapterNational.onClickItem = {
             val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.INDEX_MUSIC, it)
+            intent.putExtra(MainActivity.ID_MUSIC, it)
             startActivity(intent)
         }
         setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)

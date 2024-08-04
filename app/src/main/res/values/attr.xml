@@ -9,4 +9,8 @@
             <enum name="profile" value="4"/>
         </attr>
     </declare-styleable>
+
+    <declare-styleable name="TrialView">
+        <attr name="color_trial" format="color"/>
+    </declare-styleable>
 </resources>

@@ -1,6 +1,5 @@
 package com.example.serviceandroid.fragment
 
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -21,7 +20,6 @@ class SplashFragment : BaseFragment<FragmentSplashBinding>() {
     }
 
     private fun initView() {
-        changeColorStatusBar(Color.BLACK)
         lifecycleScope.launch {
             delay(2000L)
             withContext(Dispatchers.Main) {

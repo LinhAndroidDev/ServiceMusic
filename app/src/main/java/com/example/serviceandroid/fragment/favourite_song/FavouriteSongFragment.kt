@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
@@ -12,7 +14,10 @@ import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentFavouriteSongBinding
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Suppress("DEPRECATION")
 @AndroidEntryPoint
@@ -30,29 +35,45 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
         binding.backFavouriteSong.setOnClickListener {
             activity?.onBackPressed()
         }
+
+        binding.understood.setOnClickListener {
+            binding.filterGuide.isVisible = false
+        }
     }
 
-    @SuppressLint("NotifyDataSetChanged")
+    @SuppressLint("NotifyDataSetChanged", "SetTextI18n")
     private fun initListSong() {
-        lifecycleScope.launch {
-            viewModel.getAll()
-            viewModel.songs.collect { songs ->
-                songs?.let {
-                    binding.notFoundSong.visibility = if(songs.size > 0) View.GONE else View.VISIBLE
-                    adapterFavouriteSong = PagerNewReleaseAdapter(requireActivity(), TypeList.TYPE_NATIONAL).apply {
-                        isFavourite = true
-                        items = songs
-                        onClickUnFavourite = { index ->
-                            DialogConfirm().apply {
-                                title = songs[index].title
-                                onClickRemove = {
-                                    viewModel.deleteSongById(songs[index].id)
-                                    notifyDataSetChanged()
-                                }
-                            }.show(requireActivity().supportFragmentManager, "")
+        adapterFavouriteSong = PagerNewReleaseAdapter(requireActivity(), TypeList.TYPE_NATIONAL).apply {
+            isFavourite = true
+            onClickUnFavourite = { index ->
+                DialogConfirm().apply {
+                    title = adapterFavouriteSong.items[index].title
+                    onClickRemove = {
+                        viewModel.deleteSongById(adapterFavouriteSong.items[index].idSong) {
+                            notifyDataSetChanged()
                         }
                     }
+                }.show(requireActivity().supportFragmentManager, "")
+            }
+        }
+
+        viewModel.getAll()
+        lifecycleScope.launch {
+            viewModel.songs.collect { songs ->
+                songs?.let {
+                    binding.numberSong.text = "${songs.size} bài hát . Đã lưu vào thư viện"
+                    binding.notFoundSong.visibility = if(songs.size > 0) View.GONE else View.VISIBLE
+                    adapterFavouriteSong.items = songs
                     binding.rcvFavouriteSong.adapter = adapterFavouriteSong
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            delay(3000)
+            withContext(Dispatchers.Main) {
+                if(!binding.notFoundSong.isVisible) {
+                    binding.filterGuide.isVisible = true
                 }
             }
         }

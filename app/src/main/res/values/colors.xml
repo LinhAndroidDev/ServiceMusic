@@ -12,7 +12,10 @@
     //background
     <color name="background">#f7f7f7</color>
     <color name="bg_blue">#1EB3F6</color>
+    <color name="blue">#076bf7</color>
+    <color name="blue_dark">#382c74</color>
     <color name="bg_purple">#7B32AF</color>
+    <color name="purple_dark">#402254</color>
     <color name="bg_orange">#FF9800</color>
     <color name="bg_pink">#E82D6C</color>
     <color name="bg_green1">#05CDBB</color>
@@ -20,4 +23,5 @@
     <color name="purple_1">#673AB7</color>
     <color name="yellow_dark">#FFC107</color>
     <color name="grey_light">#EFEFEF</color>
+    <color name="grey_1">#8E8E8E</color>
 </resources>

@@ -21,8 +21,8 @@
         android:label="home_fragment"
         tools:layout="@layout/fragment_home">
         <action
-            android:id="@+id/action_homeFragment_to_zingchartFragment"
-            app:destination="@+id/zingchartFragment" />
+            android:id="@+id/action_homeFragment_to_fragmentSearchSong"
+            app:destination="@id/fragmentSearchSong" />
     </fragment>
 
     <fragment
@@ -33,29 +33,49 @@
         <action
             android:id="@+id/action_libraryFragment_to_favouriteSongFragment"
             app:destination="@+id/favouriteSongFragment" />
+        <action
+            android:id="@+id/action_libraryFragment_to_fragmentSearchSong"
+            app:destination="@id/fragmentSearchSong" />
     </fragment>
 
     <fragment
         android:id="@+id/zingchartFragment"
         android:name="com.example.serviceandroid.fragment.zingchart.ZingChartFragment"
         android:label="zing_chart_fragment"
-        tools:layout="@layout/fragment_zing_chart" />
+        tools:layout="@layout/fragment_zing_chart" >
+        <action
+            android:id="@+id/action_zingchartFragment_to_fragmentSearchSong"
+            app:destination="@id/fragmentSearchSong" />
+    </fragment>
 
     <fragment
         android:id="@+id/radioFragment"
         android:name="com.example.serviceandroid.fragment.radio.RadioFragment"
         android:label="radio_fragment"
-        tools:layout="@layout/fragment_radio" />
+        tools:layout="@layout/fragment_radio" >
+        <action
+            android:id="@+id/action_radioFragment_to_fragmentSearchSong"
+            app:destination="@id/fragmentSearchSong" />
+    </fragment>
 
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.example.serviceandroid.fragment.profile.ProfileFragment"
         android:label="profile_fragment"
-        tools:layout="@layout/fragment_profile" />
+        tools:layout="@layout/fragment_profile" >
+        <action
+            android:id="@+id/action_profileFragment_to_fragmentSearchSong"
+            app:destination="@id/fragmentSearchSong" />
+    </fragment>
 
     <fragment
         android:id="@+id/favouriteSongFragment"
         android:name="com.example.serviceandroid.fragment.favourite_song.FavouriteSongFragment"
         android:label="favourite_song_fragment"
         tools:layout="@layout/fragment_favourite_song" />
+    <fragment
+        android:id="@+id/fragmentSearchSong"
+        android:name="com.example.serviceandroid.fragment.FragmentSearchSong"
+        android:label="fragment_search_song"
+        tools:layout="@layout/fragment_search_song" />
 </navigation>
