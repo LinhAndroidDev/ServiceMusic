@@ -5,9 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Color
 import android.media.MediaPlayer
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
@@ -56,9 +54,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
+    override fun initView() {
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(Constants.SEND_DATA_TO_ACTIVITY))
 
@@ -73,7 +69,6 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
             indexSong = Data.listMusic().indexOf(it)
         }
         CustomAnimator.rotationImage(binding.imgSong)
-        onClickView()
         initMusic()
     }
 
@@ -87,7 +82,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
     /**
      * Catch Click View Components Event
      */
-    private fun onClickView() {
+    override fun onClickView() {
         binding.backMusic.setOnClickListener {
             onBackPressed()
         }

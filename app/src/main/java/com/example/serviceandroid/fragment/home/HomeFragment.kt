@@ -43,14 +43,8 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var national = National.ALL_NATIONAL
     private lateinit var adapterNational: PagerNationalAdapter
     private var stickTile = Title.TITLE_TOPIC
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
 
-        initView()
-        onClickView()
-    }
-
-    private fun initView() {
+    override fun initView() {
         /**
          * Visible Bottom Navigation Bar When Into Fragment Home
          */
@@ -116,7 +110,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     /**
      * Catch Click View Components Event
      */
-    private fun onClickView() {
+    override fun onClickView() {
         binding.tvAllNational.isSelected = true
         val evenClick = mapOf(
             binding.tvAllNational to Pair(National.ALL_NATIONAL, binding.tvAllNational),

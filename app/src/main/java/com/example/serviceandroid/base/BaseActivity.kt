@@ -9,7 +9,7 @@ import androidx.viewbinding.ViewBinding
 import com.example.serviceandroid.R
 
 @Suppress("DEPRECATION")
-abstract class BaseActivity<VB: ViewBinding> : AppCompatActivity(){
+abstract class BaseActivity<VB: ViewBinding> : AppCompatActivity(), CoreInterface.AndroidView {
     lateinit var binding: VB
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -17,6 +17,8 @@ abstract class BaseActivity<VB: ViewBinding> : AppCompatActivity(){
         binding = getActivityBinding(layoutInflater)
         setContentView(binding.root)
         overridePendingTransition(R.anim.slide_up, R.anim.anim_normal)
+        initView()
+        onClickView()
         fullScreen()
     }
 

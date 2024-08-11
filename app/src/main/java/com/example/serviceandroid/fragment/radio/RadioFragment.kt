@@ -5,15 +5,12 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
-import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.databinding.FragmentRadioBinding
-import com.example.serviceandroid.map.GMapV2Direction
 import com.example.serviceandroid.map.GetDirectionsAsyncTask
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -42,11 +39,13 @@ class RadioFragment : BaseFragment<FragmentRadioBinding>(), OnMapReadyCallback {
         const val LOCATION_PERMISSION_CODE = 1
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
+    override fun initView() {
         binding.header.title.text = "Radio"
         initMapView()
+    }
+
+    override fun onClickView() {
+
     }
 
     @SuppressLint("ServiceCast")

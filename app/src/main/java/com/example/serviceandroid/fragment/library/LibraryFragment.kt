@@ -1,8 +1,6 @@
 package com.example.serviceandroid.fragment.library
 
-import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.NavHostFragment
@@ -13,17 +11,19 @@ import com.example.serviceandroid.databinding.FragmentLibraryBinding
 import com.example.serviceandroid.fragment.favourite_song.FragmentFavouriteSongViewModel
 import com.example.serviceandroid.model.Library
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
-    val viewModel by viewModels<FragmentFavouriteSongViewModel>()
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    private val viewModel by viewModels<FragmentFavouriteSongViewModel>()
 
+    override fun initView() {
         binding.header.title.text = "Thư viện"
         initLibrary()
+    }
+
+    override fun onClickView() {
+
     }
 
     private fun initLibrary() {

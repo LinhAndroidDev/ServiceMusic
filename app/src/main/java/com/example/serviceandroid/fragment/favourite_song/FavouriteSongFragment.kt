@@ -1,10 +1,8 @@
 package com.example.serviceandroid.fragment.favourite_song
 
 import android.annotation.SuppressLint
-import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -24,14 +22,12 @@ import kotlinx.coroutines.withContext
 class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
     private val viewModel: FragmentFavouriteSongViewModel by viewModels()
     private lateinit var adapterFavouriteSong: PagerNewReleaseAdapter
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
 
-        onClickView()
+    override fun initView() {
         initListSong()
     }
 
-    private fun onClickView() {
+    override fun onClickView() {
         binding.backFavouriteSong.setOnClickListener {
             activity?.onBackPressed()
         }

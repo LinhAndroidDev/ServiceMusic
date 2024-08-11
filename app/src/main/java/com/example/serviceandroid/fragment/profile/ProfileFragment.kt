@@ -4,10 +4,8 @@ import android.R
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
-import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.AutoCompleteTextView
 import android.widget.MediaController
 import androidx.activity.result.contract.ActivityResultContracts
@@ -54,12 +52,9 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>(), UploadRequestBod
         }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
+    override fun initView() {
         binding.header.title.text = "Cá nhân"
         setUpVideo()
-        onClickView()
 
         binding.autoCompleteTextView.apply {
             val data: List<String?> = mutableListOf<String?>("Apple", "Banana", "Cherry", "Date", "Grape", "Kiwi", "Lemon", "Mango", "Orange", "Pineapple")
@@ -110,7 +105,7 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>(), UploadRequestBod
 
     }
 
-    private fun onClickView() {
+    override fun onClickView() {
         with(binding) {
             selectImage.setOnClickListener {
 //                pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
