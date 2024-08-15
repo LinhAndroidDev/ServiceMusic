@@ -1,155 +1,74 @@
 package com.example.serviceandroid.fragment.profile
 
-import android.R
-import android.annotation.SuppressLint
-import android.content.Intent
-import android.net.Uri
-import android.util.Log
 import android.view.LayoutInflater
-import android.widget.AutoCompleteTextView
-import android.widget.MediaController
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.widget.ListPopupWindow
-import com.example.serviceandroid.adapter.CustomArrayAdapter
+import androidx.core.view.isVisible
+import androidx.recyclerview.widget.LinearSnapHelper
+import com.example.serviceandroid.R
+import com.example.serviceandroid.adapter.UpdateAccountAdapter
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentProfileBinding
-import com.example.serviceandroid.utils.ExtensionFunctions.getFileName
-import com.example.serviceandroid.utils.ExtensionFunctions.snackBar
-import com.example.serviceandroid.utils.UploadRequestBody
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.lang.reflect.Field
+import com.example.serviceandroid.model.UpdateAccount
 
 
-class ProfileFragment : BaseFragment<FragmentProfileBinding>(), UploadRequestBody.UploadCallback {
-    private var uri: Uri? = null
-    private var myVideoController: MediaController? = null
-
-    private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uriImage ->
-        // Callback is invoked after the user selects a media item or closes the
-        // photo picker.
-        if (uriImage != null) {
-            uri = uriImage
-            binding.selectImage.setImageURI(uriImage)
-        } else {
-            Log.d("PhotoPicker", "No media selected")
-        }
-    }
-
-    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uriImage ->
-        // Callback is invoked after the user selects a media item or closes the
-        // photo picker.
-        if (uriImage != null) {
-            uri = uriImage
-            binding.selectImage.setImageURI(uriImage)
-            binding.root.snackBar("Select Image Success")
-        } else {
-            Log.d("PhotoPicker", "No media selected")
-        }
-    }
+class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
 
     override fun initView() {
         binding.header.title.text = "Cá nhân"
-        setUpVideo()
+        binding.header.viewProfile.isVisible = true
+        binding.header.micro.isVisible = false
 
-        binding.autoCompleteTextView.apply {
-            val data: List<String?> = mutableListOf<String?>("Apple", "Banana", "Cherry", "Date", "Grape", "Kiwi", "Lemon", "Mango", "Orange", "Pineapple")
-            val adapter = CustomArrayAdapter(requireActivity(), R.layout.simple_dropdown_item_1line, data)
-            setAdapter(adapter)
-            if(data.size > 5) dropDownHeight = 600
-
-            post {
-                try {
-                    val popupField: Field = AutoCompleteTextView::class.java.getDeclaredField("mPopup")
-                    popupField.isAccessible = true
-                    val popup: ListPopupWindow = popupField.get(this) as ListPopupWindow
-                    popup.width = this.width
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-
-            // Hiển thị danh sách khi AutoCompleteTextView nhận được focus
-            setOnFocusChangeListener { _, hasFocus ->
-                if (hasFocus) {
-                    showDropDown()
-                }
-            }
-
-            // Hiển thị danh sách khi AutoCompleteTextView được click
-            setOnClickListener {
-                showDropDown()
-            }
-        }
+        initUpdateAccount()
     }
 
-    private fun setUpVideo() {
-        if(myVideoController == null) {
-            myVideoController = MediaController(context)
-            myVideoController?.setAnchorView(binding.videoView)
-        }
+    private fun initUpdateAccount() {
+        val updateAccounts = mutableListOf(
+            UpdateAccount(
+                "Plus",
+                "19,000đ",
+                "Nghe nhạc với chất lượng cao nhất, không \nquảng cáo",
+                "Loại bỏ quảng cáo",
+                R.drawable.ic_advertisement,
+                "Lưu trữ nhạc không giới hạn",
+                R.drawable.ic_download_thin,
+                "Tuỳ chỉnh chế độ phát nhạc",
+                R.drawable.ic_custom,
+                R.drawable.bg_purple_corner_10_stroke_1,
+                R.color.purple_1
+            ),
+            UpdateAccount(
+                "Premium",
+                "49,000đ",
+                "Toàn bộ đăc quyền Plus cùng kho nhạc Premium",
+                "Nghe và tải tất cả",
+                R.drawable.ic_diamond,
+                "Loại bỏ quảng cáo",
+                R.drawable.ic_advertisement,
+                "Lưu trữ nhạc không giới hạn",
+                R.drawable.ic_download_thin,
+                R.drawable.bg_orange_corner_1,
+                R.color.bg_orange
+            )
+        )
+        val updateAccountAdapter = UpdateAccountAdapter(requireActivity())
+        updateAccountAdapter.items = updateAccounts
+        binding.rcvUpdateAccount.adapter = updateAccountAdapter
+        LinearSnapHelper().attachToRecyclerView(binding.rcvUpdateAccount)
 
-        with(binding.videoView) {
-            setMediaController(myVideoController)
-            setVideoURI(Uri.parse("android.resource://" + context?.packageName + "/" + com.example.serviceandroid.R.raw.master_kotlin_android))
-            requestFocus()
-            start()
-            setOnCompletionListener {
-                this.rootView.snackBar("Video Completed")
-            }
-        }
-
+        // Set ItemDecoration to add overlap/margin between items
+        binding.rcvUpdateAccount.addItemDecoration(
+            OverlapItemDecoration(
+                resources.getDimensionPixelSize(R.dimen.item_overlap_width),
+                resources.getDimensionPixelSize(R.dimen.item_overlap_width),
+                isNewRelease = false
+            )
+        )
     }
 
     override fun onClickView() {
-        with(binding) {
-            selectImage.setOnClickListener {
-//                pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
-                Intent(Intent.ACTION_PICK).also {
-                    it.type = "image/*"
-                    val mimeTypes = arrayOf("image/jpeg", "image/png")
-                    it.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
-                    pickImage.launch("image/*")
-                }
-            }
-            convertUriToFile.setOnClickListener {
-//                upload()
-                uploadImage()
-            }
-        }
-    }
 
-    @SuppressLint("Recycle")
-    private fun uploadImage() {
-        val parcelFileDescriptor =
-            context?.contentResolver?.openFileDescriptor(uri!!, "r", null) ?: return
-        val inputStream = FileInputStream(parcelFileDescriptor.fileDescriptor)
-        val file = context?.contentResolver?.getFileName(uri!!)?.let { File(context?.cacheDir, it) }
-        val outputStream = FileOutputStream(file)
-        inputStream.copyTo(outputStream)
-
-        val body = UploadRequestBody(file!!, "image", this)
-    }
-
-    private fun upload() {
-        val fileDir = context?.filesDir
-        val file = File(fileDir, "image.jpg")
-
-        val inputStream = uri?.let { context?.contentResolver?.openInputStream(it) }
-        val outputStream = FileOutputStream(file)
-        inputStream?.copyTo(outputStream)
-        val requestBody = file.asRequestBody(("image/*").toMediaTypeOrNull())
-        val part = MultipartBody.Part.createFormData("profile", file.name, requestBody)
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater)
     = FragmentProfileBinding.inflate(inflater)
-
-    override fun onProgressUpdate(percentage: Int) {
-
-    }
 }

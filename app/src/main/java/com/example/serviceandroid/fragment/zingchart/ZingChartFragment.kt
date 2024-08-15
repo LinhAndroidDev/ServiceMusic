@@ -223,6 +223,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         binding.chart.setOnClickListener {
             resetHandlerUpdateIndexLineChart()
             updateIndexLineChart(dataSet1, dataSet2, dataSet3)
+            binding.chart.invalidate()
         }
 
         runnable = object : Runnable {

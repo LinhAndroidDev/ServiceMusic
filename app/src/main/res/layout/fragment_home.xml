@@ -56,16 +56,27 @@
                     tools:ignore="ObsoleteLayoutParam" />
             </include>
 
-            <androidx.viewpager2.widget.ViewPager2
+            <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/advertisement"
+                android:layout_marginTop="20dp"
                 android:layout_width="match_parent"
                 android:layout_height="330dp"
-                android:layout_marginTop="20dp"
-                android:paddingStart="15dp"
-                android:paddingEnd="120dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/header" />
+                app:layout_constraintTop_toBottomOf="@+id/header"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                android:orientation="horizontal"/>
+
+<!--            <androidx.viewpager2.widget.ViewPager2-->
+<!--                android:id="@+id/advertisement"-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="330dp"-->
+<!--                android:layout_marginTop="20dp"-->
+<!--                android:paddingStart="15dp"-->
+<!--                android:paddingEnd="120dp"-->
+<!--                app:layout_constraintEnd_toEndOf="parent"-->
+<!--                app:layout_constraintStart_toStartOf="parent"-->
+<!--                app:layout_constraintTop_toBottomOf="@+id/header" />-->
 
             <LinearLayout
                 android:id="@+id/titleTopic"

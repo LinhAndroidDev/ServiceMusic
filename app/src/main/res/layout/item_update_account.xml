@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout>
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/viewContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:background="@drawable/bg_purple_corner_10_stroke_1"
+        android:paddingTop="20dp"
+        android:paddingBottom="15dp"
+        android:paddingHorizontal="15dp"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/textZingMP3"
+                android:text="Zing MP3"
+                android:textColor="@color/purple_1"
+                android:textSize="25dp"
+                android:textStyle="bold"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/textQuality"
+                android:layout_marginStart="5dp"
+                android:text="PLUS"
+                android:textSize="13sp"
+                android:textColor="@color/text_white"
+                android:textStyle="bold"
+                android:paddingVertical="3dp"
+                android:paddingHorizontal="10dp"
+                android:background="@drawable/bg_purple_corner_8"
+                android:backgroundTint="@color/purple_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAllCaps="true"/>
+
+            <View
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="10dp"/>
+
+            <ImageView
+                android:src="@drawable/ic_back"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:rotation="-90"
+                app:tint="@color/grey_1"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/textPrice"
+            android:layout_marginTop="15dp"
+            android:text="19,000đ"
+            android:textSize="18sp"
+            android:textColor="@color/text_black"
+            android:textStyle="bold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <TextView
+            android:id="@+id/textNote"
+            android:layout_marginTop="10dp"
+            android:text="Nghe nhạc với chất lượng cao nhất, không \nquảng cáo"
+            android:textColor="@color/txt_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+        <LinearLayout
+            android:layout_marginTop="20dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <LinearLayout
+                    android:background="@drawable/bg_corner_20"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <ImageView
+                        android:id="@+id/image1"
+                        android:layout_margin="5dp"
+                        android:src="@drawable/ic_advertisement"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
+                        app:tint="@color/purple_1"/>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/ability1"
+                    android:layout_marginTop="10dp"
+                    android:text="Loại bỏ quảng cáo"
+                    android:textSize="12sp"
+                    android:textColor="@color/grey_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <LinearLayout
+                    android:background="@drawable/bg_corner_20"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <ImageView
+                        android:id="@+id/image2"
+                        android:layout_margin="5dp"
+                        android:src="@drawable/ic_download_thin"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
+                        app:tint="@color/purple_1"/>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/ability2"
+                    android:layout_marginTop="10dp"
+                    android:text="Lưu trữ nhạc không giới hạn"
+                    android:textSize="12sp"
+                    android:textColor="@color/grey_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <LinearLayout
+                    android:background="@drawable/bg_corner_20"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <ImageView
+                        android:id="@+id/image3"
+                        android:layout_margin="5dp"
+                        android:src="@drawable/ic_custom"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
+                        app:tint="@color/purple_1"/>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/ability3"
+                    android:layout_marginTop="10dp"
+                    android:text="Tuỳ chỉnh chế độ phát nhạc"
+                    android:textSize="12sp"
+                    android:textColor="@color/grey_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"/>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</layout>

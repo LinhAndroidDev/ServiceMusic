@@ -3,12 +3,14 @@ package com.example.serviceandroid.fragment.home
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.View
 import androidx.core.view.isVisible
 import androidx.core.view.postDelayed
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
@@ -22,6 +24,7 @@ import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TopicAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentHomeBinding
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Advertisement
@@ -248,10 +251,18 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                 "Bản Hit Đánh Mất Em mới lạ qua giọng hát của các ca sĩ trẻ"
             )
         )
-        val adapter = AdvertisementAdapter()
+        val adapter = AdvertisementAdapter(requireActivity())
         adapter.advertisements = advertisements
         binding.advertisement.adapter = adapter
-        setUpViewPagerTransformer(binding.advertisement, 5, 1f, 0f)
+        LinearSnapHelper().attachToRecyclerView(binding.advertisement)
+
+        // Set ItemDecoration to add overlap/margin between items
+        binding.advertisement.addItemDecoration(
+            OverlapItemDecoration(
+                resources.getDimensionPixelSize(R.dimen.item_overlap_width),
+                resources.getDimensionPixelSize(R.dimen.item_overlap_width)
+            )
+        )
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =

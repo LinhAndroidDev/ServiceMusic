@@ -9,4 +9,6 @@
         <item name="cornerFamilyTopRight">rounded</item>
         <item name="cornerSize">50dp</item>
     </style>
+
+    <dimen name="item_overlap_width">15dp</dimen>
 </resources>
