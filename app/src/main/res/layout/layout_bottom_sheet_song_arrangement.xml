@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@drawable/bg_white_boder_top_15"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_marginVertical="20dp"
+        android:text="Sắp xếp theo"
+        android:textSize="16sp"
+        android:textColor="@color/text_black"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <View
+        android:layout_marginHorizontal="20dp"
+        android:background="@color/grey_light"
+        android:layout_width="match_parent"
+        android:layout_height="0.8dp"/>
+
+    <LinearLayout
+        android:id="@+id/newest"
+        android:layout_marginTop="10dp"
+        android:paddingVertical="10dp"
+        android:paddingHorizontal="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:text="Mới nhất"
+            android:textSize="16sp"
+            android:textColor="@color/text_black"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"/>
+
+        <ImageView
+            android:src="@drawable/ic_check"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            app:tint="@color/purple_1"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/oldest"
+        android:layout_marginTop="10dp"
+        android:paddingVertical="10dp"
+        android:paddingHorizontal="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:text="Cũ nhất"
+            android:textSize="16sp"
+            android:textColor="@color/text_black"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"/>
+
+        <ImageView
+            android:src="@drawable/ic_check"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            app:tint="@color/purple_1"
+            android:visibility="gone"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/byNameSong"
+        android:layout_marginTop="10dp"
+        android:paddingVertical="10dp"
+        android:paddingHorizontal="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:text="Tên bài hát (A-Z)"
+            android:textSize="16sp"
+            android:textColor="@color/text_black"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"/>
+
+        <ImageView
+            android:src="@drawable/ic_check"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            app:tint="@color/purple_1"
+            android:visibility="gone"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/byNameSing"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="30dp"
+        android:paddingVertical="10dp"
+        android:paddingHorizontal="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:text="Tên nghệ sĩ (A-Z)"
+            android:textSize="16sp"
+            android:textColor="@color/text_black"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"/>
+
+        <ImageView
+            android:src="@drawable/ic_check"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            app:tint="@color/purple_1"
+            android:visibility="gone"/>
+    </LinearLayout>
+</LinearLayout>

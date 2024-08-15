@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.BottomSheetSongArrangement
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentFavouriteSongBinding
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,6 +35,11 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
 
         binding.understood.setOnClickListener {
             binding.filterGuide.isVisible = false
+        }
+
+        binding.arrangement.setOnClickListener {
+            val bottomSheet = BottomSheetSongArrangement()
+            bottomSheet.show(parentFragmentManager, bottomSheet.tag)
         }
     }
 

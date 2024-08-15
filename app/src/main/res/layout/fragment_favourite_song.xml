@@ -109,19 +109,25 @@
                     android:layout_height="10dp"
                     android:layout_weight="1" />
 
-                <TextView
+                <LinearLayout
+                    android:id="@+id/arrangement"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Mới nhất"
-                    android:textColor="@color/text_black"
-                    android:textSize="14sp" />
-                <com.example.serviceandroid.custom.TrialView
-                    android:layout_marginStart="5dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_width="8dp"
-                    android:layout_height="5dp"
-                    app:color_trial="@color/grey_1"
-                    android:rotation="180"/>
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Mới nhất"
+                        android:textColor="@color/text_black"
+                        android:textSize="14sp" />
+                    <com.example.serviceandroid.custom.TrialView
+                        android:layout_marginStart="5dp"
+                        android:layout_gravity="center_vertical"
+                        android:layout_width="8dp"
+                        android:layout_height="5dp"
+                        app:color_trial="@color/grey_1"
+                        android:rotation="180"/>
+                </LinearLayout>
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
