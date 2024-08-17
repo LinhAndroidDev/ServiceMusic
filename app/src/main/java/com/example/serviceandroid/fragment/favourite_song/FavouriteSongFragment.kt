@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -90,6 +91,21 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
             }
             onClickMoreOption = { song ->
                 val dialog = BottomSheetOptionMusic()
+                dialog.removeFavourite = {
+                    DialogConfirm().apply {
+                        title = song.title
+                        onClickRemove = {
+                            viewModel.deleteSongById(song.idSong) {
+                                Toast.makeText(
+                                    requireActivity(),
+                                    "Đã xoá khỏi bài hát yêu thích",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                notifyDataSetChanged()
+                            }
+                        }
+                    }.show(requireActivity().supportFragmentManager, "")
+                }
                 val bundle = Bundle()
                 bundle.putParcelable(Constant.KEY_SONG, song)
                 dialog.arguments = bundle

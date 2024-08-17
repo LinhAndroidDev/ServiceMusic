@@ -11,6 +11,9 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
+import android.widget.Toast
+import androidx.core.view.isVisible
+import androidx.fragment.app.viewModels
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.MusicActivity
@@ -21,9 +24,11 @@ import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.CustomLineChartRenderer
 import com.example.serviceandroid.custom.CustomXAxisFormatter
+import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentZingChartBinding
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.PositionChart
+import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.DateUtils
 import com.example.serviceandroid.utils.ExtensionFunctions.setColorTint
@@ -32,13 +37,16 @@ import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import dagger.hilt.android.AndroidEntryPoint
 import kotlin.random.Random
 
+@AndroidEntryPoint
 class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     private var positionChart: PositionChart = PositionChart.LineChart1
     private val handler by lazy { Handler(Looper.getMainLooper()) }
     private var runnable: Runnable? = null
     private var bitmap: Bitmap? = null
+    private val viewModel by viewModels<ZingChartViewModel>()
 
     override fun initView() {
         bitmap = BitmapFactory.decodeResource(resources, R.drawable.la_lung)
@@ -55,7 +63,9 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     }
 
     override fun onClickView() {
-
+        binding.removeSongSuggest.setOnClickListener {
+            binding.songSuggestView.isVisible = false
+        }
     }
 
     private fun initGradientText() {
@@ -83,6 +93,11 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             .into(binding.imgSong)
         binding.tvNameSong.text = randomElement.title
         binding.tvNameSinger.text = randomElement.nameSinger
+        binding.songSuggestView.setOnClickListener {
+            val intent = Intent(requireActivity(), MusicActivity::class.java)
+            intent.putExtra(MainActivity.ID_MUSIC, randomElement.idSong)
+            startActivity(intent)
+        }
     }
 
     private fun initListSongChart() {
@@ -96,11 +111,29 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         }
         adapter.onClickMoreOption = { song ->
             val dialog = BottomSheetOptionMusic()
+            dialog.removeFavourite = {
+                showDialogConfirmRemoveFavourite(song)
+            }
             val bundle = Bundle()
             bundle.putParcelable(Constant.KEY_SONG, song)
             dialog.arguments = bundle
             dialog.show(parentFragmentManager, "")
         }
+    }
+
+    private fun showDialogConfirmRemoveFavourite(song: Song) {
+        DialogConfirm().apply {
+            title = song.title
+            onClickRemove = {
+                viewModel.deleteSongById(song.idSong) {
+                    Toast.makeText(
+                        requireActivity(),
+                        "Đã xoá khỏi bài hát yêu thích",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }.show(requireActivity().supportFragmentManager, "")
     }
 
     private fun initChart() {

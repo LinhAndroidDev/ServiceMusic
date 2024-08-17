@@ -4,8 +4,10 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.core.view.postDelayed
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearSnapHelper
@@ -23,6 +25,7 @@ import com.example.serviceandroid.adapter.TopicAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
+import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentHomeBinding
 import com.example.serviceandroid.helper.Data
@@ -33,6 +36,7 @@ import com.example.serviceandroid.model.Topic
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.ExtensionFunctions
 import com.example.serviceandroid.utils.ExtensionFunctions.isViewVisible
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -42,10 +46,12 @@ enum class Title {
     TITLE_NEW_RELEASE,
 }
 
+@AndroidEntryPoint
 class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var national = National.ALL_NATIONAL
     private lateinit var adapterNational: PagerNationalAdapter
     private var stickTile = Title.TITLE_TOPIC
+    private val viewModel by viewModels<HomeViewModel>()
 
     override fun initView() {
         binding.titleCover.isVisible = binding.scrollHome.isViewVisible(binding.titleTopic)
@@ -134,6 +140,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.header.search.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_fragmentSearchSong)
         }
+
+        binding.tvSeeAll.setOnClickListener {
+            findNavController().navigate(R.id.action_homeFragment_to_zingchartFragment)
+        }
     }
 
     private fun resetMusicInterNational() {
@@ -144,6 +154,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         )
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun initNewUpdate() {
         val adapter = PagerNewReleaseAdapter(requireActivity(), type = TypeList.TYPE_NEW_UPDATE)
         adapter.items = Data.listMusic().take(5) as ArrayList<Song>
@@ -155,6 +166,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
         adapter.onClickMoreOption = { song ->
             val dialog = BottomSheetOptionMusic()
+            dialog.removeFavourite = {
+                showDialogConfirmRemoveFavourite(song)
+            }
             val bundle = Bundle()
             bundle.putParcelable(Constant.KEY_SONG, song)
             dialog.arguments = bundle
@@ -174,12 +188,30 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
         adapterNational.onClickMoreOption = { song ->
             val dialog = BottomSheetOptionMusic()
+            dialog.removeFavourite = {
+                showDialogConfirmRemoveFavourite(song)
+            }
             val bundle = Bundle()
             bundle.putParcelable(Constant.KEY_SONG, song)
             dialog.arguments = bundle
             dialog.show(parentFragmentManager, "")
         }
         setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)
+    }
+
+    private fun showDialogConfirmRemoveFavourite(song: Song) {
+        DialogConfirm().apply {
+            title = song.title
+            onClickRemove = {
+                viewModel.deleteSongById(song.idSong) {
+                    Toast.makeText(
+                        requireActivity(),
+                        "Đã xoá khỏi bài hát yêu thích",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }.show(requireActivity().supportFragmentManager, "")
     }
 
     private fun songsToHashMap(songs: ArrayList<Song>): HashMap<Int, ArrayList<Song>> {

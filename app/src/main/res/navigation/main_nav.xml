@@ -23,6 +23,9 @@
         <action
             android:id="@+id/action_homeFragment_to_fragmentSearchSong"
             app:destination="@id/fragmentSearchSong" />
+        <action
+            android:id="@+id/action_homeFragment_to_zingchartFragment"
+            app:destination="@id/zingchartFragment" />
     </fragment>
 
     <fragment

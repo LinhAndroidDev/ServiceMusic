@@ -268,9 +268,10 @@
                         android:background="@color/txt_hint" />
 
                     <TextView
+                        android:id="@+id/tvSeeAll"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
+                        android:paddingTop="10dp"
                         android:gravity="center"
                         android:text="Xem tất cả"
                         android:textColor="@color/txt_hint"

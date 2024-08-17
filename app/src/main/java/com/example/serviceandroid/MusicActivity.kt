@@ -134,9 +134,9 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
         binding.imgFavourite.setOnClickListener {
             if (!isFavourite) {
                 isFavourite = true
-                binding.imgFavourite.setImageResource(R.drawable.ic_favourite_fill)
                 val mSong = Data.listMusic()[indexSong]
                 viewModel.insertSong(mSong, DateUtils.getTimeCurrent()) {
+                    viewModel.checkSongById(mSong.idSong)
                     Toast.makeText(
                         this@MusicActivity,
                         "Đã thêm vào bài hát yêu thích",
@@ -172,7 +172,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
         binding.imgSong.startAnimation(fadeIn)
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
-        lifecycleScope.launch { viewModel.checkSongById(Data.listMusic()[indexSong].idSong) }
+        viewModel.checkSongById(Data.listMusic()[indexSong].idSong)
 
         playMusic(song)
     }

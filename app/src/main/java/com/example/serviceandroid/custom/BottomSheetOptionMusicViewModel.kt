@@ -1,4 +1,4 @@
-package com.example.serviceandroid
+package com.example.serviceandroid.custom
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -10,8 +10,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class MusicViewModel @Inject constructor(private val repository: FavouriteSongRepository) :
-    ViewModel() {
+class BottomSheetOptionMusicViewModel @Inject constructor(private val repository: FavouriteSongRepository) : ViewModel() {
     private val _isFavourite: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val isFavourite get() = _isFavourite
 
