@@ -5,6 +5,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.serviceandroid.database.MusicDatabase
 import com.example.serviceandroid.database.dao.FavouriteSongDao
+import com.example.serviceandroid.utils.SharePreferenceRepository
+import com.example.serviceandroid.utils.SharePreferenceRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,4 +34,8 @@ object DatabaseModule {
     fun provideFavouriteSong(musicDatabase: MusicDatabase): FavouriteSongDao {
         return musicDatabase.favouriteSongDao()
     }
+
+    @Provides
+    fun provideSharePreference(@ApplicationContext context: Context): SharePreferenceRepository =
+        SharePreferenceRepositoryImpl(context)
 }

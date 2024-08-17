@@ -31,7 +31,9 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
             viewModel.getAll()
             viewModel.songs.collect { songs ->
                 var numberSong = 0
-                songs?.let { numberSong = it.size }
+                songs?.let {
+                    numberSong = it.size
+                }
                 val librarys = arrayListOf(
                     Library(R.drawable.favourite, "Bài hát yêu thích", numberSong, R.color.bg_blue),
                     Library(R.drawable.ic_download, "Đã tải", 0, R.color.bg_purple),

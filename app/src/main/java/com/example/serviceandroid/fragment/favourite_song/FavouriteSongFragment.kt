@@ -1,6 +1,7 @@
 package com.example.serviceandroid.fragment.favourite_song
 
 import android.annotation.SuppressLint
+import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import androidx.core.view.isVisible
@@ -9,9 +10,12 @@ import androidx.lifecycle.lifecycleScope
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.BottomSheetSongArrangement
 import com.example.serviceandroid.custom.DialogConfirm
+import com.example.serviceandroid.database.repository.ArrangeMusic
 import com.example.serviceandroid.databinding.FragmentFavouriteSongBinding
+import com.example.serviceandroid.utils.Constant
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -25,7 +29,30 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
     private lateinit var adapterFavouriteSong: PagerNewReleaseAdapter
 
     override fun initView() {
+        resetTextTypeArrange()
         initListSong()
+    }
+
+    private fun resetTextTypeArrange() {
+        viewModel.shared.getTypeArrangement().let { type ->
+            when(type) {
+                ArrangeMusic.NEWEST -> {
+                    binding.tvTypeArrange.text = "Mới nhất"
+                }
+
+                ArrangeMusic.OLDEST -> {
+                    binding.tvTypeArrange.text = "Cũ nhất"
+                }
+
+                ArrangeMusic.BY_NAME_SONG -> {
+                    binding.tvTypeArrange.text = "Tên bài hát (A-Z)"
+                }
+
+                ArrangeMusic.BY_NAME_SINGLE -> {
+                    binding.tvTypeArrange.text = "Tên nghệ sĩ (A-Z)"
+                }
+            }
+        }
     }
 
     override fun onClickView() {
@@ -39,6 +66,10 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
 
         binding.arrangement.setOnClickListener {
             val bottomSheet = BottomSheetSongArrangement()
+            bottomSheet.onClickChangeState = {
+                viewModel.getAll()
+                resetTextTypeArrange()
+            }
             bottomSheet.show(parentFragmentManager, bottomSheet.tag)
         }
     }
@@ -56,6 +87,13 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
                         }
                     }
                 }.show(requireActivity().supportFragmentManager, "")
+            }
+            onClickMoreOption = { song ->
+                val dialog = BottomSheetOptionMusic()
+                val bundle = Bundle()
+                bundle.putParcelable(Constant.KEY_SONG, song)
+                dialog.arguments = bundle
+                dialog.show(parentFragmentManager, "")
             }
         }
 

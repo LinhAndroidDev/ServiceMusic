@@ -20,6 +20,7 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
     BaseAdapter<HashMap<Int, ArrayList<Song>>, PagerNewReleaseBinding>() {
     var pagerSong = HashMap<Int, ArrayList<Song>>()
     var onClickItem: ((Int) -> Unit)? = null
+    var onClickMoreOption: ((Song) -> Unit)? = null
     private val adapterSong by lazy { PagerNewReleaseAdapter(context, type) }
 
     override fun getLayout(): Int = R.layout.pager_new_release
@@ -41,6 +42,9 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
         adapterSong.onClickItem = {
             onClickItem?.invoke(it)
         }
+        adapterSong.onClickMoreOption = {
+            onClickMoreOption?.invoke(it)
+        }
     }
 
     override fun getItemCount(): Int = pagerSong.size
@@ -51,6 +55,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
     var onClickItem: ((Int) -> Unit)? = null
     var onClickUnFavourite: ((Int) -> Unit)? = null
     var isFavourite = false
+    var onClickMoreOption: ((Song) -> Unit)? = null
 
     override fun getLayout(): Int = R.layout.item_pager_new_release
 
@@ -72,6 +77,9 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
                 }
                 holder.v.imgFavourite.setOnClickListener {
                     onClickUnFavourite?.invoke(position)
+                }
+                holder.v.moreOption.setOnClickListener {
+                    onClickMoreOption?.invoke(item)
                 }
             }
 

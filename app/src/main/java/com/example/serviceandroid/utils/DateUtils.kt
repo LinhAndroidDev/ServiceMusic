@@ -6,7 +6,7 @@ import java.util.Date
 import java.util.Locale
 
 object DateUtils {
-    private const val TIME = "yyyy/MM/dd HH:mm:ss"
+    const val TIME = "yyyy/MM/dd HH:mm:ss"
     private const val TIME_CURRENT = "dd/MM/yyyy - HH"
 
     fun getTimeCurrent(): String {

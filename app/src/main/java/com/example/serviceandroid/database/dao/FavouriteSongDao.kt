@@ -9,7 +9,7 @@ import com.example.serviceandroid.database.SongEntity
 @Dao
 interface FavouriteSongDao {
     @Query("SELECT * FROM songEntity")
-    suspend fun getAll(): MutableList<SongEntity>?
+    suspend fun getAll(): List<SongEntity>?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSong(songEntity: SongEntity)

@@ -21,7 +21,7 @@ data class SongEntity(
         id = 0,
         idSong = song.idSong,
         title = song.title,
-        nameSinger = song.title,
+        nameSinger = song.nameSinger,
         avatar = song.avatar,
         sing = song.sing,
         time = song.time,

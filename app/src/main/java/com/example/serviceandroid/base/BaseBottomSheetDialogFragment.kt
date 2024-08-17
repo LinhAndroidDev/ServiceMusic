@@ -4,20 +4,26 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.databinding.DataBindingUtil
+import androidx.databinding.ViewDataBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
-abstract class BaseBottomSheetDialogFragment : BottomSheetDialogFragment() {
+abstract class BaseBottomSheetDialogFragment<VD: ViewDataBinding> : BottomSheetDialogFragment(), CoreInterface.AndroidView {
+    protected lateinit var binding: VD
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         // Gán layout từ lớp con
-        return inflater.inflate(getLayoutId(), container, false)
+        binding = DataBindingUtil.inflate(inflater, layoutResId, container, false)
+        initView()
+        onClickView()
+        return binding.root
     }
 
     // Phương thức trừu tượng để lớp con cung cấp layout
-    abstract fun getLayoutId(): Int
+    abstract val layoutResId: Int
 
     override fun onStart() {
         super.onStart()

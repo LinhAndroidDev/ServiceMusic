@@ -3,9 +3,7 @@ package com.example.serviceandroid.fragment.home
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.util.DisplayMetrics
 import android.view.LayoutInflater
-import android.view.View
 import androidx.core.view.isVisible
 import androidx.core.view.postDelayed
 import androidx.lifecycle.lifecycleScope
@@ -24,6 +22,7 @@ import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TopicAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentHomeBinding
 import com.example.serviceandroid.helper.Data
@@ -31,6 +30,7 @@ import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
+import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.ExtensionFunctions
 import com.example.serviceandroid.utils.ExtensionFunctions.isViewVisible
 import kotlinx.coroutines.async
@@ -48,11 +48,6 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var stickTile = Title.TITLE_TOPIC
 
     override fun initView() {
-        /**
-         * Visible Bottom Navigation Bar When Into Fragment Home
-         */
-        (activity as MainActivity).visibleBottomBar()
-
         binding.titleCover.isVisible = binding.scrollHome.isViewVisible(binding.titleTopic)
         stickHeader()
 
@@ -71,7 +66,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         initTopic()
         binding.root.postDelayed(1000) {
             initNewRelease()
-            binding.root.postDelayed(2000) {
+            binding.root.postDelayed(1500) {
                 initNewUpdate()
             }
         }
@@ -158,6 +153,14 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             intent.putExtra(MainActivity.ID_MUSIC, it)
             startActivity(intent)
         }
+        adapter.onClickMoreOption = { song ->
+            val dialog = BottomSheetOptionMusic()
+            val bundle = Bundle()
+            bundle.putParcelable(Constant.KEY_SONG, song)
+            dialog.arguments = bundle
+            dialog.show(parentFragmentManager, "")
+
+        }
     }
 
     private fun initNewRelease() {
@@ -168,6 +171,13 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             val intent = Intent(requireActivity(), MusicActivity::class.java)
             intent.putExtra(MainActivity.ID_MUSIC, it)
             startActivity(intent)
+        }
+        adapterNational.onClickMoreOption = { song ->
+            val dialog = BottomSheetOptionMusic()
+            val bundle = Bundle()
+            bundle.putParcelable(Constant.KEY_SONG, song)
+            dialog.arguments = bundle
+            dialog.show(parentFragmentManager, "")
         }
         setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)
     }

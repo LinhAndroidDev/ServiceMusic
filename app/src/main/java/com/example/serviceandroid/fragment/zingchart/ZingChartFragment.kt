@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Shader
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -17,11 +18,13 @@ import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.CustomLineChartRenderer
 import com.example.serviceandroid.custom.CustomXAxisFormatter
 import com.example.serviceandroid.databinding.FragmentZingChartBinding
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.PositionChart
+import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.DateUtils
 import com.example.serviceandroid.utils.ExtensionFunctions.setColorTint
 import com.github.mikephil.charting.components.Description
@@ -90,6 +93,13 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             val intent = Intent(requireActivity(), MusicActivity::class.java)
             intent.putExtra(MainActivity.ID_MUSIC, it)
             startActivity(intent)
+        }
+        adapter.onClickMoreOption = { song ->
+            val dialog = BottomSheetOptionMusic()
+            val bundle = Bundle()
+            bundle.putParcelable(Constant.KEY_SONG, song)
+            dialog.arguments = bundle
+            dialog.show(parentFragmentManager, "")
         }
     }
 

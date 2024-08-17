@@ -5,8 +5,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.fragment.NavHostFragment
@@ -26,6 +29,7 @@ import java.util.TimerTask
 @AndroidEntryPoint
 @Suppress("DEPRECATION")
 class MainActivity : BaseActivity<ActivityMainBinding>() {
+    private var doubleBackToExitPressedOnce = false
     private lateinit var mSong: Song
     private var isPlaying: Boolean = false
     private var timer: Timer? = null
@@ -187,7 +191,20 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         val navController = navHostFragment.navController
 
         when (navController.currentDestination?.id) {
-            R.id.homeFragment -> this.finish()
+            R.id.homeFragment, R.id.libraryFragment, R.id.zingchartFragment, R.id.radioFragment, R.id.profileFragment -> {
+                if (doubleBackToExitPressedOnce) {
+                    this.finish()
+                    return
+                }
+
+                this.doubleBackToExitPressedOnce = true
+                Toast.makeText(this, "Nhấn thêm lần nữa để thoát", Toast.LENGTH_SHORT).show()
+
+                // Đặt lại biến doubleBackToExitPressedOnce sau 2 giây
+                Handler(Looper.getMainLooper()).postDelayed({
+                    doubleBackToExitPressedOnce = false
+                }, 2000)
+            }
             R.id.splashFragment -> {}
             else -> super.onBackPressed()
         }
