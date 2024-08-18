@@ -11,4 +11,5 @@
     </style>
 
     <dimen name="item_overlap_width">15dp</dimen>
+    <dimen name="item_overlap_no_margin">0dp</dimen>
 </resources>
