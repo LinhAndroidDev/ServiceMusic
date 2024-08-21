@@ -19,17 +19,25 @@
                 android:layout_gravity="center"
                 android:src="@drawable/di_de_tro_ve" />
 
-            <View
+            <RelativeLayout
+                android:id="@+id/viewSelected"
+                android:layout_gravity="center"
                 android:layout_width="102dp"
                 android:layout_height="102dp"
-                android:layout_gravity="center"
-                android:background="@drawable/bg_view_cover_radio" />
+                android:visibility="visible">
 
-            <ImageView
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_gravity="center"
-                android:src="@drawable/play" />
+                <View
+                    android:layout_centerInParent="true"
+                    android:layout_width="102dp"
+                    android:layout_height="102dp"
+                    android:background="@drawable/bg_view_cover_radio" />
+
+                <ImageView
+                    android:layout_centerInParent="true"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:src="@drawable/play" />
+            </RelativeLayout>
         </androidx.cardview.widget.CardView>
 
         <TextView

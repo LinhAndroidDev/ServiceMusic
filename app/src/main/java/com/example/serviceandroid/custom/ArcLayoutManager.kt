@@ -3,14 +3,13 @@ package com.example.serviceandroid.custom
 import android.content.Context
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.*
 
 class ArcLayoutManager(
     private val context: Context,
     private var horizontalOffset: Int = 0, orientation: Int, reverseLayout: Boolean
-) : LinearLayoutManager(context, orientation, reverseLayout) {
+) : CircularLayoutManager(context, orientation, reverseLayout) {
     override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams =
         RecyclerView.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
 
@@ -69,7 +68,7 @@ class ArcLayoutManager(
                                   h: Float): Pair<Int, Double> {
         val screenWidth = context.resources.displayMetrics.widthPixels
         val s = screenWidth.toDouble() / 2
-        val radius = (h * h + s * s) / (h * 2) + 150
+        val radius = (h * h + s * s) / (h * 2) + 300
 
         val xScreenFraction = viewCenterX.toDouble() / screenWidth.toDouble()
         val beta = acos(s / radius)

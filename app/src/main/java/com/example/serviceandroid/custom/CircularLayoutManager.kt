@@ -1,15 +1,11 @@
 package com.example.serviceandroid.custom
 
 import android.content.Context
-import android.util.AttributeSet
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
-open class CircularLayoutManager : LinearLayoutManager {
-
-    constructor(context: Context?) : super(context)
-    constructor(context: Context?, orientation: Int, reverseLayout: Boolean) : super(context, orientation, reverseLayout)
-    constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int, defStyleRes: Int) : super(context, attrs, defStyleAttr, defStyleRes)
+open class CircularLayoutManager(context: Context?, orientation: Int, reverseLayout: Boolean = false) :
+    LinearLayoutManager(context, orientation, reverseLayout) {
 
     override fun scrollHorizontallyBy(dx: Int, recycler: RecyclerView.Recycler?, state: RecyclerView.State?): Int {
         val scrolled = super.scrollHorizontallyBy(dx, recycler, state)
