@@ -4,8 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
-    tools:context=".fragment.HomeFragment">
+    tools:context=".fragment.home.HomeFragment">
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollHome"
@@ -25,56 +24,27 @@
                 android:layout_marginTop="50dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
+                app:layout_constraintTop_toTopOf="parent" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Khám phá"
-                    android:textColor="@color/text_black"
-                    android:textSize="30sp"
-                    android:textStyle="bold" />
-
-                <ImageView
-                    android:id="@+id/search"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:src="@drawable/ic_search"
-                    app:tint="@color/black"
-                    tools:ignore="ObsoleteLayoutParam" />
-
-                <ImageView
-                    android:id="@+id/micro"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:layout_centerVertical="true"
-                    android:layout_marginEnd="20dp"
-                    android:layout_toStartOf="@+id/search"
-                    android:src="@drawable/ic_micro"
-                    app:tint="@color/black"
-                    tools:ignore="ObsoleteLayoutParam" />
-            </include>
-
-            <androidx.viewpager2.widget.ViewPager2
+            <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/advertisement"
                 android:layout_width="match_parent"
                 android:layout_height="330dp"
                 android:layout_marginTop="20dp"
-                android:paddingStart="15dp"
-                android:paddingEnd="120dp"
+                android:orientation="horizontal"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/header" />
 
             <LinearLayout
                 android:id="@+id/titleTopic"
-                android:paddingVertical="10dp"
-                android:background="@color/white"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@color/background"
                 android:gravity="center_vertical"
+                android:paddingTop="20dp"
+                android:paddingBottom="10dp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/advertisement">
 
@@ -107,12 +77,13 @@
 
             <LinearLayout
                 android:id="@+id/titleNewRelease"
-                android:background="@color/white"
-                android:paddingVertical="10dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="10dp"
+                android:background="@color/background"
                 android:gravity="center_vertical"
+                android:paddingTop="20dp"
+                android:paddingBottom="10dp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/rcvTopic">
 
@@ -256,10 +227,11 @@
                         android:background="@color/txt_hint" />
 
                     <TextView
+                        android:id="@+id/tvSeeAll"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
                         android:gravity="center"
+                        android:paddingTop="10dp"
                         android:text="Xem tất cả"
                         android:textColor="@color/txt_hint"
                         android:textSize="13sp"
@@ -278,11 +250,12 @@
 
     <LinearLayout
         android:id="@+id/titleCover"
-        android:paddingVertical="10dp"
-        android:background="@color/white"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/background"
         android:gravity="center_vertical"
+        android:paddingTop="20dp"
+        android:paddingBottom="10dp"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">

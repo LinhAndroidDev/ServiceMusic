@@ -5,13 +5,14 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class Song(
+    val idSong: Int,
     val title: String,
     val nameSinger: String,
     val avatar: Int,
     val sing: Int,
     val time: Int,
-    val type: Int
-) : Parcelable {
+    val type: Int,
+): Parcelable {
     fun checkMusicNational(national: National): Boolean {
         return when (national) {
             National.VIETNAMESE -> type == 0
@@ -19,4 +20,8 @@ data class Song(
             else -> true
         }
     }
+
+//    fun getSongById(idSong: Int): Boolean {
+//        return idSong == id
+//    }
 }

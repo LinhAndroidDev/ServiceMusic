@@ -1,50 +1,88 @@
 package com.example.serviceandroid
 
 import android.annotation.SuppressLint
-import android.graphics.Color
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.media.MediaPlayer
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.animation.AnimationUtils
 import android.widget.SeekBar
+import android.widget.Toast
+import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.base.BaseActivity
+import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.ActivityMusicBinding
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.service.MusicService
 import com.example.serviceandroid.utils.CustomAnimator
+import com.example.serviceandroid.utils.DateUtils
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 
+@AndroidEntryPoint
 @Suppress("DEPRECATION")
-class MusicActivity : BaseActivity<ActivityMusicBinding>() {
+class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
+    private val viewModel by viewModels<MusicViewModel>()
     private val timePlay = Handler(Looper.getMainLooper())
-    private var mediaPlayer: MediaPlayer? = null
-    private var isPlaying = true
-    private var isRepeat = false
-    private var isFinish = false
-    private var dragToEnd = false
-    private var index = 0
+    override var mediaPlayer: MediaPlayer? = null
+    override var isPlaying = true
+    override var isRepeat = false
+    override var isFinish = false
+    override var dragToEnd = false
+    override var isFavourite = false
+    override var indexSong = 0
     private val fadeIn by lazy { AnimationUtils.loadAnimation(this, R.anim.anim_fade_in) }
     private val rotate45 by lazy { AnimationUtils.loadAnimation(this, R.anim.rotation_45) }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    private val broadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+//            mSong = intent.getParcelableExtra<Song>(Constants.OBJECT_SONG) as Song
+            isPlaying = intent.getBooleanExtra(Constants.STATUS_PLAYING, false)
+            handlerActionMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
+//            handleLayoutMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
+        }
+    }
 
-        changeColorStatusBar(Color.BLACK)
-        index = intent.getIntExtra(MainActivity.INDEX_MUSIC, 0)
+    override fun initView() {
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(broadcastReceiver, IntentFilter(Constants.SEND_DATA_TO_ACTIVITY))
+
+        val idSong = intent.getIntExtra(MainActivity.ID_MUSIC, 0)
+        lifecycleScope.launch {
+            viewModel.isFavourite.collect {
+                isFavourite = it
+                binding.imgFavourite.setImageResource(if (it) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin)
+            }
+        }
+        Data.listMusic().filter { it.idSong == idSong }.forEach {
+            indexSong = Data.listMusic().indexOf(it)
+        }
         CustomAnimator.rotationImage(binding.imgSong)
-        onClickView()
         initMusic()
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun startServiceMusic(song: Song) {
+        val intent = Intent(this, MusicService::class.java)
+        intent.putExtra(MainActivity.MESSAGE_MAIN, song)
+        startService(intent)
     }
 
     /**
      * Catch Click View Components Event
      */
-    private fun onClickView() {
+    override fun onClickView() {
         binding.backMusic.setOnClickListener {
             onBackPressed()
         }
@@ -92,11 +130,40 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
             override fun onStopTrackingTouch(p0: SeekBar?) {}
 
         })
+
+        binding.imgFavourite.setOnClickListener {
+            if (!isFavourite) {
+                isFavourite = true
+                val mSong = Data.listMusic()[indexSong]
+                viewModel.insertSong(mSong, DateUtils.getTimeCurrent()) {
+                    viewModel.checkSongById(mSong.idSong)
+                    Toast.makeText(
+                        this@MusicActivity,
+                        "Đã thêm vào bài hát yêu thích",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } else {
+                DialogConfirm().apply {
+                    title = Data.listMusic()[indexSong].title
+                    onClickRemove = {
+                        viewModel.deleteSongById(Data.listMusic()[indexSong].idSong) {
+                            Toast.makeText(
+                                this@MusicActivity,
+                                "Đã xoá khỏi bài hát yêu thích",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            isFavourite = false
+                        }
+                    }
+                }.show(supportFragmentManager, "")
+            }
+        }
     }
 
     private fun initMusic() {
         resetMusic()
-        val song = Data.listMusic()[index]
+        val song = Data.listMusic()[indexSong]
         Glide.with(this)
             .load(song.avatar)
             .error(R.drawable.ic_circle)
@@ -105,12 +172,14 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
         binding.imgSong.startAnimation(fadeIn)
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
+        viewModel.checkSongById(Data.listMusic()[indexSong].idSong)
 
         playMusic(song)
     }
 
     @SuppressLint("SimpleDateFormat")
     private fun playMusic(song: Song) {
+        startServiceMusic(song)
         mediaPlayer = MediaPlayer.create(this, song.sing)
         binding.progressMusic.apply {
             max = mediaPlayer!!.duration
@@ -156,46 +225,57 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
         }
     }
 
+    /**
+     * Send Action To Notification Music
+     */
+    private fun sendActionToService(action: Action) {
+        val intent = Intent(this, MusicService::class.java)
+        intent.putExtra(Constants.RECEIVER_ACTION_MUSIC, action)
+        startService(intent)
+    }
+
     @SuppressLint("SimpleDateFormat")
     private fun setProgressTime() {
         binding.tvProgressTime.text = SimpleDateFormat(Constants.MINUTES).format(mediaPlayer?.currentPosition)
     }
 
     private fun resetMusic() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        mediaPlayer?.reset()
     }
 
     private fun startMusic() {
         binding.imgPlay.setImageResource(R.drawable.ic_pause_music)
         mediaPlayer?.start()
         isPlaying = true
+        sendActionToService(Action.ACTION_RESUME)
     }
 
     private fun pauseMusic() {
         binding.imgPlay.setImageResource(R.drawable.ic_play_music)
         mediaPlayer?.pause()
         isPlaying = false
+        sendActionToService(Action.ACTION_PAUSE)
     }
 
     private fun previousSong() {
         isPlaying = true
-        if (index > 0) {
-            index--
+        resetFavourite()
+        if (indexSong > 0) {
+            indexSong--
             initMusic()
         } else {
-            index = Data.listMusic().size - 1
+            indexSong = Data.listMusic().size - 1
         }
         initMusic()
     }
 
     private fun nextSong() {
         isPlaying = true
-        if (index < Data.listMusic().size - 1) {
-            index++
+        resetFavourite()
+        if (indexSong < Data.listMusic().size - 1) {
+            indexSong++
         } else {
-            index = 0
+            indexSong = 0
         }
         initMusic()
     }
@@ -212,14 +292,15 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>() {
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        handlerActionMusic(Action.ACTION_PAUSE)
+    private fun resetFavourite() {
+        isFavourite = false
+        binding.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         handlerActionMusic(Action.ACTION_PAUSE)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
     }
 
     override fun getActivityBinding(inflater: LayoutInflater) =

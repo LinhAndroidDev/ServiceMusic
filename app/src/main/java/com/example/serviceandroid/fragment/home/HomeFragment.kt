@@ -1,16 +1,16 @@
-package com.example.serviceandroid.fragment
+package com.example.serviceandroid.fragment.home
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.LinearGradient
-import android.graphics.Shader
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
-import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.core.view.isVisible
+import androidx.core.view.postDelayed
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
@@ -24,18 +24,21 @@ import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TopicAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.BottomSheetOptionMusic
+import com.example.serviceandroid.custom.DialogConfirm
+import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentHomeBinding
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
+import com.example.serviceandroid.utils.Constant
+import com.example.serviceandroid.utils.ExtensionFunctions
 import com.example.serviceandroid.utils.ExtensionFunctions.isViewVisible
-import kotlinx.coroutines.Dispatchers
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 enum class Title {
@@ -43,58 +46,34 @@ enum class Title {
     TITLE_NEW_RELEASE,
 }
 
+@AndroidEntryPoint
 class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var national = National.ALL_NATIONAL
     private lateinit var adapterNational: PagerNationalAdapter
     private var stickTile = Title.TITLE_TOPIC
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+    private val viewModel by viewModels<HomeViewModel>()
 
-        initView()
-        onClickView()
-    }
-
-    private fun initView() {
-        /**
-         * Visible Bottom Navigation Bar When Into Fragment Home
-         */
-        (activity as MainActivity).visibleBottomBar()
-        changeColorStatusBar(Color.WHITE)
-
+    override fun initView() {
         binding.titleCover.isVisible = binding.scrollHome.isViewVisible(binding.titleTopic)
         stickHeader()
 
         /**
          * Change Color According To Text Gradient
          */
-        binding.tvZingChat.let {
-            val paint = it.paint
-            val width = paint.measureText(it.text.toString())
-            val textShader: Shader = LinearGradient(
-                0f,
-                0f,
-                width,
-                it.textSize,
-                intArrayOf(Color.CYAN, Color.MAGENTA, Color.YELLOW),
-                null,
-                Shader.TileMode.CLAMP
-            )
-            it.paint.shader = textShader
-        }
+        ExtensionFunctions.gradientTextColor(binding.tvZingChat)
 
-        lifecycleScope.launch {
-            delay(500)
-            withContext(Dispatchers.Main) {
-                initAdvertisement()
-                initTopic()
-                delay(1000)
-                withContext(Dispatchers.Main) {
-                    initNewRelease()
-                    delay(2000)
-                    withContext(Dispatchers.Main) {
-                        initNewUpdate()
-                    }
-                }
+        binding.root.postDelayed(500) {
+            initializeViews()
+        }
+    }
+
+    private fun initializeViews() {
+        initAdvertisement()
+        initTopic()
+        binding.root.postDelayed(1000) {
+            initNewRelease()
+            binding.root.postDelayed(1500) {
+                initNewUpdate()
             }
         }
     }
@@ -135,45 +114,35 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     /**
      * Catch Click View Components Event
      */
-    private fun onClickView() {
+    override fun onClickView() {
         binding.tvAllNational.isSelected = true
-        binding.tvAllNational.setOnClickListener {
-            lifecycleScope.launch {
-                async {
-                    unSelectTvNational()
-                    binding.tvAllNational.isSelected = true
-                    national = National.ALL_NATIONAL
-                }.await()
-                async {
-                    resetMusicInterNational()
-                }.await()
+        val evenClick = mapOf(
+            binding.tvAllNational to Pair(National.ALL_NATIONAL, binding.tvAllNational),
+            binding.tvVietNam to Pair(National.VIETNAMESE, binding.tvVietNam),
+            binding.tvInternational to Pair(National.INTERNATIONAL, binding.tvInternational)
+        )
+
+        evenClick.forEach { (view, pair) ->
+            view.setOnClickListener {
+                lifecycleScope.launch {
+                    async {
+                        unSelectTvNational()
+                        pair.second.isSelected = true
+                        national = pair.first
+                    }.await()
+                    async {
+                        resetMusicInterNational()
+                    }.await()
+                }
             }
         }
 
-        binding.tvVietNam.setOnClickListener {
-            lifecycleScope.launch {
-                async {
-                    unSelectTvNational()
-                    binding.tvVietNam.isSelected = true
-                    national = National.VIETNAMESE
-                }.await()
-                async {
-                    resetMusicInterNational()
-                }.await()
-            }
+        binding.header.search.setOnClickListener {
+            findNavController().navigate(R.id.action_homeFragment_to_fragmentSearchSong)
         }
 
-        binding.tvInternational.setOnClickListener {
-            lifecycleScope.launch {
-                async {
-                    unSelectTvNational()
-                    binding.tvInternational.isSelected = true
-                    national = National.INTERNATIONAL
-                }.await()
-                async {
-                    resetMusicInterNational()
-                }.await()
-            }
+        binding.tvSeeAll.setOnClickListener {
+            findNavController().navigate(R.id.action_homeFragment_to_zingchartFragment)
         }
     }
 
@@ -185,14 +154,26 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         )
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun initNewUpdate() {
         val adapter = PagerNewReleaseAdapter(requireActivity(), type = TypeList.TYPE_NEW_UPDATE)
         adapter.items = Data.listMusic().take(5) as ArrayList<Song>
         binding.rcvNewupdate.adapter = adapter
         adapter.onClickItem = {
             val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.INDEX_MUSIC, it)
+            intent.putExtra(MainActivity.ID_MUSIC, it)
             startActivity(intent)
+        }
+        adapter.onClickMoreOption = { song ->
+            val dialog = BottomSheetOptionMusic()
+            dialog.removeFavourite = {
+                showDialogConfirmRemoveFavourite(song)
+            }
+            val bundle = Bundle()
+            bundle.putParcelable(Constant.KEY_SONG, song)
+            dialog.arguments = bundle
+            dialog.show(parentFragmentManager, "")
+
         }
     }
 
@@ -202,10 +183,35 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.pagerNewRelease.adapter = adapterNational
         adapterNational.onClickItem = {
             val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.INDEX_MUSIC, it)
+            intent.putExtra(MainActivity.ID_MUSIC, it)
             startActivity(intent)
         }
-        setUpTransformer(binding.pagerNewRelease, 5, 1f, 0f)
+        adapterNational.onClickMoreOption = { song ->
+            val dialog = BottomSheetOptionMusic()
+            dialog.removeFavourite = {
+                showDialogConfirmRemoveFavourite(song)
+            }
+            val bundle = Bundle()
+            bundle.putParcelable(Constant.KEY_SONG, song)
+            dialog.arguments = bundle
+            dialog.show(parentFragmentManager, "")
+        }
+        setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)
+    }
+
+    private fun showDialogConfirmRemoveFavourite(song: Song) {
+        DialogConfirm().apply {
+            title = song.title
+            onClickRemove = {
+                viewModel.deleteSongById(song.idSong) {
+                    Toast.makeText(
+                        requireActivity(),
+                        "Đã xoá khỏi bài hát yêu thích",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }.show(requireActivity().supportFragmentManager, "")
     }
 
     private fun songsToHashMap(songs: ArrayList<Song>): HashMap<Int, ArrayList<Song>> {
@@ -248,7 +254,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.rcvTopic.adapter = adapter
     }
 
-    private fun setUpTransformer(vpg2: ViewPager2, margin: Int, a: Float, b: Float) {
+    private fun setUpViewPagerTransformer(vpg2: ViewPager2, margin: Int, a: Float, b: Float) {
         val transformer = CompositePageTransformer()
         transformer.addTransformer(MarginPageTransformer(margin))
         transformer.addTransformer { page, position ->
@@ -287,10 +293,18 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                 "Bản Hit Đánh Mất Em mới lạ qua giọng hát của các ca sĩ trẻ"
             )
         )
-        val adapter = AdvertisementAdapter()
+        val adapter = AdvertisementAdapter(requireActivity())
         adapter.advertisements = advertisements
         binding.advertisement.adapter = adapter
-        setUpTransformer(binding.advertisement, 5, 1f, 0f)
+        LinearSnapHelper().attachToRecyclerView(binding.advertisement)
+
+        // Set ItemDecoration to add overlap/margin between items
+        binding.advertisement.addItemDecoration(
+            OverlapItemDecoration(
+                resources.getDimensionPixelSize(R.dimen.item_overlap_width),
+                resources.getDimensionPixelSize(R.dimen.item_overlap_width)
+            )
+        )
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =

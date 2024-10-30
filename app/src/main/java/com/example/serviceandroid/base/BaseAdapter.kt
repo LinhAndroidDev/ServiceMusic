@@ -5,11 +5,12 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 
 abstract class BaseAdapter<T : Any, VB : ViewDataBinding> :
     RecyclerView.Adapter<BaseAdapter.BaseViewHolder<VB>>() {
-    var items = arrayListOf<T>()
+    var items = mutableListOf<T>()
 
     class BaseViewHolder<VB : ViewDataBinding>(val v: VB) : RecyclerView.ViewHolder(v.root)
 
@@ -29,8 +30,27 @@ abstract class BaseAdapter<T : Any, VB : ViewDataBinding> :
 
     @SuppressLint("NotifyDataSetChanged")
     fun resetList(list: ArrayList<T>) {
+        val diffResult = DiffUtil.calculateDiff(BaseDiffCallback(items, list))
         items.clear()
         items.addAll(list)
-        notifyDataSetChanged()
+        diffResult.dispatchUpdatesTo(this)
+    }
+
+    class BaseDiffCallback<T>(private val oldList: List<T>, private val newList: List<T>) : DiffUtil.Callback() {
+        override fun getOldListSize(): Int {
+            return oldList.size
+        }
+
+        override fun getNewListSize(): Int {
+            return newList.size
+        }
+
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return oldList[oldItemPosition] == newList[newItemPosition]
+        }
+
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return oldList[oldItemPosition] == newList[newItemPosition]
+        }
     }
 }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <EditText
+        android:id="@+id/search"
+        android:background="@drawable/bg_corner_45_grey"
+        android:hint="Tìm kiếm bài hát, nghệ sĩ..."
+        android:textColorHint="@color/txt_hint"
+        android:textSize="14sp"
+        android:paddingVertical="3dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="40dp"
+        android:drawableTint="@color/txt_hint"
+        android:drawableStart="@drawable/ic_search_thin"
+        android:drawablePadding="5dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textEmailAddress"/>
+
+    <ImageView
+        android:id="@+id/removeText"
+        android:layout_marginEnd="10dp"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:src="@drawable/ic_remove"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:visibility="gone"/>
+</RelativeLayout>

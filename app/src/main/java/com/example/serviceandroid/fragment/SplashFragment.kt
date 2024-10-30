@@ -1,35 +1,48 @@
 package com.example.serviceandroid.fragment
 
-import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
-import androidx.lifecycle.lifecycleScope
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.serviceandroid.R
-import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.databinding.FragmentSplashBinding
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-class SplashFragment : BaseFragment<FragmentSplashBinding>() {
+class SplashFragment : Fragment() {
+    private val binding by lazy { FragmentSplashBinding.inflate(layoutInflater) }
+    private val handler by lazy { Handler(Looper.getMainLooper()) }
+    private var runnable: Runnable = Runnable { findNavController().navigate(R.id.homeFragment) }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        return binding.root
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        initView()
+
+        handler.postDelayed(runnable, 2000)
     }
 
-    private fun initView() {
-        changeColorStatusBar(Color.BLACK)
-        lifecycleScope.launch {
-            delay(2000L)
-            withContext(Dispatchers.Main) {
-                findNavController().navigate(R.id.homeFragment)
-            }
-        }
+    override fun onResume() {
+        super.onResume()
+        handler.removeCallbacks(runnable)
+        handler.postDelayed(runnable, 2000)
     }
 
-    override fun getFragmentBinding(inflater: LayoutInflater)
-    = FragmentSplashBinding.inflate(inflater)
+    override fun onStop() {
+        super.onStop()
+        handler.removeCallbacks(runnable)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        handler.removeCallbacks(runnable)
+    }
 }

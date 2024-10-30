@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <color name="black">#FF000000</color>
+    <color name="black_1">#C6111111</color>
     <color name="white">#FFFFFFFF</color>
 
     //text
@@ -10,11 +11,29 @@
     <color name="txt_hint">#818181</color>
 
     //background
+    <color name="background">#f7f7f7</color>
     <color name="bg_blue">#1EB3F6</color>
-    <color name="bg_purple">#7B32AF</color>
+    <color name="blue">#076bf7</color>
+    <color name="blue_light">#C9EEFF</color>
+    <color name="blue1">#4554b5</color>
+    <color name="blue_dark">#382c74</color>
+    <color name="bg_purple">#835fbf</color>
+    <color name="purple_dark">#402254</color>
+    <color name="purple_dark1">#291a3b</color>
+    <color name="purple_dark2">#281d3a</color>
     <color name="bg_orange">#FF9800</color>
+    <color name="orange1">#DF8602</color>
+    <color name="orange">#FF5722</color>
     <color name="bg_pink">#E82D6C</color>
+    <color name="pink_light">#FFCCDD</color>
     <color name="bg_green1">#05CDBB</color>
     <color name="bg_green2">#68B16A</color>
+    <color name="green3">#3e979f</color>
     <color name="purple_1">#673AB7</color>
+    <color name="yellow_dark">#FFC107</color>
+    <color name="grey_light">#EFEFEF</color>
+    <color name="grey_1">#8E8E8E</color>
+    <color name="grey_blur">#488E8E8E</color>
+    <color name="brown">#aa614f</color>
+    <color name="red">#FF1100</color>
 </resources>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <FrameLayout
+            android:background="@drawable/bg_listen_recent"
+            android:layout_width="80dp"
+            android:layout_height="80dp">
+            
+            <ImageView
+                android:layout_gravity="center"
+                android:src="@drawable/ic_recent"
+                android:layout_width="60dp"
+                android:layout_height="60dp" />
+
+            <androidx.cardview.widget.CardView
+                android:id="@+id/iconMV"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
+                android:layout_gravity="bottom|end"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="25dp">
+                <ImageView
+                    android:layout_margin="2dp"
+                    android:src="@drawable/play"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    app:tint="@color/black"/>
+            </androidx.cardview.widget.CardView>
+        </FrameLayout>
+    </LinearLayout>
+</layout>
