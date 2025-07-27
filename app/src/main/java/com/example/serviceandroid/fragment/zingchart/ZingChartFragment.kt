@@ -93,7 +93,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         binding.tvNameSong.text = randomElement.title
         binding.tvNameSinger.text = randomElement.nameSinger
         binding.songSuggestView.setOnClickListener {
-            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(idMusic = randomElement.idSong)
+            val action = ZingChartFragmentDirections.actionZingchartFragmentToFragmentMusic(idMusic = randomElement.idSong)
             findNavController().navigate(action)
         }
     }

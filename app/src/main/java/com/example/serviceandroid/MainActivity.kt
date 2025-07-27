@@ -235,11 +235,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     private fun finishMusic() {
         isFinish = false
         if (isRepeat) {
-            Log.e("MainActivity", "isRepeat")
             mediaPlayer?.isLooping = true
             mediaPlayer?.start()
         } else {
-            Log.e("MainActivity", "isNext")
             mediaPlayer?.isLooping = false
             handlerActionMusic(Action.ACTION_NEXT)
         }
@@ -307,11 +305,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
                     handlerActionMusic(Action.ACTION_FINISH)
                 }
                 if (isPlaying) {
-                    if (binding.progressMusic.progress == binding.progressMusic.max) {
+                    if (binding.progressMusic.progress == mediaPlayer!!.currentPosition) {
                         dragToEnd = true
-                        if (isFinish) {
-                            handlerActionMusic(Action.ACTION_FINISH)
-                        }
                     } else {
                         binding.progressMusic.progress = mediaPlayer!!.currentPosition
                         val currentFragment = getCurrentFragment()
