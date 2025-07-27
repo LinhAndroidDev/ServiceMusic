@@ -1,7 +1,6 @@
 package com.example.serviceandroid.fragment.home
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Toast
@@ -15,8 +14,6 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
-import com.example.serviceandroid.MainActivity
-import com.example.serviceandroid.MusicActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.AdvertisementAdapter
 import com.example.serviceandroid.adapter.PagerNationalAdapter
@@ -160,9 +157,8 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         adapter.items = Data.listMusic().take(5) as ArrayList<Song>
         binding.rcvNewupdate.adapter = adapter
         adapter.onClickItem = {
-            val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.ID_MUSIC, it)
-            startActivity(intent)
+            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(idMusic = it)
+            findNavController().navigate(action)
         }
         adapter.onClickMoreOption = { song ->
             val dialog = BottomSheetOptionMusic()
@@ -182,9 +178,8 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         adapterNational.pagerSong = songsToHashMap(Data.listMusic())
         binding.pagerNewRelease.adapter = adapterNational
         adapterNational.onClickItem = {
-            val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.ID_MUSIC, it)
-            startActivity(intent)
+            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(idMusic = it)
+            findNavController().navigate(action)
         }
         adapterNational.onClickMoreOption = { song ->
             val dialog = BottomSheetOptionMusic()

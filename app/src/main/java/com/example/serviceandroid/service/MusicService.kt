@@ -28,7 +28,6 @@ class MusicService : Service(), PlayCallback {
     override var isRepeat = false
     override var isFinish = false
     override var dragToEnd= false
-    override var isFavourite= false
     override var indexSong = 0
     private lateinit var mSong: Song
 
@@ -134,6 +133,12 @@ class MusicService : Service(), PlayCallback {
                 startMusic(mSong)
             }
         }
+    }
+
+    private fun clearMusic() {
+        mediaPlayer?.stop()
+
+        sendActionToActivity(Action.ACTION_START)
     }
 
     private fun startMusic(song: Song) {

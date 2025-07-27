@@ -20,9 +20,6 @@
         android:theme="@style/Theme.ServiceAndroid"
         tools:targetApi="31">
         <activity
-            android:name=".MusicActivity"
-            android:exported="false" />
-        <activity
             android:name=".MainActivity"
             android:windowSoftInputMode="adjustResize|adjustPan"
             android:exported="true">

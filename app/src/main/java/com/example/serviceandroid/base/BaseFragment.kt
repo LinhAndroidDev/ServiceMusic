@@ -24,7 +24,7 @@ abstract class BaseFragment<VB: ViewBinding>: Fragment(), CoreInterface.AndroidV
         /**
          * Visible Bottom Navigation Bar When Into Fragment Home
          */
-        (activity as MainActivity).visibleBottomBar()
+//        (activity as MainActivity).visibleBottomBar()
         initView()
         onClickView()
     }

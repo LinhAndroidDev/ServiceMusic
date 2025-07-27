@@ -7,7 +7,6 @@ interface PlayCallback {
     var isRepeat: Boolean
     var isFinish: Boolean
     var dragToEnd: Boolean
-    var isFavourite: Boolean
     var indexSong: Int
     var mediaPlayer: MediaPlayer?
 }

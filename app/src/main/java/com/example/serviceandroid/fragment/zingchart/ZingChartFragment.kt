@@ -1,6 +1,5 @@
 package com.example.serviceandroid.fragment.zingchart
 
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -14,9 +13,8 @@ import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
-import com.example.serviceandroid.MainActivity
-import com.example.serviceandroid.MusicActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
@@ -26,6 +24,7 @@ import com.example.serviceandroid.custom.CustomLineChartRenderer
 import com.example.serviceandroid.custom.CustomXAxisFormatter
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentZingChartBinding
+import com.example.serviceandroid.fragment.home.HomeFragmentDirections
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.PositionChart
 import com.example.serviceandroid.model.Song
@@ -94,9 +93,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         binding.tvNameSong.text = randomElement.title
         binding.tvNameSinger.text = randomElement.nameSinger
         binding.songSuggestView.setOnClickListener {
-            val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.ID_MUSIC, randomElement.idSong)
-            startActivity(intent)
+            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(idMusic = randomElement.idSong)
+            findNavController().navigate(action)
         }
     }
 
@@ -105,9 +103,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         adapter.items = Data.listMusic()
         binding.rcvSongChart.adapter = adapter
         adapter.onClickItem = {
-            val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.ID_MUSIC, it)
-            startActivity(intent)
+            val action = ZingChartFragmentDirections.actionZingchartFragmentToFragmentMusic(idMusic = it)
+            findNavController().navigate(action)
         }
         adapter.onClickMoreOption = { song ->
             val dialog = BottomSheetOptionMusic()
