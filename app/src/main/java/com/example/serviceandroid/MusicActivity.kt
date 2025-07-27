@@ -5,7 +5,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
@@ -69,6 +72,15 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
             indexSong = Data.listMusic().indexOf(it)
         }
         CustomAnimator.rotationImage(binding.imgSong)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.imageCover.setRenderEffect(
+                RenderEffect.createBlurEffect(
+                    50.0f, 50.0f, Shader.TileMode.CLAMP
+                )
+            )
+        }
+
         initMusic()
     }
 
@@ -169,6 +181,7 @@ class MusicActivity : BaseActivity<ActivityMusicBinding>(), PlayCallback {
             .error(R.drawable.ic_circle)
             .placeholder(R.drawable.ic_circle)
             .into(binding.imgSong)
+        binding.imageCover.setImageResource(song.avatar)
         binding.imgSong.startAnimation(fadeIn)
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
