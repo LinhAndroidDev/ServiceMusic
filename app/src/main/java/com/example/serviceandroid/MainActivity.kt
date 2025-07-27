@@ -8,7 +8,6 @@ import android.content.IntentFilter
 import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
@@ -68,13 +67,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         navController.addOnDestinationChangedListener { controller, destination, arguments ->
             when (destination.id) {
                 R.id.fragmentMusic -> {
-                    Log.e("MainActivity", "Fragment Music")
                     binding.bottomBar.isVisible = false
                     binding.bottomPlay.isVisible = false
                 }
 
                 R.id.splashFragment -> {
-                    Log.e("MainActivity", "Splash Fragment")
                     binding.bottomBar.isVisible = false
                     binding.bottomPlay.isVisible = false
                 }

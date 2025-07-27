@@ -28,7 +28,11 @@
             app:destination="@id/zingchartFragment" />
         <action
             android:id="@+id/action_homeFragment_to_fragmentMusic"
-            app:destination="@id/fragmentMusic" />
+            app:destination="@id/fragmentMusic"
+            app:enterAnim="@anim/slide_up"
+            app:exitAnim="@anim/anim_normal"
+            app:popEnterAnim="@anim/anim_normal"
+            app:popExitAnim="@anim/slide_down"/>
     </fragment>
 
     <fragment
@@ -54,7 +58,11 @@
             app:destination="@id/fragmentSearchSong" />
         <action
             android:id="@+id/action_zingchartFragment_to_fragmentMusic"
-            app:destination="@id/fragmentMusic" />
+            app:destination="@id/fragmentMusic"
+            app:enterAnim="@anim/slide_up"
+            app:exitAnim="@anim/anim_normal"
+            app:popEnterAnim="@anim/anim_normal"
+            app:popExitAnim="@anim/slide_down"/>
     </fragment>
 
     <fragment
