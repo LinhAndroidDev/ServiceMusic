@@ -83,13 +83,15 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
 
         binding.imgPlay.setOnClickListener {
-            val act = activity as MainActivity
-            act.isPlaying = if (!act.isPlaying) {
-                act.handlerActionMusic(Action.ACTION_START)
-                true
-            } else {
-                act.handlerActionMusic(Action.ACTION_PAUSE)
-                false
+            CustomAnimator.endAnimation(rotate45) {
+                val act = activity as MainActivity
+                act.isPlaying = if (!act.isPlaying) {
+                    act.handlerActionMusic(Action.ACTION_START)
+                    true
+                } else {
+                    act.handlerActionMusic(Action.ACTION_PAUSE)
+                    false
+                }
             }
             binding.imgPlay.startAnimation(rotate45)
         }
@@ -153,15 +155,15 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
     }
 
-    fun initMusic(isNextBack: Boolean = false) {
+    fun initMusic() {
         resetFavourite()
         val song = Data.listMusic()[(activity as MainActivity).indexSong]
         val act = activity as MainActivity
-        if (!act.isPlaying || isNextBack) {
+        if (act.openMusicFromBottomPlay) {
+            setUpMusicWhenPlayed()
+        } else {
             act.resetMusic()
             act.playMusic(song)
-        } else {
-            setUpMusicWhenPlayed()
         }
         Glide.with(this)
             .load(song.avatar)
@@ -180,9 +182,11 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
      */
     private fun setUpMusicWhenPlayed() {
         val act = activity as MainActivity
-        act.handlerActionMusic(Action.ACTION_START)
+        act.openMusicFromBottomPlay = false
+        if (act.isPlaying) startMusic() else pauseMusic()
         setMaxProgress(act.mediaPlayer?.duration ?: 0)
-        setTotalTime(act.mediaPlayer!!)
+        updateProgressMusic(act.mediaPlayer?.currentPosition ?: 0)
+        act.mediaPlayer?.let { setTotalTime(it) }
     }
 
     internal fun updateProgressMusic(currentPosition: Int) {

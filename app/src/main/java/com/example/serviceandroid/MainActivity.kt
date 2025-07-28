@@ -9,7 +9,6 @@ import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
@@ -43,6 +42,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     override var isFinish = false
     override var dragToEnd = false
     override var indexSong = -1
+    var openMusicFromBottomPlay = false
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -133,6 +133,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         }
 
         binding.bottomPlay.setOnClickListener {
+            openMusicFromBottomPlay = true
             val options = NavOptions.Builder()
                 .setEnterAnim(R.anim.slide_up)
                 .setExitAnim(R.anim.anim_normal)
@@ -249,11 +250,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     private fun finishMusic() {
         isFinish = false
         if (isRepeat) {
-            Log.e("MainActivity", "Finish Music Repeat")
             mediaPlayer?.isLooping = true
             mediaPlayer?.start()
         } else {
-            Log.e("MainActivity", "Finish Music Next")
             mediaPlayer?.isLooping = false
             handlerActionMusic(Action.ACTION_NEXT)
         }
@@ -268,7 +267,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         }
         val currentFragment = getCurrentFragment()
         if (currentFragment is FragmentMusic) {
-            currentFragment.initMusic(isNextBack = true)
+            currentFragment.initMusic()
         } else {
             resetMusic()
             val song = Data.listMusic()[indexSong]
@@ -285,7 +284,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         }
         val currentFragment = getCurrentFragment()
         if (currentFragment is FragmentMusic) {
-            currentFragment.initMusic(isNextBack = true)
+            currentFragment.initMusic()
         } else {
             resetMusic()
             val song = Data.listMusic()[indexSong]
