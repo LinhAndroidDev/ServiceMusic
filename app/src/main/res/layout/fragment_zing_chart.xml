@@ -179,6 +179,7 @@
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rcvSongChart"
+                android:layout_marginBottom="120dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="20dp"

@@ -24,7 +24,6 @@ import com.example.serviceandroid.custom.CustomLineChartRenderer
 import com.example.serviceandroid.custom.CustomXAxisFormatter
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentZingChartBinding
-import com.example.serviceandroid.fragment.home.HomeFragmentDirections
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.PositionChart
 import com.example.serviceandroid.model.Song
