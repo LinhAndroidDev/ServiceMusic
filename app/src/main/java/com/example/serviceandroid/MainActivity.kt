@@ -6,14 +6,17 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.MediaPlayer
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.example.serviceandroid.base.BaseActivity
 import com.example.serviceandroid.custom.ActionBottomBar
@@ -35,7 +38,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     private lateinit var mSong: Song
     private val timePlay = Handler(Looper.getMainLooper())
     override var mediaPlayer: MediaPlayer? = null
-    override var isPlaying = true
+    override var isPlaying = false
     override var isRepeat = false
     override var isFinish = false
     override var dragToEnd = false
@@ -64,7 +67,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
 
-        navController.addOnDestinationChangedListener { controller, destination, arguments ->
+        navController.addOnDestinationChangedListener { _, destination, _ ->
             when (destination.id) {
                 R.id.fragmentMusic -> {
                     binding.bottomBar.isVisible = false
@@ -127,6 +130,20 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
 
         binding.close.setOnClickListener {
             sendActionToService(Action.ACTION_CLEAR)
+        }
+
+        binding.bottomPlay.setOnClickListener {
+            val options = NavOptions.Builder()
+                .setEnterAnim(R.anim.slide_up)
+                .setExitAnim(R.anim.anim_normal)
+                .setPopEnterAnim(R.anim.anim_normal)
+                .setPopExitAnim(R.anim.slide_down)
+                .build()
+            val song = Data.listMusic()[indexSong]
+            val bundle = Bundle().apply {
+                putInt("id_music", song.idSong)
+            }
+            navController.navigate(R.id.fragmentMusic, bundle, options)
         }
     }
 
@@ -232,9 +249,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     private fun finishMusic() {
         isFinish = false
         if (isRepeat) {
+            Log.e("MainActivity", "Finish Music Repeat")
             mediaPlayer?.isLooping = true
             mediaPlayer?.start()
         } else {
+            Log.e("MainActivity", "Finish Music Next")
             mediaPlayer?.isLooping = false
             handlerActionMusic(Action.ACTION_NEXT)
         }
@@ -249,7 +268,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         }
         val currentFragment = getCurrentFragment()
         if (currentFragment is FragmentMusic) {
-            currentFragment.initMusic()
+            currentFragment.initMusic(isNextBack = true)
         } else {
             resetMusic()
             val song = Data.listMusic()[indexSong]
@@ -266,7 +285,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         }
         val currentFragment = getCurrentFragment()
         if (currentFragment is FragmentMusic) {
-            currentFragment.initMusic()
+            currentFragment.initMusic(isNextBack = true)
         } else {
             resetMusic()
             val song = Data.listMusic()[indexSong]
@@ -302,7 +321,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
                     handlerActionMusic(Action.ACTION_FINISH)
                 }
                 if (isPlaying) {
-                    if (binding.progressMusic.progress == mediaPlayer!!.currentPosition) {
+                    if (binding.progressMusic.progress == mediaPlayer!!.duration) {
                         dragToEnd = true
                     } else {
                         binding.progressMusic.progress = mediaPlayer!!.currentPosition

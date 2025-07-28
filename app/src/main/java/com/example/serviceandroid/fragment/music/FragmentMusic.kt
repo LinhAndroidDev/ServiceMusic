@@ -41,7 +41,11 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
 
     override fun initView() {
         val args: FragmentMusicArgs by navArgs()
-        val idSong = args.idMusic
+        val idSong = if (args.idMusic == 0) {
+            arguments?.getInt("id_music") ?: 0
+        } else {
+            args.idMusic
+        }
         lifecycleScope.launch {
             viewModel.isFavourite.collect {
                 isFavourite = it
@@ -149,10 +153,16 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
     }
 
-    fun initMusic() {
+    fun initMusic(isNextBack: Boolean = false) {
         resetFavourite()
-        (activity as MainActivity).resetMusic()
         val song = Data.listMusic()[(activity as MainActivity).indexSong]
+        val act = activity as MainActivity
+        if (!act.isPlaying || isNextBack) {
+            act.resetMusic()
+            act.playMusic(song)
+        } else {
+            setUpMusicWhenPlayed()
+        }
         Glide.with(this)
             .load(song.avatar)
             .error(R.drawable.ic_circle)
@@ -163,8 +173,16 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
         viewModel.checkSongById(Data.listMusic()[(activity as MainActivity).indexSong].idSong)
+    }
 
-        (activity as MainActivity).playMusic(song)
+    /**
+     * Handler when click from bottom play in screen home
+     */
+    private fun setUpMusicWhenPlayed() {
+        val act = activity as MainActivity
+        act.handlerActionMusic(Action.ACTION_START)
+        setMaxProgress(act.mediaPlayer?.duration ?: 0)
+        setTotalTime(act.mediaPlayer!!)
     }
 
     internal fun updateProgressMusic(currentPosition: Int) {
