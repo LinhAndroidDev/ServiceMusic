@@ -161,6 +161,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         timePlay.removeCallbacksAndMessages(null)
         mediaPlayer?.release()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
+        val intent = Intent(this, MusicService::class.java)
+        stopService(intent)
     }
 
     private fun handleLayoutMusic(action: Action) {

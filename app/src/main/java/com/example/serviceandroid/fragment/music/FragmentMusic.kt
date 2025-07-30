@@ -49,7 +49,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         lifecycleScope.launch {
             viewModel.isFavourite.collect {
                 isFavourite = it
-                binding.imgFavourite.setImageResource(if (it) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin)
+                val resourceImageId = if (it) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin
+                binding.imgFavourite.setImageResource(resourceImageId)
             }
         }
         Data.listMusic().filter { it.idSong == idSong }.forEach {
