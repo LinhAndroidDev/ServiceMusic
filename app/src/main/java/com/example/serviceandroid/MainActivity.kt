@@ -17,6 +17,8 @@ import androidx.core.view.isVisible
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
+import androidx.viewpager2.widget.ViewPager2
+import com.example.serviceandroid.adapter.InformationSongAdapter
 import com.example.serviceandroid.base.BaseActivity
 import com.example.serviceandroid.custom.ActionBottomBar
 import com.example.serviceandroid.databinding.ActivityMainBinding
@@ -60,6 +62,25 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     override fun initView() {
         LocalBroadcastManager.getInstance(this)
             .registerReceiver(broadcastReceiver, IntentFilter(Constants.SEND_DATA_TO_ACTIVITY))
+
+        val adapterInfoSong = InformationSongAdapter()
+        adapterInfoSong.items = Data.listMusic()
+        adapterInfoSong.onClickView = {
+            openMusicFromBottomPlay()
+        }
+        binding.viewPagerInfoSong.adapter = adapterInfoSong
+
+        binding.viewPagerInfoSong.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                if (indexSong != position) {
+                    indexSong = position
+                    resetMusic()
+                    val song = Data.listMusic()[indexSong]
+                    playMusic(song)
+                }
+            }
+        })
     }
 
     override fun onClickView() {
@@ -133,19 +154,26 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         }
 
         binding.bottomPlay.setOnClickListener {
-            openMusicFromBottomPlay = true
-            val options = NavOptions.Builder()
-                .setEnterAnim(R.anim.slide_up)
-                .setExitAnim(R.anim.anim_normal)
-                .setPopEnterAnim(R.anim.anim_normal)
-                .setPopExitAnim(R.anim.slide_down)
-                .build()
-            val song = Data.listMusic()[indexSong]
-            val bundle = Bundle().apply {
-                putInt("id_music", song.idSong)
-            }
-            navController.navigate(R.id.fragmentMusic, bundle, options)
+            openMusicFromBottomPlay()
         }
+    }
+
+    private fun openMusicFromBottomPlay() {
+        openMusicFromBottomPlay = true
+        val options = NavOptions.Builder()
+            .setEnterAnim(R.anim.slide_up)
+            .setExitAnim(R.anim.anim_normal)
+            .setPopEnterAnim(R.anim.anim_normal)
+            .setPopExitAnim(R.anim.slide_down)
+            .build()
+        val song = Data.listMusic()[indexSong]
+        val bundle = Bundle().apply {
+            putInt("id_music", song.idSong)
+        }
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
+        val navController = navHostFragment.navController
+        navController.navigate(R.id.fragmentMusic, bundle, options)
     }
 
     @SuppressLint("SetTextI18n")
@@ -192,15 +220,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
 
-        binding.bottomPlay.isVisible = navController.currentDestination?.id != R.id.fragmentMusic && indexSong != -1
+        val isVisibleBottomPlay = navController.currentDestination?.id != R.id.fragmentMusic && indexSong != -1
+        binding.bottomPlay.isVisible = isVisibleBottomPlay
+        if (isVisibleBottomPlay) {
+            binding.viewPagerInfoSong.currentItem = indexSong
+        }
     }
 
     @SuppressLint("SetTextI18n")
     private fun showInfoSong() {
         binding.avatar.setImageResource(mSong.avatar)
-        binding.title.text = mSong.title
-        binding.nameSingle.text = "Ca sĩ: ${mSong.nameSinger}"
-        binding.progressMusic.max = mediaPlayer!!.duration
+        binding.progressMusic.max = mediaPlayer?.duration ?: 0
         binding.progressMusic.progress = 0
     }
 

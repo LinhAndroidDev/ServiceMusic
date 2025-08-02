@@ -51,37 +51,19 @@
                 android:orientation="horizontal"
                 android:paddingVertical="5dp">
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/viewPagerInfoSong"
                     android:layout_marginStart="70dp"
                     android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Phố đèn đỏ"
-                        android:textColor="@color/white"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/nameSingle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Ca sĩ: Đan Trường"
-                        android:textColor="@color/white"
-                        android:textSize="12sp" />
-
-                </LinearLayout>
+                    android:layout_width="0dp"
+                    android:layout_height="35dp"/>
 
                 <ImageView
                     android:id="@+id/favourite"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
-                    android:layout_marginStart="20dp"
+                    android:layout_marginStart="5dp"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/favourite" />
 
                 <ImageView
@@ -89,6 +71,7 @@
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     android:layout_marginStart="20dp"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/pause"
                     app:tint="@color/white" />
 
@@ -98,6 +81,7 @@
                     android:layout_height="25dp"
                     android:layout_marginStart="20dp"
                     android:layout_marginEnd="10dp"
+                    android:importantForAccessibility="no"
                     android:src="@drawable/close" />
 
             </LinearLayout>
@@ -124,6 +108,7 @@
                 android:id="@+id/avatar"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
+                android:importantForAccessibility="no"
                 android:scaleType="centerCrop"
                 android:src="@mipmap/ic_launcher_round" />
         </androidx.cardview.widget.CardView>
