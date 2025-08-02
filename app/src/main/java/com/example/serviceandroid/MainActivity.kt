@@ -29,6 +29,7 @@ import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.service.MusicService
 import com.example.serviceandroid.utils.getCurrentFragment
+import com.example.serviceandroid.utils.moveTo
 import dagger.hilt.android.AndroidEntryPoint
 
 
@@ -106,33 +107,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
             }
         }
 
-        val destinationId = navController.currentDestination?.id
         binding.bottomBar.selectedItem = { action ->
             when (action) {
-                ActionBottomBar.LIBRARY -> {
-                    if (destinationId != R.id.libraryFragment)
-                        navController.navigate(R.id.libraryFragment)
-                }
-
-                ActionBottomBar.DISCOVER -> {
-                    if (destinationId != R.id.homeFragment)
-                        navController.navigate(R.id.homeFragment)
-                }
-
-                ActionBottomBar.ZINGCHART -> {
-                    if (destinationId != R.id.zingchartFragment)
-                        navController.navigate(R.id.zingchartFragment)
-                }
-
-                ActionBottomBar.RADIO -> {
-                    if (destinationId != R.id.radioFragment)
-                        navController.navigate(R.id.radioFragment)
-                }
-
-                ActionBottomBar.PROFILE -> {
-                    if (destinationId != R.id.profileFragment)
-                        navController.navigate(R.id.profileFragment)
-                }
+                ActionBottomBar.LIBRARY -> navController.moveTo(R.id.libraryFragment)
+                ActionBottomBar.DISCOVER -> navController.moveTo(R.id.homeFragment)
+                ActionBottomBar.ZINGCHART -> navController.moveTo(R.id.zingchartFragment)
+                ActionBottomBar.RADIO -> navController.moveTo(R.id.radioFragment)
+                ActionBottomBar.PROFILE -> navController.moveTo(R.id.profileFragment)
             }
         }
 
