@@ -26,8 +26,7 @@ class MusicService : Service(), PlayCallback {
     override var mediaPlayer: MediaPlayer? = null
     override var isPlaying = false
     override var isRepeat = false
-    override var isFinish = false
-    override var dragToEnd= false
+    override var isFinish= false
     override var indexSong = 0
     private lateinit var mSong: Song
 

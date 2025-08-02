@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.core.view.isVisible
-import androidx.core.view.postDelayed
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -59,20 +58,14 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
          */
         ExtensionFunctions.gradientTextColor(binding.tvZingChat)
 
-        binding.root.postDelayed(500) {
-            initializeViews()
-        }
+        initializeViews()
     }
 
     private fun initializeViews() {
         initAdvertisement()
         initTopic()
-        binding.root.postDelayed(1000) {
-            initNewRelease()
-            binding.root.postDelayed(1500) {
-                initNewUpdate()
-            }
-        }
+        initNewRelease()
+        initNewUpdate()
     }
 
     /**

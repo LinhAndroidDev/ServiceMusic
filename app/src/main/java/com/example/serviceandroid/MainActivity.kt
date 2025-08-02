@@ -42,7 +42,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     override var isPlaying = false
     override var isRepeat = false
     override var isFinish = false
-    override var dragToEnd = false
     override var indexSong = -1
     var openMusicFromBottomPlay = false
 
@@ -73,7 +72,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         binding.viewPagerInfoSong.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                if (indexSong != position) {
+                if (indexSong != position && indexSong != -1) {
                     indexSong = position
                     resetMusic()
                     val song = Data.listMusic()[indexSong]
@@ -92,12 +91,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
             when (destination.id) {
                 R.id.fragmentMusic -> {
                     binding.bottomBar.isVisible = false
-                    binding.bottomPlay.isVisible = false
+                    binding.bottomPlay.visibility = View.INVISIBLE
                 }
 
                 R.id.splashFragment -> {
                     binding.bottomBar.isVisible = false
-                    binding.bottomPlay.isVisible = false
+                    binding.bottomPlay.visibility = View.INVISIBLE
                 }
 
                 else -> {
@@ -210,7 +209,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
             }
 
             else -> {
-                binding.bottomPlay.visibility = View.GONE
+                binding.bottomPlay.visibility = View.INVISIBLE
             }
         }
     }
@@ -220,16 +219,14 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
 
-        val isVisibleBottomPlay = navController.currentDestination?.id != R.id.fragmentMusic && indexSong != -1
-        binding.bottomPlay.isVisible = isVisibleBottomPlay
-        if (isVisibleBottomPlay) {
-            binding.viewPagerInfoSong.currentItem = indexSong
-        }
+        val isVisibleBottomPlay = if (navController.currentDestination?.id != R.id.fragmentMusic && indexSong != -1) View.VISIBLE else View.INVISIBLE
+        binding.bottomPlay.visibility = isVisibleBottomPlay
     }
 
     @SuppressLint("SetTextI18n")
     private fun showInfoSong() {
         binding.avatar.setImageResource(mSong.avatar)
+        binding.viewPagerInfoSong.currentItem = indexSong
         binding.progressMusic.max = mediaPlayer?.duration ?: 0
         binding.progressMusic.progress = 0
     }
@@ -270,7 +267,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
 
     private fun clearMusic() {
         isPlaying = false
-        isFinish = false
         mediaPlayer?.stop()
         mediaPlayer?.reset()
         mediaPlayer?.release()
@@ -280,13 +276,23 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     }
 
     private fun finishMusic() {
-        isFinish = false
         if (isRepeat) {
             mediaPlayer?.isLooping = true
-            mediaPlayer?.start()
+            initOrResetMusic()
         } else {
             mediaPlayer?.isLooping = false
             handlerActionMusic(Action.ACTION_NEXT)
+        }
+    }
+
+    private fun initOrResetMusic() {
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is FragmentMusic) {
+            currentFragment.initMusic()
+        } else {
+            resetMusic()
+            val song = Data.listMusic()[indexSong]
+            playMusic(song)
         }
     }
 
@@ -297,14 +303,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         } else {
             indexSong = Data.listMusic().size - 1
         }
-        val currentFragment = getCurrentFragment()
-        if (currentFragment is FragmentMusic) {
-            currentFragment.initMusic()
-        } else {
-            resetMusic()
-            val song = Data.listMusic()[indexSong]
-            playMusic(song)
-        }
+        initOrResetMusic()
     }
 
     private fun nextSong() {
@@ -314,14 +313,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         } else {
             indexSong = 0
         }
-        val currentFragment = getCurrentFragment()
-        if (currentFragment is FragmentMusic) {
-            currentFragment.initMusic()
-        } else {
-            resetMusic()
-            val song = Data.listMusic()[indexSong]
-            playMusic(song)
-        }
+        initOrResetMusic()
     }
 
     private fun pauseMusic() {
@@ -347,13 +339,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     private fun setUpTimer() {
         timePlay.postDelayed(object : Runnable {
             override fun run() {
-                if(dragToEnd) {
-                    dragToEnd = false
+                if(isFinish) {
+                    isFinish = false
                     handlerActionMusic(Action.ACTION_FINISH)
                 }
                 if (isPlaying) {
                     if (binding.progressMusic.progress == mediaPlayer!!.duration) {
-                        dragToEnd = true
+                        isFinish = true
                     } else {
                         binding.progressMusic.progress = mediaPlayer!!.currentPosition
                         val currentFragment = getCurrentFragment()
@@ -362,7 +354,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
                         }
                     }
                     mediaPlayer?.setOnCompletionListener {
-                        isFinish = true
+                        binding.progressMusic.progress = mediaPlayer!!.duration
                     }
                 }
                 timePlay.postDelayed(this, 1000)

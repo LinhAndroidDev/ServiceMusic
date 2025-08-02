@@ -66,6 +66,10 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             )
         }
 
+        binding.imgRepeat.setImageResource(
+            if ((activity as MainActivity).isRepeat) R.drawable.ic_repeat_one else R.drawable.ic_repeat
+        )
+
         initMusic()
     }
 
@@ -112,11 +116,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                     act.mediaPlayer?.seekTo(progress)
                     setProgressTime(act.mediaPlayer!!.currentPosition)
                     if(progress == binding.progressMusic.max) {
-                        act.dragToEnd = true
+                        act.isFinish = true
                     }
-                }
-                if (act.isFinish) {
-                    act.handlerActionMusic(Action.ACTION_FINISH)
                 }
             }
 
