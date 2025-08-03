@@ -14,7 +14,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.MainActivity
-import com.example.serviceandroid.MusicViewModel
 import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.DialogConfirm
@@ -22,6 +21,7 @@ import com.example.serviceandroid.databinding.FragmentMusicBinding
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
+import com.example.serviceandroid.model.Repeat
 import com.example.serviceandroid.utils.CustomAnimator
 import com.example.serviceandroid.utils.DateUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -30,7 +30,7 @@ import java.text.SimpleDateFormat
 
 @AndroidEntryPoint
 class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
-    private val viewModel by viewModels<MusicViewModel>()
+    private val viewModel by viewModels<FragmentMusicViewModel>()
     private val fadeIn by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.anim_fade_in) }
     private val rotate45 by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.rotation_45) }
     private var isFavourite: Boolean = false
@@ -66,12 +66,32 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             )
         }
 
-        binding.imgRepeat.setImageResource(
-            if ((activity as MainActivity).isRepeat) R.drawable.ic_repeat_one else R.drawable.ic_repeat
-        )
+        val repeat = viewModel.getTypeRepeat()
+        binding.imgRepeat.setImageResource(repeat.value)
 
         initMusic()
     }
+
+    private fun handleRepeat() {
+        val repeat = viewModel.getTypeRepeat()
+        val resourceImageId = when (repeat) {
+            Repeat.NOT_REPEAT -> {
+                viewModel.saveTypeRepeat(Repeat.REPEAT_ALL)
+                R.drawable.ic_repeat_all
+            }
+            Repeat.REPEAT_ALL -> {
+                viewModel.saveTypeRepeat(Repeat.REPEAT_ONE)
+                R.drawable.ic_repeat_one
+            }
+            Repeat.REPEAT_ONE -> {
+                viewModel.saveTypeRepeat(Repeat.NOT_REPEAT)
+                R.drawable.ic_not_repeat
+            }
+        }
+        binding.imgRepeat.setImageResource(resourceImageId)
+    }
+
+
 
     /**
      * Catch Click View Components Event
@@ -102,11 +122,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
 
         binding.imgRepeat.setOnClickListener {
-            val act = activity as MainActivity
-            act.isRepeat = !act.isRepeat
-            binding.imgRepeat.setImageResource(
-                if (act.isRepeat) R.drawable.ic_repeat_one else R.drawable.ic_repeat
-            )
+            handleRepeat()
         }
 
         binding.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {

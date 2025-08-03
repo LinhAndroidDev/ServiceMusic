@@ -12,6 +12,7 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -26,6 +27,7 @@ import com.example.serviceandroid.fragment.music.FragmentMusic
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Action
+import com.example.serviceandroid.model.Repeat
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.service.MusicService
 import com.example.serviceandroid.utils.getCurrentFragment
@@ -41,10 +43,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     private val timePlay = Handler(Looper.getMainLooper())
     override var mediaPlayer: MediaPlayer? = null
     override var isPlaying = false
-    override var isRepeat = false
     override var isFinish = false
     override var indexSong = -1
     var openMusicFromBottomPlay = false
+    private val viewModel by viewModels<MainActivityViewModel>()
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -257,7 +259,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     }
 
     private fun finishMusic() {
-        if (isRepeat) {
+        val repeat = viewModel.getTypeRepeat()
+        if (repeat == Repeat.REPEAT_ONE) {
             mediaPlayer?.isLooping = true
             initOrResetMusic()
         } else {
@@ -289,12 +292,18 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
 
     private fun nextSong() {
         isPlaying = true
+        val repeat = viewModel.getTypeRepeat()
         if (indexSong < Data.listMusic().size - 1) {
             indexSong++
+            initOrResetMusic()
         } else {
-            indexSong = 0
+            if (repeat == Repeat.REPEAT_ALL) {
+                indexSong = 0
+                initOrResetMusic()
+            } else {
+
+            }
         }
-        initOrResetMusic()
     }
 
     private fun pauseMusic() {

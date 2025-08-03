@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/black"
     tools:context=".fragment.music.FragmentMusic">
 
     <ImageView
@@ -203,7 +204,7 @@
                 android:layout_height="25dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:src="@drawable/ic_repeat"
+                android:src="@drawable/ic_repeat_all"
                 app:tint="@color/white" />
         </RelativeLayout>
     </LinearLayout>
