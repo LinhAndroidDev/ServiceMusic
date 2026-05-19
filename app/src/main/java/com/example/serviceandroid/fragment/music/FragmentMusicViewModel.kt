@@ -12,12 +12,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class FragmentMusicViewModel @Inject constructor(private val repository: FavouriteSongRepository) : ViewModel() {
+class FragmentMusicViewModel @Inject constructor(
+    private val repository: FavouriteSongRepository,
+    private val shared: SharePreferenceRepository,
+) : ViewModel() {
     private val _isFavourite: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val isFavourite get() = _isFavourite
-
-    @Inject
-    lateinit var shared: SharePreferenceRepository
 
     fun insertSong(song: Song, timeCreate: String, onCallBackInsertSong: () -> Unit) =
         viewModelScope.launch {

@@ -6,9 +6,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class MainActivityViewModel @Inject constructor() : ViewModel() {
-    @Inject
-    lateinit var shared: SharePreferenceRepository
+class MainActivityViewModel @Inject constructor(
+    private val shared: SharePreferenceRepository,
+) : ViewModel() {
 
     fun getTypeRepeat() = shared.getTypeRepeat()
 }

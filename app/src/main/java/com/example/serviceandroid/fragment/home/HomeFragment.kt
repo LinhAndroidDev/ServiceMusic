@@ -24,7 +24,6 @@ import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentHomeBinding
-import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
@@ -138,7 +137,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
 
     private fun resetMusicInterNational() {
         adapterNational.resetList(
-            songsToHashMap(Data.listMusic().filter {
+            songsToHashMap(viewModel.getPlaylist().filter {
                 it.checkMusicNational(national)
             } as ArrayList<Song>)
         )
@@ -147,7 +146,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     @SuppressLint("NotifyDataSetChanged")
     private fun initNewUpdate() {
         val adapter = PagerNewReleaseAdapter(requireActivity(), type = TypeList.TYPE_NEW_UPDATE)
-        adapter.items = Data.listMusic().take(5) as ArrayList<Song>
+        adapter.items = viewModel.getPlaylist().take(5) as ArrayList<Song>
         binding.rcvNewupdate.adapter = adapter
         adapter.onClickItem = {
             val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(idMusic = it)
@@ -168,7 +167,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
 
     private fun initNewRelease() {
         adapterNational = PagerNationalAdapter(requireActivity(), type = TypeList.TYPE_NATIONAL)
-        adapterNational.pagerSong = songsToHashMap(Data.listMusic())
+        adapterNational.pagerSong = songsToHashMap(viewModel.getPlaylist())
         binding.pagerNewRelease.adapter = adapterNational
         adapterNational.onClickItem = {
             val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(idMusic = it)

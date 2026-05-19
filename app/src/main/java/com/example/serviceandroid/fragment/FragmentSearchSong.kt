@@ -4,11 +4,16 @@ import android.view.LayoutInflater
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.fragment.app.viewModels
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.databinding.FragmentSearchSongBinding
+import dagger.hilt.android.AndroidEntryPoint
 
-@Suppress("DEPRECATION")
+@AndroidEntryPoint
 class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
+
+    @Suppress("unused")
+    private val searchViewModel by viewModels<SearchViewModel>()
 
     override fun getFragmentBinding(inflater: LayoutInflater) =
         FragmentSearchSongBinding.inflate(inflater)

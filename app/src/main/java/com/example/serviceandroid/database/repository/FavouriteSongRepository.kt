@@ -5,11 +5,11 @@ import com.example.serviceandroid.database.dao.FavouriteSongDao
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.utils.DateUtils
 import com.example.serviceandroid.utils.ExtensionFunctions.toSong
-import dagger.hilt.android.scopes.ViewModelScoped
 import java.text.Collator
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
+import javax.inject.Singleton
 
 enum class ArrangeMusic {
     NEWEST,
@@ -18,7 +18,7 @@ enum class ArrangeMusic {
     BY_NAME_SINGLE
 }
 
-@ViewModelScoped
+@Singleton
 class FavouriteSongRepository @Inject constructor(private val dao: FavouriteSongDao) {
     suspend fun getAll(typeArrangement: ArrangeMusic = ArrangeMusic.NEWEST): MutableList<Song>? {
         val dateFormat = SimpleDateFormat(DateUtils.TIME, Locale.getDefault())

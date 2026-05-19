@@ -2,6 +2,7 @@ package com.example.serviceandroid.fragment.radio
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSnapHelper
 import com.example.serviceandroid.R
@@ -11,10 +12,13 @@ import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.ArcLayoutManager
 import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentRadioBinding
-import com.example.serviceandroid.model.Radio
 import com.example.serviceandroid.utils.ExtensionFunctions.setColorTint
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class RadioFragment : BaseFragment<FragmentRadioBinding>() {
+
+    private val viewModel by viewModels<RadioViewModel>()
 
     @SuppressLint("ClickableViewAccessibility", "ResourceAsColor")
     override fun initView() {
@@ -22,10 +26,7 @@ class RadioFragment : BaseFragment<FragmentRadioBinding>() {
         binding.header.title.setTextColor(requireActivity().getColor(R.color.white))
         setColorTint(binding.header.search, R.color.white)
         setColorTint(binding.header.micro, R.color.white)
-        val list = arrayListOf<Radio>()
-        for (i in 0 until 10) {
-            list.add(Radio())
-        }
+        val list = viewModel.getDemoRadioStations()
         val radioAdapter = RadioAdapter()
         radioAdapter.onItemClick = { position ->
             val layoutManager = binding.rcvRadio.layoutManager as LinearLayoutManager

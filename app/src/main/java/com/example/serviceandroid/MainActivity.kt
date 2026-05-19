@@ -1,11 +1,5 @@
 package com.example.serviceandroid
 
-import android.annotation.SuppressLint
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,9 +7,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.viewpager2.widget.ViewPager2
@@ -24,49 +19,46 @@ import com.example.serviceandroid.base.BaseActivity
 import com.example.serviceandroid.custom.ActionBottomBar
 import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.fragment.music.FragmentMusic
-import com.example.serviceandroid.helper.Constants
-import com.example.serviceandroid.helper.Data
-import com.example.serviceandroid.model.Action
-import com.example.serviceandroid.model.Repeat
-import com.example.serviceandroid.model.Song
-import com.example.serviceandroid.service.MusicService
+import com.example.serviceandroid.playback.PlaybackUiState
+import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.getCurrentFragment
 import com.example.serviceandroid.utils.moveTo
 import dagger.hilt.android.AndroidEntryPoint
-
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 @Suppress("DEPRECATION")
-class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
-    private var doubleBackToExitPressedOnce = false
-    private lateinit var mSong: Song
-    private val timePlay = Handler(Looper.getMainLooper())
-    override var mediaPlayer: MediaPlayer? = null
-    override var isPlaying = false
-    override var isFinish = false
-    override var indexSong = -1
-    var openMusicFromBottomPlay = false
-    private val viewModel by viewModels<MainActivityViewModel>()
+class MainActivity : BaseActivity<ActivityMainBinding>() {
 
-    private val broadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            isPlaying = intent.getBooleanExtra(Constants.STATUS_PLAYING, false)
-            handlerActionMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
-            mSong = intent.getParcelableExtra<Song>(Constants.OBJECT_SONG) as Song
-            updateViewBottomPlaySong(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
-        }
-    }
+    private var doubleBackToExitPressedOnce = false
+    private val mainViewModel by viewModels<MainActivityViewModel>()
+    private val playbackViewModel by viewModels<PlaybackViewModel>()
 
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
     }
 
+    override fun onStart() {
+        super.onStart()
+        playbackViewModel.bind(this)
+    }
+
+    override fun onStop() {
+        playbackViewModel.unbind(this)
+        super.onStop()
+    }
+
     override fun initView() {
-        LocalBroadcastManager.getInstance(this)
-            .registerReceiver(broadcastReceiver, IntentFilter(Constants.SEND_DATA_TO_ACTIVITY))
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playbackViewModel.playbackState.collect { state ->
+                    applyPlaybackUi(state)
+                }
+            }
+        }
 
         val adapterInfoSong = InformationSongAdapter()
-        adapterInfoSong.items = Data.listMusic()
+        adapterInfoSong.items = playbackViewModel.getPlaylist()
         adapterInfoSong.onClickView = {
             openMusicFromBottomPlay()
         }
@@ -75,11 +67,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         binding.viewPagerInfoSong.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                if (indexSong != position && indexSong != -1) {
-                    indexSong = position
-                    resetMusic()
-                    val song = Data.listMusic()[indexSong]
-                    playMusic(song)
+                val idx = playbackViewModel.playbackState.value.queueIndex
+                if (idx != position && idx != -1) {
+                    playbackViewModel.playSongAtIndex(this@MainActivity, position)
                 }
             }
         })
@@ -103,7 +93,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
                 }
 
                 else -> {
-                    showBottomPlay()
+                    applyBottomPlayVisibilityForDestination(destination.id)
                     binding.bottomBar.isVisible = true
                 }
             }
@@ -120,19 +110,21 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         }
 
         binding.startMusic.setOnClickListener {
-            clickStartService()
+            playbackViewModel.playFirstSong(this)
         }
 
         binding.play.setOnClickListener {
-            sendActionToService(when {
-                (binding.progressMusic.progress == binding.progressMusic.max && !isPlaying) -> Action.ACTION_START
-                isPlaying -> Action.ACTION_PAUSE
-                else -> Action.ACTION_RESUME
-            })
+            val st = playbackViewModel.playbackState.value
+            playbackViewModel.toggleBottomPlayPause(
+                this,
+                st.positionMs,
+                st.durationMs,
+                st.isPlaying
+            )
         }
 
         binding.close.setOnClickListener {
-            sendActionToService(Action.ACTION_CLEAR)
+            playbackViewModel.clear(this)
         }
 
         binding.bottomPlay.setOnClickListener {
@@ -141,14 +133,14 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
     }
 
     private fun openMusicFromBottomPlay() {
-        openMusicFromBottomPlay = true
+        val song = playbackViewModel.playbackState.value.currentSong ?: return
+        playbackViewModel.setPendingOpenFromMiniPlayer()
         val options = NavOptions.Builder()
             .setEnterAnim(R.anim.slide_up)
             .setExitAnim(R.anim.anim_normal)
             .setPopEnterAnim(R.anim.anim_normal)
             .setPopExitAnim(R.anim.slide_down)
             .build()
-        val song = Data.listMusic()[indexSong]
         val bundle = Bundle().apply {
             putInt("id_music", song.idSong)
         }
@@ -158,223 +150,53 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         navController.navigate(R.id.fragmentMusic, bundle, options)
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun clickStartService() {
-        val intent = Intent(this, MusicService::class.java)
-        val song = Data.listMusic()[0]
-        intent.putExtra(MESSAGE_MAIN, song)
-        ContextCompat.startForegroundService(this, intent)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        timePlay.removeCallbacksAndMessages(null)
-        mediaPlayer?.release()
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver)
-        val intent = Intent(this, MusicService::class.java)
-        stopService(intent)
-    }
-
-    private fun updateViewBottomPlaySong(action: Action) {
-        when (action) {
-            Action.ACTION_START -> {
-                showBottomPlay()
-                showInfoSong()
-                setStatusButtonPlay()
-            }
-
-            Action.ACTION_RESUME -> {
-                setStatusButtonPlay()
-            }
-
-            Action.ACTION_PAUSE -> {
-                setStatusButtonPlay()
-            }
-
-            else -> {
-                binding.bottomPlay.visibility = View.INVISIBLE
-            }
-        }
-    }
-
-    private fun showBottomPlay() {
+    private fun applyPlaybackUi(state: PlaybackUiState) {
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
+        val destId = navController.currentDestination?.id
 
-        val isVisibleBottomPlay = if (navController.currentDestination?.id != R.id.fragmentMusic && mediaPlayer != null) View.VISIBLE else View.INVISIBLE
-        binding.bottomPlay.visibility = isVisibleBottomPlay
-    }
+        if (destId != R.id.fragmentMusic && destId != R.id.splashFragment) {
+            applyBottomPlayVisibilityForDestination(destId ?: 0)
+        }
 
-    @SuppressLint("SetTextI18n")
-    private fun showInfoSong() {
-        binding.avatar.setImageResource(mSong.avatar)
-        binding.viewPagerInfoSong.currentItem = indexSong
-        binding.progressMusic.max = mediaPlayer?.duration ?: 0
-        binding.progressMusic.progress = 0
-    }
+        state.currentSong?.let { song ->
+            binding.avatar.setImageResource(song.avatar)
+        }
 
-    private fun setStatusButtonPlay() {
+        if (state.queueIndex >= 0) {
+            binding.viewPagerInfoSong.setCurrentItem(state.queueIndex, false)
+        }
+
+        binding.progressMusic.max = state.durationMs.coerceAtLeast(0)
+        if (state.durationMs > 0) {
+            binding.progressMusic.progress =
+                state.positionMs.coerceIn(0, state.durationMs)
+        }
         binding.play.setImageResource(
-            if (isPlaying) R.drawable.pause else R.drawable.play
+            if (state.isPlaying) R.drawable.pause else R.drawable.play
         )
-    }
 
-    @SuppressLint("SetTextI18n")
-    internal fun startServiceMusic(song: Song) {
-        val intent = Intent(this, MusicService::class.java)
-        intent.putExtra(MESSAGE_MAIN, song)
-        startService(intent)
-    }
-
-    /**
-     * Send Action To Notification Music
-     */
-    private fun sendActionToService(action: Action) {
-        val intent = Intent(this, MusicService::class.java)
-        intent.putExtra(Constants.RECEIVER_ACTION_MUSIC, action)
-        startService(intent)
-    }
-
-    internal fun handlerActionMusic(action: Action) {
-        when (action) {
-            Action.ACTION_START -> startMusic()
-            Action.ACTION_PAUSE -> pauseMusic()
-            Action.ACTION_RESUME -> startMusic()
-            Action.ACTION_NEXT -> nextSong()
-            Action.ACTION_PREVIOUS -> previousSong()
-            Action.ACTION_FINISH -> finishMusic()
-            Action.ACTION_CLEAR -> clearMusic()
-        }
-    }
-
-    private fun clearMusic() {
-        isPlaying = false
-        mediaPlayer?.stop()
-        mediaPlayer?.reset()
-        mediaPlayer?.release()
-        mediaPlayer = null
-        binding.bottomPlay.visibility = View.GONE
-    }
-
-    private fun finishMusic() {
-        val repeat = viewModel.getTypeRepeat()
-        if (repeat == Repeat.REPEAT_ONE) {
-            mediaPlayer?.isLooping = true
-            initOrResetMusic()
-        } else {
-            mediaPlayer?.isLooping = false
-            handlerActionMusic(Action.ACTION_NEXT)
-        }
-    }
-
-    private fun initOrResetMusic() {
         val currentFragment = getCurrentFragment()
         if (currentFragment is FragmentMusic) {
-            currentFragment.initMusic()
-        } else {
-            resetMusic()
-            val song = Data.listMusic()[indexSong]
-            playMusic(song)
+            currentFragment.onPlaybackStateChanged(state)
         }
     }
 
-    private fun previousSong() {
-        isPlaying = true
-        if (indexSong > 0) {
-            indexSong--
-        } else {
-            indexSong = Data.listMusic().size - 1
-        }
-        initOrResetMusic()
-    }
-
-    private fun nextSong() {
-        isPlaying = true
-        val repeat = viewModel.getTypeRepeat()
-        if (indexSong < Data.listMusic().size - 1) {
-            indexSong++
-            initOrResetMusic()
-        } else {
-            if (repeat == Repeat.REPEAT_ALL) {
-                indexSong = 0
-                initOrResetMusic()
+    private fun applyBottomPlayVisibilityForDestination(destinationId: Int) {
+        val st = playbackViewModel.playbackState.value
+        binding.bottomPlay.visibility =
+            if (destinationId != R.id.fragmentMusic && st.hasActivePlayer) {
+                View.VISIBLE
             } else {
-                cancelNextSongWhenNotRepeat()
+                View.INVISIBLE
             }
-        }
     }
 
-    private fun cancelNextSongWhenNotRepeat() {
-        mediaPlayer?.seekTo(0)
-        val currentFragment = getCurrentFragment()
-        if (currentFragment is FragmentMusic) {
-            currentFragment.updateProgressMusic(0)
-        }
-        binding.progressMusic.progress = 0
-        pauseMusic()
-    }
-
-    private fun pauseMusic() {
-        mediaPlayer?.pause()
-        isPlaying = false
-        val currentFragment = getCurrentFragment()
-        if (currentFragment is FragmentMusic) {
-            currentFragment.pauseMusic()
-        }
-        sendActionToService(Action.ACTION_PAUSE)
-    }
-
-    private fun startMusic() {
-        mediaPlayer?.start()
-        isPlaying = true
-        val currentFragment = getCurrentFragment()
-        if (currentFragment is FragmentMusic) {
-            currentFragment.startMusic()
-        }
-        sendActionToService(Action.ACTION_RESUME)
-    }
-
-    private fun setUpTimer() {
-        timePlay.postDelayed(object : Runnable {
-            override fun run() {
-                if(isFinish) {
-                    isFinish = false
-                    handlerActionMusic(Action.ACTION_FINISH)
-                }
-                if (isPlaying) {
-                    if (binding.progressMusic.progress == mediaPlayer!!.duration) {
-                        isFinish = true
-                    } else {
-                        binding.progressMusic.progress = mediaPlayer!!.currentPosition
-                        val currentFragment = getCurrentFragment()
-                        if (currentFragment is FragmentMusic) {
-                            currentFragment.updateProgressMusic(mediaPlayer!!.currentPosition)
-                        }
-                    }
-                    mediaPlayer?.setOnCompletionListener {
-                        binding.progressMusic.progress = mediaPlayer!!.duration
-                    }
-                }
-                timePlay.postDelayed(this, 1000)
-            }
-        }, 0)
-    }
-
-    internal fun playMusic(song: Song) {
-        startServiceMusic(song)
-        mediaPlayer = MediaPlayer.create(this, song.sing)
-        val currentFragment = getCurrentFragment()
-        if (currentFragment is FragmentMusic) {
-            currentFragment.setMaxProgress(mediaPlayer!!.duration)
-            currentFragment.setTotalTime(mediaPlayer!!)
-        }
-        setUpTimer()
-        handlerActionMusic(Action.ACTION_START)
-    }
-
-    internal fun resetMusic() {
-        mediaPlayer?.reset()
+    override fun onDestroy() {
+        val intent = android.content.Intent(this, com.example.serviceandroid.service.MusicService::class.java)
+        stopService(intent)
+        super.onDestroy()
     }
 
     override fun getActivityBinding(inflater: LayoutInflater) =
@@ -396,11 +218,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
                 this.doubleBackToExitPressedOnce = true
                 Toast.makeText(this, "Nhấn thêm lần nữa để thoát", Toast.LENGTH_SHORT).show()
 
-                // Đặt lại biến doubleBackToExitPressedOnce sau 2 giây
                 Handler(Looper.getMainLooper()).postDelayed({
                     doubleBackToExitPressedOnce = false
                 }, 2000)
             }
+
             R.id.splashFragment -> {}
             else -> super.onBackPressed()
         }

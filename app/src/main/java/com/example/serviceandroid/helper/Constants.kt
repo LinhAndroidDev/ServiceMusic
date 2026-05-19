@@ -1,6 +1,10 @@
 package com.example.serviceandroid.helper
 
 object Constants {
+    /** Same string as legacy [com.example.serviceandroid.MainActivity.MESSAGE_MAIN] for intents. */
+    const val EXTRA_START_SONG = "MESSAGE_MAIN"
+    const val EXTRA_SEEK_POSITION_MS = "EXTRA_SEEK_POSITION_MS"
+
     const val OBJECT_SONG = "OBJECT_SONG"
     const val STATUS_PLAYING = "STATUS_PLAYING"
     const val ACTION_MUSIC = "ACTION_MUSIC"

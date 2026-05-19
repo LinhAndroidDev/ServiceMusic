@@ -10,7 +10,8 @@ import dagger.hilt.android.HiltAndroidApp
 class MyApplication : Application() {
 
     companion object {
-        const val CHANNEL_ID = "CHANNEL_ID"
+        /** New id so importance upgrade applies without clearing app data. */
+        const val CHANNEL_ID = "CHANNEL_MEDIA_PLAYBACK"
     }
 
     override fun onCreate() {
@@ -20,10 +21,11 @@ class MyApplication : Application() {
 
     private fun createChannelNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // IMPORTANCE_MIN can hide or limit media notification actions on some devices/OS versions.
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "channel id",
-                NotificationManager.IMPORTANCE_MIN
+                NotificationManager.IMPORTANCE_LOW
             )
             channel.setSound(null, null)
             getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)

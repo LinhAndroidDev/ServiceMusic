@@ -24,7 +24,6 @@ import com.example.serviceandroid.custom.CustomLineChartRenderer
 import com.example.serviceandroid.custom.CustomXAxisFormatter
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentZingChartBinding
-import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.PositionChart
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.utils.Constant
@@ -84,8 +83,9 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     }
 
     private fun initSongSuggest() {
-        val randomIndex = Random.nextInt(Data.listMusic().size)
-        val randomElement = Data.listMusic()[randomIndex]
+        val playlist = viewModel.getPlaylist()
+        val randomIndex = Random.nextInt(playlist.size)
+        val randomElement = playlist[randomIndex]
         Glide.with(requireActivity())
             .load(randomElement.avatar)
             .into(binding.imgSong)
@@ -99,7 +99,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
 
     private fun initListSongChart() {
         val adapter = PagerNewReleaseAdapter(requireActivity(), type = TypeList.TYPE_NEW_UPDATE)
-        adapter.items = Data.listMusic()
+        adapter.items = viewModel.getPlaylist()
         binding.rcvSongChart.adapter = adapter
         adapter.onClickItem = {
             val action = ZingChartFragmentDirections.actionZingchartFragmentToFragmentMusic(idMusic = it)
@@ -284,7 +284,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         when(positionChart) {
             PositionChart.LineChart1 -> {
                 positionChart = PositionChart.LineChart2
-                bitmap = BitmapFactory.decodeResource(resources, Data.listMusic()[1].avatar)
+                val pl = viewModel.getPlaylist()
+                bitmap = BitmapFactory.decodeResource(resources, pl[1].avatar)
                 binding.chart.renderer = bitmap?.let {
                     CustomLineChartRenderer(
                         requireActivity(),
@@ -301,7 +302,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
 
             PositionChart.LineChart2 -> {
                 positionChart = PositionChart.LineChart3
-                bitmap = BitmapFactory.decodeResource(resources, Data.listMusic()[2].avatar)
+                val pl2 = viewModel.getPlaylist()
+                bitmap = BitmapFactory.decodeResource(resources, pl2[2].avatar)
                 binding.chart.renderer = bitmap?.let {
                     CustomLineChartRenderer(
                         requireActivity(),
@@ -318,7 +320,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
 
             else -> {
                 positionChart = PositionChart.LineChart1
-                bitmap = BitmapFactory.decodeResource(resources, Data.listMusic()[0].avatar)
+                val pl0 = viewModel.getPlaylist()
+                bitmap = BitmapFactory.decodeResource(resources, pl0[0].avatar)
                 binding.chart.renderer = bitmap?.let {
                     CustomLineChartRenderer(
                         requireActivity(),

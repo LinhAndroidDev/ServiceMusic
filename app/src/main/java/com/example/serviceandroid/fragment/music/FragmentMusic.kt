@@ -3,25 +3,27 @@ package com.example.serviceandroid.fragment.music
 import android.annotation.SuppressLint
 import android.graphics.RenderEffect
 import android.graphics.Shader
-import android.media.MediaPlayer
 import android.os.Build
 import android.view.LayoutInflater
 import android.view.animation.AnimationUtils
 import android.widget.SeekBar
 import android.widget.Toast
-import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
-import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentMusicBinding
 import com.example.serviceandroid.helper.Constants
-import com.example.serviceandroid.helper.Data
-import com.example.serviceandroid.model.Action
 import com.example.serviceandroid.model.Repeat
+import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.playback.PlaybackUiState
+import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.CustomAnimator
 import com.example.serviceandroid.utils.DateUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -30,32 +32,35 @@ import java.text.SimpleDateFormat
 
 @AndroidEntryPoint
 class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
+    private val args: FragmentMusicArgs by navArgs()
     private val viewModel by viewModels<FragmentMusicViewModel>()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private val fadeIn by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.anim_fade_in) }
     private val rotate45 by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.rotation_45) }
     private var isFavourite: Boolean = false
+    private var lastRenderedSongId: Int? = null
 
     override fun getFragmentBinding(inflater: LayoutInflater): FragmentMusicBinding {
         return FragmentMusicBinding.inflate(inflater)
     }
 
     override fun initView() {
-        val args: FragmentMusicArgs by navArgs()
         val idSong = if (args.idMusic == 0) {
             arguments?.getInt("id_music") ?: 0
         } else {
             args.idMusic
         }
-        lifecycleScope.launch {
-            viewModel.isFavourite.collect {
-                isFavourite = it
-                val resourceImageId = if (it) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin
-                binding.imgFavourite.setImageResource(resourceImageId)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.isFavourite.collect {
+                    isFavourite = it
+                    val resourceImageId = if (it) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin
+                    binding.imgFavourite.setImageResource(resourceImageId)
+                }
             }
         }
-        Data.listMusic().filter { it.idSong == idSong }.forEach {
-            (activity as MainActivity).indexSong = Data.listMusic().indexOf(it)
-        }
+
         CustomAnimator.rotationImage(binding.imgSong)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -69,7 +74,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         val repeat = viewModel.getTypeRepeat()
         binding.imgRepeat.setImageResource(repeat.value)
 
-        initMusic()
+        initMusic(idSong)
     }
 
     private fun handleRepeat() {
@@ -91,31 +96,24 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         binding.imgRepeat.setImageResource(resourceImageId)
     }
 
-
-
-    /**
-     * Catch Click View Components Event
-     */
     override fun onClickView() {
         binding.backMusic.setOnClickListener {
             activity?.onBackPressed()
         }
         binding.imgNext.setOnClickListener {
-            (activity as MainActivity).handlerActionMusic(Action.ACTION_NEXT)
+            playbackViewModel.next(requireContext())
         }
         binding.imgPrevious.setOnClickListener {
-            (activity as MainActivity).handlerActionMusic(Action.ACTION_PREVIOUS)
+            playbackViewModel.previous(requireContext())
         }
 
         binding.imgPlay.setOnClickListener {
             CustomAnimator.endAnimation(rotate45) {
-                val act = activity as MainActivity
-                act.isPlaying = if (!act.isPlaying) {
-                    act.handlerActionMusic(Action.ACTION_START)
-                    true
+                val st = playbackViewModel.playbackState.value
+                if (!st.isPlaying) {
+                    playbackViewModel.resume(requireContext())
                 } else {
-                    act.handlerActionMusic(Action.ACTION_PAUSE)
-                    false
+                    playbackViewModel.pause(requireContext())
                 }
             }
             binding.imgPlay.startAnimation(rotate45)
@@ -127,28 +125,23 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
 
         binding.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, progress: Int, fromUser: Boolean) {
-                val act = activity as MainActivity
                 if (fromUser) {
-                    act.mediaPlayer?.seekTo(progress)
-                    setProgressTime(act.mediaPlayer!!.currentPosition)
-                    if(progress == binding.progressMusic.max) {
-                        act.isFinish = true
-                    }
+                    playbackViewModel.seekTo(requireContext(), progress)
+                    setProgressTime(progress)
                 }
             }
 
             override fun onStartTrackingTouch(p0: SeekBar?) {}
 
             override fun onStopTrackingTouch(p0: SeekBar?) {}
-
         })
 
         binding.imgFavourite.setOnClickListener {
+            val song = playbackViewModel.playbackState.value.currentSong ?: return@setOnClickListener
             if (!isFavourite) {
                 isFavourite = true
-                val mSong = Data.listMusic()[(activity as MainActivity).indexSong]
-                viewModel.insertSong(mSong, DateUtils.getTimeCurrent()) {
-                    viewModel.checkSongById(mSong.idSong)
+                viewModel.insertSong(song, DateUtils.getTimeCurrent()) {
+                    viewModel.checkSongById(song.idSong)
                     Toast.makeText(
                         requireActivity(),
                         "Đã thêm vào bài hát yêu thích",
@@ -157,9 +150,9 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                 }
             } else {
                 DialogConfirm().apply {
-                    title = Data.listMusic()[(activity as MainActivity).indexSong].title
+                    title = song.title
                     onClickRemove = {
-                        viewModel.deleteSongById(Data.listMusic()[(activity as MainActivity).indexSong].idSong) {
+                        viewModel.deleteSongById(song.idSong) {
                             Toast.makeText(
                                 requireActivity(),
                                 "Đã xoá khỏi bài hát yêu thích",
@@ -173,16 +166,26 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
     }
 
-    fun initMusic() {
+    private fun initMusic(idSong: Int) {
         resetFavourite()
-        val song = Data.listMusic()[(activity as MainActivity).indexSong]
-        val act = activity as MainActivity
-        if (act.openMusicFromBottomPlay) {
-            setUpMusicWhenPlayed()
-        } else {
-            act.resetMusic()
-            act.playMusic(song)
+        val resolvedIndex = playbackViewModel.resolveQueueIndexForSongId(idSong)
+        val song = playbackViewModel.getPlaylist()[resolvedIndex]
+        val fromMini = playbackViewModel.consumePendingOpenFromMiniPlayer()
+        val st = playbackViewModel.playbackState.value
+        val keepPlaying = fromMini &&
+            st.queueIndex == resolvedIndex &&
+            st.hasActivePlayer
+
+        if (!keepPlaying) {
+            playbackViewModel.playSongAtIndex(requireContext(), resolvedIndex)
         }
+
+        bindSongMetadata(song)
+        viewModel.checkSongById(song.idSong)
+    }
+
+    private fun bindSongMetadata(song: Song) {
+        lastRenderedSongId = song.idSong
         Glide.with(this)
             .load(song.avatar)
             .error(R.drawable.ic_circle)
@@ -192,24 +195,32 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         binding.imgSong.startAnimation(fadeIn)
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
-        viewModel.checkSongById(Data.listMusic()[(activity as MainActivity).indexSong].idSong)
+        val st = playbackViewModel.playbackState.value
+        val duration = st.durationMs
+        if (duration > 0) {
+            setMaxProgress(duration)
+            setTotalTimeFromDuration(duration)
+            val pos = st.positionMs.coerceIn(0, duration)
+            binding.progressMusic.progress = pos
+            setProgressTime(pos)
+        }
+        if (st.isPlaying) startMusic() else pauseMusic()
     }
 
-    /**
-     * Handler when click from bottom play in screen home
-     */
-    private fun setUpMusicWhenPlayed() {
-        val act = activity as MainActivity
-        act.openMusicFromBottomPlay = false
-        if (act.isPlaying) startMusic() else pauseMusic()
-        setMaxProgress(act.mediaPlayer?.duration ?: 0)
-        updateProgressMusic(act.mediaPlayer?.currentPosition ?: 0)
-        act.mediaPlayer?.let { setTotalTime(it) }
-    }
-
-    internal fun updateProgressMusic(currentPosition: Int) {
-        binding.progressMusic.progress = currentPosition
-        setProgressTime(currentPosition)
+    fun onPlaybackStateChanged(state: PlaybackUiState) {
+        val song = state.currentSong ?: return
+        if (song.idSong != lastRenderedSongId) {
+            bindSongMetadata(song)
+            viewModel.checkSongById(song.idSong)
+        }
+        if (state.durationMs > 0) {
+            binding.progressMusic.max = state.durationMs
+            binding.progressMusic.progress =
+                state.positionMs.coerceIn(0, state.durationMs)
+            setProgressTime(state.positionMs)
+            setTotalTimeFromDuration(state.durationMs)
+        }
+        if (state.isPlaying) startMusic() else pauseMusic()
     }
 
     @SuppressLint("SimpleDateFormat")
@@ -218,22 +229,21 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     @SuppressLint("SimpleDateFormat")
-    internal fun setTotalTime(mediaPlayer: MediaPlayer) {
-        binding.tvTotalTime.text = SimpleDateFormat(Constants.MINUTES).format(mediaPlayer.duration)
+    private fun setTotalTimeFromDuration(durationMs: Int) {
+        binding.tvTotalTime.text = SimpleDateFormat(Constants.MINUTES).format(durationMs)
     }
 
-    internal fun setMaxProgress(duration: Int) {
+    private fun setMaxProgress(duration: Int) {
         binding.progressMusic.apply {
             max = duration
-            progress = 0
         }
     }
 
-    internal fun startMusic() {
+    private fun startMusic() {
         binding.imgPlay.setImageResource(R.drawable.ic_pause_music)
     }
 
-    internal fun pauseMusic() {
+    private fun pauseMusic() {
         binding.imgPlay.setImageResource(R.drawable.ic_play_music)
     }
 
