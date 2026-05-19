@@ -53,7 +53,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
             isPlaying = intent.getBooleanExtra(Constants.STATUS_PLAYING, false)
             handlerActionMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
             mSong = intent.getParcelableExtra<Song>(Constants.OBJECT_SONG) as Song
-            handleLayoutMusic(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
+            updateViewBottomPlaySong(intent.getSerializableExtra(Constants.ACTION_MUSIC) as Action)
         }
     }
 
@@ -175,7 +175,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         stopService(intent)
     }
 
-    private fun handleLayoutMusic(action: Action) {
+    private fun updateViewBottomPlaySong(action: Action) {
         when (action) {
             Action.ACTION_START -> {
                 showBottomPlay()
@@ -202,7 +202,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
 
-        val isVisibleBottomPlay = if (navController.currentDestination?.id != R.id.fragmentMusic && indexSong != -1) View.VISIBLE else View.INVISIBLE
+        val isVisibleBottomPlay = if (navController.currentDestination?.id != R.id.fragmentMusic && mediaPlayer != null) View.VISIBLE else View.INVISIBLE
         binding.bottomPlay.visibility = isVisibleBottomPlay
     }
 
@@ -255,7 +255,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
         mediaPlayer?.release()
         mediaPlayer = null
         binding.bottomPlay.visibility = View.GONE
-        binding.bottomBar.isVisible = true
     }
 
     private fun finishMusic() {
@@ -301,9 +300,19 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), PlayCallback {
                 indexSong = 0
                 initOrResetMusic()
             } else {
-
+                cancelNextSongWhenNotRepeat()
             }
         }
+    }
+
+    private fun cancelNextSongWhenNotRepeat() {
+        mediaPlayer?.seekTo(0)
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is FragmentMusic) {
+            currentFragment.updateProgressMusic(0)
+        }
+        binding.progressMusic.progress = 0
+        pauseMusic()
     }
 
     private fun pauseMusic() {

@@ -20,11 +20,11 @@ object Data {
             Song(12, "Yêu lại từ đầu", "Khắc Việt", R.drawable.yeu_lai_tu_dau, R.raw.yeu_lai_tu_dau, 207, 0),
             Song(13, "Đếm ngày xa em", "Only C, Lou Hoàng", R.drawable.dem_ngay_xa_em, R.raw.dem_ngay_xa_em, 264, 0),
             Song(14, "Reality", "Janieck Devy", R.drawable.reality, R.raw.reality, 159, 1),
-            Song(14, "Shape of You", "Ed Sheeran", R.drawable.shape_of_you, R.raw.shape_of_you, 263, 1),
-            Song(15, "Tệ Thật, Anh Nhớ Em", "Orange", R.drawable.te_that_anh_nho_em, R.raw.te_that_anh_nho_em, 325, 0),
-            Song(16, "Yêu em dại khờ", "Lou Hoàng", R.drawable.yeu_em_dai_kho, R.raw.yeu_em_dai_kho, 325, 0),
-            Song(17, "Bông Hoa Đẹp Nhất", "Quân A.P", R.drawable.bong_hoa_dep_nhat, R.raw.bong_hoa_dep_nhat, 315, 0),
-            Song(18, "Haru Haru", "BIGBANG", R.drawable.haru_haru, R.raw.haru_haru, 256, 1),
+            Song(15, "Shape of You", "Ed Sheeran", R.drawable.shape_of_you, R.raw.shape_of_you, 263, 1),
+            Song(16, "Tệ Thật, Anh Nhớ Em", "Orange", R.drawable.te_that_anh_nho_em, R.raw.te_that_anh_nho_em, 325, 0),
+            Song(17, "Yêu em dại khờ", "Lou Hoàng", R.drawable.yeu_em_dai_kho, R.raw.yeu_em_dai_kho, 325, 0),
+            Song(18, "Bông Hoa Đẹp Nhất", "Quân A.P", R.drawable.bong_hoa_dep_nhat, R.raw.bong_hoa_dep_nhat, 315, 0),
+            Song(19, "Haru Haru", "BIGBANG", R.drawable.haru_haru, R.raw.haru_haru, 256, 1),
         )
     }
 }
