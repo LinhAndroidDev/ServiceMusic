@@ -1,8 +1,10 @@
 package com.example.serviceandroid.fragment.library
 
 import android.view.LayoutInflater
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.NavHostFragment
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.LibraryAdapter
@@ -15,7 +17,7 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
-    private val viewModel by viewModels<FragmentFavouriteSongViewModel>()
+    private val viewModel by activityViewModels<FragmentFavouriteSongViewModel>()
 
     override fun initView() {
         binding.header.title.text = "Thư viện"
@@ -27,37 +29,32 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
     }
 
     private fun initLibrary() {
-        lifecycleScope.launch {
-            viewModel.getAll()
-            viewModel.songs.collect { songs ->
-                var numberSong = 0
-                songs?.let {
-                    numberSong = it.size
-                }
-                val librarys = arrayListOf(
-                    Library(R.drawable.favourite, "Bài hát yêu thích", numberSong, R.color.bg_blue),
-                    Library(R.drawable.ic_download, "Đã tải", 0, R.color.bg_purple),
-                    Library(R.drawable.ic_artist, "Nghệ sĩ", 0, R.color.bg_orange),
-                    Library(R.drawable.ic_upload, "Upload", 0, R.color.yellow_dark),
-                    Library(R.drawable.ic_mv, "MV", 0, R.color.bg_purple),
-                )
-                val libraryAdapter = LibraryAdapter(requireActivity())
-                libraryAdapter.items = librarys
-                libraryAdapter.onClickItem = {
-                    if(it == 0) {
-                        val navHostFragment =
-                            requireActivity().supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
-                        val navController = navHostFragment.navController
-                        navController.navigate(R.id.favouriteSongFragment)
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.favouriteCount.collect { numberSong ->
+                    val librarys = arrayListOf(
+                        Library(R.drawable.favourite, "Bài hát yêu thích", numberSong, R.color.bg_blue),
+                        Library(R.drawable.ic_download, "Đã tải", 0, R.color.bg_purple),
+                        Library(R.drawable.ic_artist, "Nghệ sĩ", 0, R.color.bg_orange),
+                        Library(R.drawable.ic_upload, "Upload", 0, R.color.yellow_dark),
+                        Library(R.drawable.ic_mv, "MV", 0, R.color.bg_purple),
+                    )
+                    val libraryAdapter = LibraryAdapter(requireActivity())
+                    libraryAdapter.items = librarys
+                    libraryAdapter.onClickItem = {
+                        if (it == 0) {
+                            val navHostFragment =
+                                requireActivity().supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
+                            val navController = navHostFragment.navController
+                            navController.navigate(R.id.favouriteSongFragment)
+                        }
                     }
+                    binding.rcvLibrary.adapter = libraryAdapter
                 }
-                binding.rcvLibrary.adapter = libraryAdapter
             }
         }
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater)
-    = FragmentLibraryBinding.inflate(inflater)
-
+        = FragmentLibraryBinding.inflate(inflater)
 }
-

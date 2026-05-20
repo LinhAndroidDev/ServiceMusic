@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.core.view.isVisible
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
@@ -26,7 +26,7 @@ import kotlinx.coroutines.withContext
 @Suppress("DEPRECATION")
 @AndroidEntryPoint
 class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
-    private val viewModel: FragmentFavouriteSongViewModel by viewModels()
+    private val viewModel: FragmentFavouriteSongViewModel by activityViewModels()
     private lateinit var adapterFavouriteSong: PagerNewReleaseAdapter
 
     override fun initView() {
@@ -35,7 +35,7 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
     }
 
     private fun resetTextTypeArrange() {
-        viewModel.shared.getTypeArrangement().let { type ->
+        viewModel.getTypeArrangement().let { type ->
             when(type) {
                 ArrangeMusic.NEWEST -> {
                     binding.tvTypeArrange.text = "Mới nhất"
@@ -68,7 +68,7 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
         binding.arrangement.setOnClickListener {
             val bottomSheet = BottomSheetSongArrangement()
             bottomSheet.onClickChangeState = {
-                viewModel.getAll()
+                viewModel.applyCurrentArrangement()
                 resetTextTypeArrange()
             }
             bottomSheet.show(parentFragmentManager, bottomSheet.tag)
@@ -113,7 +113,6 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
             }
         }
 
-        viewModel.getAll()
         lifecycleScope.launch {
             viewModel.songs.collect { songs ->
                 songs?.let {

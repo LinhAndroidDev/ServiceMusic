@@ -1,5 +1,6 @@
 package com.example.serviceandroid
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +18,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.example.serviceandroid.adapter.InformationSongAdapter
 import com.example.serviceandroid.base.BaseActivity
 import com.example.serviceandroid.custom.ActionBottomBar
+import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.fragment.music.FragmentMusic
 import com.example.serviceandroid.playback.PlaybackUiState
@@ -50,8 +52,15 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     override fun initView() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                playbackViewModel.playbackState.collect { state ->
-                    applyPlaybackUi(state)
+                launch {
+                    playbackViewModel.playbackState.collect { state ->
+                        applyPlaybackUi(state)
+                    }
+                }
+                launch {
+                    playbackViewModel.miniPlayerIsFavourite.collect { favourite ->
+                        applyMiniPlayerFavouriteIcon(favourite)
+                    }
                 }
             }
         }
@@ -131,7 +140,33 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
 
         binding.favourite.setOnClickListener {
-
+            val song = playbackViewModel.playbackState.value.currentSong ?: return@setOnClickListener
+            if (playbackViewModel.miniPlayerIsFavourite.value) {
+                DialogConfirm().apply {
+                    title = song.title
+                    onClickRemove = {
+                        playbackViewModel.toggleCurrentSongFavourite(song) { stillFavourite ->
+                            if (!stillFavourite) {
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    this@MainActivity.getString(R.string.toast_removed_favourite),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                }.show(supportFragmentManager, null)
+            } else {
+                playbackViewModel.toggleCurrentSongFavourite(song) { added ->
+                    if (added) {
+                        Toast.makeText(
+                            this,
+                            getString(R.string.toast_added_favourite),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
         }
     }
 
@@ -181,6 +216,18 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         )
 
         (getCurrentFragment() as? FragmentMusic)?.onPlaybackStateChanged(state)
+    }
+
+    private fun applyMiniPlayerFavouriteIcon(favourite: Boolean) {
+        if (favourite) {
+            binding.favourite.setImageResource(R.drawable.ic_favourite_fill)
+            binding.favourite.imageTintList =
+                ColorStateList.valueOf(getColor(R.color.red))
+        } else {
+            binding.favourite.setImageResource(R.drawable.ic_favourite_thin)
+            binding.favourite.imageTintList =
+                ColorStateList.valueOf(getColor(R.color.white))
+        }
     }
 
     private fun applyBottomPlayVisibilityForDestination(destinationId: Int) {

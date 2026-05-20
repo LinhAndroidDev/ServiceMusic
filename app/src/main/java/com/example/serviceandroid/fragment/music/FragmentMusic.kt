@@ -1,6 +1,7 @@
 package com.example.serviceandroid.fragment.music
 
 import android.annotation.SuppressLint
+import android.content.res.ColorStateList
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
@@ -55,8 +56,15 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.isFavourite.collect {
                     isFavourite = it
-                    val resourceImageId = if (it) R.drawable.ic_favourite_fill else R.drawable.ic_favourite_thin
-                    binding.imgFavourite.setImageResource(resourceImageId)
+                    if (it) {
+                        binding.imgFavourite.setImageResource(R.drawable.ic_favourite_fill)
+                        binding.imgFavourite.imageTintList =
+                            ColorStateList.valueOf(requireContext().getColor(R.color.red))
+                    } else {
+                        binding.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
+                        binding.imgFavourite.imageTintList =
+                            ColorStateList.valueOf(requireContext().getColor(R.color.white))
+                    }
                 }
             }
         }
@@ -140,12 +148,12 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         binding.imgFavourite.setOnClickListener {
             val song = playbackViewModel.playbackState.value.currentSong ?: return@setOnClickListener
             if (!isFavourite) {
-                isFavourite = true
                 viewModel.insertSong(song, DateUtils.getTimeCurrent()) {
-                    viewModel.checkSongById(song.idSong)
+                    if (!isAdded) return@insertSong
+                    playbackViewModel.refreshMiniPlayerFavouriteForCurrentSong()
                     Toast.makeText(
-                        requireActivity(),
-                        "Đã thêm vào bài hát yêu thích",
+                        requireContext(),
+                        getString(R.string.toast_added_favourite),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -154,12 +162,13 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                     title = song.title
                     onClickRemove = {
                         viewModel.deleteSongById(song.idSong) {
+                            if (!this@FragmentMusic.isAdded) return@deleteSongById
+                            playbackViewModel.refreshMiniPlayerFavouriteForCurrentSong()
                             Toast.makeText(
-                                requireActivity(),
-                                "Đã xoá khỏi bài hát yêu thích",
+                                this@FragmentMusic.requireContext(),
+                                this@FragmentMusic.getString(R.string.toast_removed_favourite),
                                 Toast.LENGTH_SHORT
                             ).show()
-                            isFavourite = false
                         }
                     }
                 }.show(parentFragmentManager, "")
@@ -251,5 +260,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private fun resetFavourite() {
         isFavourite = false
         binding.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
+        binding.imgFavourite.imageTintList =
+            ColorStateList.valueOf(requireContext().getColor(R.color.white))
     }
 }

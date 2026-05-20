@@ -22,11 +22,13 @@ class FragmentMusicViewModel @Inject constructor(
     fun insertSong(song: Song, timeCreate: String, onCallBackInsertSong: () -> Unit) =
         viewModelScope.launch {
             repository.insertSong(song, timeCreate)
+            _isFavourite.value = repository.checkSongById(song.idSong)
             onCallBackInsertSong.invoke()
         }
 
     fun deleteSongById(id: Int, onCallBackDeleteSong: () -> Unit) = viewModelScope.launch {
         repository.deleteSongById(id)
+        _isFavourite.value = repository.checkSongById(id)
         onCallBackDeleteSong.invoke()
     }
 
