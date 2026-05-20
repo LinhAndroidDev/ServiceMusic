@@ -31,7 +31,6 @@ import kotlinx.coroutines.launch
 class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     private var doubleBackToExitPressedOnce = false
-    private val mainViewModel by viewModels<MainActivityViewModel>()
     private val playbackViewModel by viewModels<PlaybackViewModel>()
 
     companion object {
@@ -130,6 +129,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         binding.bottomPlay.setOnClickListener {
             openMusicFromBottomPlay()
         }
+
+        binding.favourite.setOnClickListener {
+
+        }
     }
 
     private fun openMusicFromBottomPlay() {
@@ -177,10 +180,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             if (state.isPlaying) R.drawable.pause else R.drawable.play
         )
 
-        val currentFragment = getCurrentFragment()
-        if (currentFragment is FragmentMusic) {
-            currentFragment.onPlaybackStateChanged(state)
-        }
+        (getCurrentFragment() as? FragmentMusic)?.onPlaybackStateChanged(state)
     }
 
     private fun applyBottomPlayVisibilityForDestination(destinationId: Int) {
@@ -194,8 +194,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     override fun onDestroy() {
-        val intent = android.content.Intent(this, com.example.serviceandroid.service.MusicService::class.java)
-        stopService(intent)
+        if (isFinishing && !isChangingConfigurations) {
+            val intent = android.content.Intent(this, com.example.serviceandroid.service.MusicService::class.java)
+            stopService(intent)
+        }
         super.onDestroy()
     }
 

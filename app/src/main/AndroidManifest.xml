@@ -5,8 +5,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
@@ -35,15 +33,6 @@
             android:name=".service.MusicService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
-
-        <!-- Explicit broadcasts from notification PendingIntents are delivered by the system; exported must be true. -->
-        <receiver
-            android:name=".broadcast.MyReceiver"
-            android:exported="true" />
-
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_maps_key" />
     </application>
 
 </manifest>

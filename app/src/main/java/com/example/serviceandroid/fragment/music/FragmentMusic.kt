@@ -94,6 +94,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             }
         }
         binding.imgRepeat.setImageResource(resourceImageId)
+        playbackViewModel.syncRepeatMode(requireContext())
     }
 
     override fun onClickView() {

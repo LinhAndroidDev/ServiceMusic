@@ -49,6 +49,7 @@ class MusicService : Service() {
 
     private val tickRunnable = object : Runnable {
         override fun run() {
+            if (!tickPosted) return
             val mp = mediaPlayer
             if (mp != null && mp.duration > 0) {
                 val pos = mp.currentPosition
@@ -65,7 +66,9 @@ class MusicService : Service() {
                     refreshNotification()
                 }
             }
-            handler.postDelayed(this, 1000L)
+            if (tickPosted) {
+                handler.postDelayed(this, 1000L)
+            }
         }
     }
 
@@ -96,6 +99,7 @@ class MusicService : Service() {
         fun previous() = previousInternal()
         fun clear() = clearInternal()
         fun seekTo(positionMs: Int) = seekToInternal(positionMs)
+        fun syncRepeatFromPrefs() = applyRepeatFromPrefs()
     }
 
     private fun ensureMediaSession(): MediaSessionCompat {
@@ -161,7 +165,8 @@ class MusicService : Service() {
             Action.ACTION_PREVIOUS -> previousInternal()
             Action.ACTION_CLEAR -> clearInternal()
             Action.ACTION_START -> resumeInternal()
-            else -> { /* no-op */ }
+            Action.ACTION_SYNC_REPEAT -> applyRepeatFromPrefs()
+            Action.ACTION_FINISH -> { /* reserved */ }
         }
     }
 
@@ -174,6 +179,11 @@ class MusicService : Service() {
     private fun stopProgressTicker() {
         tickPosted = false
         handler.removeCallbacks(tickRunnable)
+    }
+
+    private fun applyRepeatFromPrefs() {
+        mediaPlayer?.isLooping = prefs.getTypeRepeat() == Repeat.REPEAT_ONE
+        refreshNotification()
     }
 
     fun playSongInternal(song: Song) {
@@ -227,6 +237,7 @@ class MusicService : Service() {
         mediaPlayer?.pause()
         playbackStateHolder.update { it.copy(isPlaying = false) }
         updateMediaSessionPlaybackState()
+        stopProgressTicker()
         mediaPlayer?.let { refreshNotification() }
     }
 

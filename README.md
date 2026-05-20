@@ -95,8 +95,9 @@ UI (MainActivity / FragmentMusic)
 | `helper/` | `Constants`, `Data`, `MyApplication` |
 | `model/` | `Song`, `Action`, `Repeat`, … |
 | `adapter/` | RecyclerView / ViewPager adapters |
-| `utils/` | Tiện ích, SharedPreferences abstraction |
-| `broadcast/` | `MyReceiver` (có thể dùng cho luồng legacy; điều khiển media chính qua intent tới `MusicService`) |
+| `utils/` | Tiện ích, SharedPreferences abstraction, `getCurrentFragment()` |
+
+> Điều khiển media trên notification dùng **PendingIntent.getForegroundService** trực tiếp tới `MusicService` (không qua `BroadcastReceiver`).
 
 ---
 
@@ -118,13 +119,7 @@ Trong [`AndroidManifest.xml`](app/src/main/AndroidManifest.xml) gồm (không đ
 
 - `POST_NOTIFICATIONS` — Android 13+
 - `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_MEDIA_PLAYBACK`
-- `INTERNET`, vị trí (nếu dùng Maps), v.v.
-
----
-
-## Cấu hình bổ sung
-
-- **Google Maps:** `meta-data` `com.google.android.geo.API_KEY` trỏ tới string resource (đặt key trong `res/values` hoặc biến môi trường build phù hợp team — **không commit key production** lên repo công khai).
+- `INTERNET`, v.v.
 
 ---
 

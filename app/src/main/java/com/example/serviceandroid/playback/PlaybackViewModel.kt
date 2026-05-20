@@ -55,6 +55,8 @@ class PlaybackViewModel @Inject constructor(
 
     fun seekTo(context: Context, positionMs: Int) = connector.seekTo(context, positionMs)
 
+    fun syncRepeatMode(context: Context) = connector.syncRepeatMode(context)
+
     /**
      * Bottom mini-player play button: matches legacy MainActivity logic.
      */

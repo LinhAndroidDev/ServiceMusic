@@ -64,7 +64,8 @@
                     android:layout_height="30dp"
                     android:layout_marginStart="5dp"
                     android:importantForAccessibility="no"
-                    android:src="@drawable/favourite" />
+                    android:src="@drawable/ic_favourite_thin"
+                    app:tint="@color/white" />
 
                 <ImageView
                     android:id="@+id/play"

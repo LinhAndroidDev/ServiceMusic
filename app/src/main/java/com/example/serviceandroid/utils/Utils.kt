@@ -7,10 +7,10 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.example.serviceandroid.R
 
-fun FragmentActivity.getCurrentFragment(): Fragment {
+fun FragmentActivity.getCurrentFragment(): Fragment? {
     val navHostFragment = supportFragmentManager.findFragmentById(R.id.navHostFragment) as? NavHostFragment
     return navHostFragment?.childFragmentManager?.primaryNavigationFragment
-        ?: supportFragmentManager.findFragmentById(R.id.navHostFragment) ?: Fragment()
+        ?: supportFragmentManager.findFragmentById(R.id.navHostFragment)
 }
 
 fun NavController.moveTo(fragmentId: Int) {

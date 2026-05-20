@@ -103,4 +103,8 @@ class MusicServiceConnector @Inject constructor() {
     fun seekTo(context: Context, positionMs: Int) {
         musicBinder?.seekTo(positionMs) ?: dispatchSeek(context, positionMs)
     }
+
+    fun syncRepeatMode(context: Context) {
+        musicBinder?.syncRepeatFromPrefs() ?: dispatchAction(context, Action.ACTION_SYNC_REPEAT)
+    }
 }
