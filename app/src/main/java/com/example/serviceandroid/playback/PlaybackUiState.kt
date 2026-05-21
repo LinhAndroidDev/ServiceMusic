@@ -12,6 +12,8 @@ data class PlaybackUiState(
     val positionMs: Int = 0,
     val durationMs: Int = 0,
     val hasActivePlayer: Boolean = false,
+    /** Bumped on each explicit seek so UI can bypass progress throttling. */
+    val seekSequence: Long = 0L,
 ) {
     companion object {
         fun idle() = PlaybackUiState()

@@ -40,6 +40,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
@@ -65,6 +66,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private var lastDurationLabelMs: Int = -1
     /** Last anchor used for lyric list scroll (activeLine - 1); avoids restarting identical smooth scrolls. */
     private var lastLyricsScrollAnchor: Int = Int.MIN_VALUE
+    /** When [PlaybackUiState.seekSequence] changes, SeekBar throttling is bypassed so bars jump to seek target. */
+    private var lastPlaybackSeekSequence: Long = -1L
     private var pendingInitSongId: Int? = null
 
     private val playerPagerCallback = object : ViewPager2.OnPageChangeCallback() {
@@ -262,6 +265,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         lastSeekUiSyncedMs = Int.MIN_VALUE
         lastDurationLabelMs = -1
         lastLyricsScrollAnchor = Int.MIN_VALUE
+        lastPlaybackSeekSequence = -1L
         Glide.with(this)
             .load(song.avatar)
             .error(R.drawable.ic_circle)
@@ -288,13 +292,27 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     private fun ensureLineLyricsAdapter(): LineLyricsAdapter {
-        lineLyricsAdapter?.let { return it }
+        lineLyricsAdapter?.let { existing ->
+            existing.onLineClickListener = { line -> seekPlaybackToLyricLine(line) }
+            return existing
+        }
         val adapter = LineLyricsAdapter(
             requireContext().getColor(R.color.text_white),
             requireContext().getColor(R.color.lyric_line_active),
         )
+        adapter.onLineClickListener = { line -> seekPlaybackToLyricLine(line) }
         lineLyricsAdapter = adapter
         return adapter
+    }
+
+    /** Seek to the timestamp of this lyric line (ms from [TimedLyricLine.startSec]). */
+    private fun seekPlaybackToLyricLine(line: TimedLyricLine) {
+        val st = playbackViewModel.playbackState.value
+        if (!st.hasActivePlayer) return
+        val ms = (line.startSec * 1000.0).roundToInt().coerceAtLeast(0)
+        val dur = st.durationMs
+        val clamped = if (dur > 0) ms.coerceIn(0, dur) else ms
+        playbackViewModel.seekTo(requireContext(), clamped)
     }
 
     private fun activeLineIndexAt(lines: List<TimedLyricLine>, positionSec: Double): Int {
@@ -388,6 +406,10 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     fun onPlaybackStateChanged(state: PlaybackUiState) {
+        if (state.seekSequence != lastPlaybackSeekSequence) {
+            lastPlaybackSeekSequence = state.seekSequence
+            lastSeekUiSyncedMs = Int.MIN_VALUE
+        }
         val song = state.currentSong ?: return
         if (song.idSong != lastRenderedSongId) {
             bindSongMetadata(song)
@@ -453,6 +475,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     override fun onDestroyView() {
+        lineLyricsAdapter?.onLineClickListener = null
         binding.playerPager.unregisterOnPageChangeCallback(playerPagerCallback)
         super.onDestroyView()
     }

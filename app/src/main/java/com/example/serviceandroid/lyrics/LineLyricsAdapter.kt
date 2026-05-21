@@ -7,6 +7,7 @@ import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.PathInterpolator
@@ -18,6 +19,9 @@ class LineLyricsAdapter(
     private var defaultColor: Int,
     private var activeColor: Int,
 ) : RecyclerView.Adapter<LineLyricsAdapter.VH>() {
+
+    /** Set from the host (e.g. [FragmentMusic]); cleared on destroy to avoid leaking the host. */
+    var onLineClickListener: ((TimedLyricLine) -> Unit)? = null
 
     private val lines = mutableListOf<TimedLyricLine>()
     private var selectedIndex: Int = -1
@@ -33,7 +37,13 @@ class LineLyricsAdapter(
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        holder.bind(lines[position], position == selectedIndex, defaultColor, activeColor)
+        holder.bind(
+            lines[position],
+            position == selectedIndex,
+            defaultColor,
+            activeColor,
+            onLineClickListener,
+        )
     }
 
     override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
@@ -92,7 +102,13 @@ class LineLyricsAdapter(
             tv.scaleY = IDLE_SCALE
         }
 
-        fun bind(line: TimedLyricLine, selected: Boolean, defaultColor: Int, activeColor: Int) {
+        fun bind(
+            line: TimedLyricLine,
+            selected: Boolean,
+            defaultColor: Int,
+            activeColor: Int,
+            onLineClick: ((TimedLyricLine) -> Unit)?,
+        ) {
             tv.animate().cancel()
             cancelColorAnimator(tv)
             tv.text = line.text
@@ -104,6 +120,10 @@ class LineLyricsAdapter(
             }
             applyHighlightChrome(tv, selected)
             tv.post { animateScaleForSelection(selected) }
+            val listener = onLineClick
+            itemView.setOnClickListener(
+                if (listener != null) View.OnClickListener { listener(line) } else null,
+            )
         }
 
         fun bindSelectionOnly(selected: Boolean, defaultColor: Int, activeColor: Int) {

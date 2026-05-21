@@ -39,6 +39,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     /** Avoid mini-player work every playback tick (reduces layout jank in FragmentMusic). */
     private var lastMiniPlayerSongId: Int = -1
     private var lastMiniPlayerSeekSyncedMs: Int = Int.MIN_VALUE
+    private var lastMiniPlayerSeekSequence: Long = -1L
 
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
@@ -202,6 +203,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
         if (destId != R.id.fragmentMusic && destId != R.id.splashFragment) {
             applyBottomPlayVisibilityForDestination(destId ?: 0)
+        }
+
+        if (state.seekSequence != lastMiniPlayerSeekSequence) {
+            lastMiniPlayerSeekSequence = state.seekSequence
+            lastMiniPlayerSeekSyncedMs = Int.MIN_VALUE
         }
 
         state.currentSong?.let { song ->

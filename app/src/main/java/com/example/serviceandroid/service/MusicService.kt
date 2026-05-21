@@ -293,8 +293,17 @@ class MusicService : Service() {
     }
 
     private fun seekToInternal(positionMs: Int) {
-        mediaPlayer?.seekTo(positionMs)
-        playbackStateHolder.update { it.copy(positionMs = positionMs) }
+        val mp = mediaPlayer
+        val dur = mp?.takeIf { it.duration > 0 }?.duration ?: 0
+        val safe = if (dur > 0) positionMs.coerceIn(0, dur) else positionMs.coerceAtLeast(0)
+        mp?.seekTo(safe)
+        playbackStateHolder.update {
+            it.copy(
+                positionMs = safe,
+                seekSequence = it.seekSequence + 1L,
+            )
+        }
+        updateMediaSessionPlaybackState()
         refreshNotification()
     }
 
