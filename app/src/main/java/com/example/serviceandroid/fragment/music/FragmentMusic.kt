@@ -15,12 +15,17 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
+import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentMusicBinding
+import com.example.serviceandroid.databinding.ItemMusicPlayerPageBinding
 import com.example.serviceandroid.helper.Constants
+import com.example.serviceandroid.lyrics.LineLyricsAdapter
+import com.example.serviceandroid.lyrics.SongLyricsLoader
+import com.example.serviceandroid.lyrics.TimedLyricLine
 import com.example.serviceandroid.model.Repeat
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.playback.PlaybackUiState
@@ -28,11 +33,14 @@ import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.CustomAnimator
 import com.example.serviceandroid.utils.DateUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 
 @AndroidEntryPoint
 class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
+
     private val args: FragmentMusicArgs by navArgs()
     private val viewModel by viewModels<FragmentMusicViewModel>()
     private val playbackViewModel by activityViewModels<PlaybackViewModel>()
@@ -40,6 +48,33 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private val rotate45 by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.rotation_45) }
     private var isFavourite: Boolean = false
     private var lastRenderedSongId: Int? = null
+
+    private lateinit var pagerAdapter: MusicNowPlayingPagerAdapter
+    private var playerPageBinding: ItemMusicPlayerPageBinding? = null
+    private var playerControlsAttached: Boolean = false
+
+    private var lyricLines: List<TimedLyricLine>? = null
+    private var lineLyricsAdapter: LineLyricsAdapter? = null
+    /** Last active line index from [activeLineIndexAt]; [Int.MIN_VALUE] = not yet synced. */
+    private var lastActiveLineIndex: Int = Int.MIN_VALUE
+    /** Coalesces SeekBar/time label updates while playing to avoid layout thrash vs. cover rotation. */
+    private var lastSeekUiSyncedMs: Int = Int.MIN_VALUE
+    private var lastDurationLabelMs: Int = -1
+    private var pendingInitSongId: Int? = null
+
+    private val playerPagerCallback = object : ViewPager2.OnPageChangeCallback() {
+        override fun onPageSelected(position: Int) {
+            if (position == 1) {
+                updateLineLyricsPlayback(playbackViewModel.playbackState.value.positionMs, force = true)
+            }
+        }
+    }
+
+    private companion object {
+        private const val LYRIC_TIME_EPS = 1e-4
+        /** Min ms between SeekBar / clock UI updates while playing (lyrics still use full [positionMs]). */
+        private const val SEEK_UI_THROTTLE_MS = 220
+    }
 
     override fun getFragmentBinding(inflater: LayoutInflater): FragmentMusicBinding {
         return FragmentMusicBinding.inflate(inflater)
@@ -51,25 +86,45 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         } else {
             args.idMusic
         }
+        pendingInitSongId = idSong
+
+        pagerAdapter = MusicNowPlayingPagerAdapter { pb ->
+            playerPageBinding = pb
+            if (!playerControlsAttached) {
+                playerControlsAttached = true
+                CustomAnimator.rotationImage(pb.imgSong)
+                val repeat = viewModel.getTypeRepeat()
+                pb.imgRepeat.setImageResource(repeat.value)
+                setupPlayerInteractions()
+                pendingInitSongId?.let {
+                    initMusic(it)
+                    pendingInitSongId = null
+                }
+            }
+        }
+        binding.playerPager.adapter = pagerAdapter
+        binding.playerPager.registerOnPageChangeCallback(playerPagerCallback)
+        @Suppress("DEPRECATION")
+        binding.playerPager.offscreenPageLimit = 1
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.isFavourite.collect {
                     isFavourite = it
-                    if (it) {
-                        binding.imgFavourite.setImageResource(R.drawable.ic_favourite_fill)
-                        binding.imgFavourite.imageTintList =
-                            ColorStateList.valueOf(requireContext().getColor(R.color.red))
-                    } else {
-                        binding.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
-                        binding.imgFavourite.imageTintList =
-                            ColorStateList.valueOf(requireContext().getColor(R.color.white))
+                    playerPageBinding?.let { pb ->
+                        if (it) {
+                            pb.imgFavourite.setImageResource(R.drawable.ic_favourite_fill)
+                            pb.imgFavourite.imageTintList =
+                                ColorStateList.valueOf(requireContext().getColor(R.color.red))
+                        } else {
+                            pb.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
+                            pb.imgFavourite.imageTintList =
+                                ColorStateList.valueOf(requireContext().getColor(R.color.white))
+                        }
                     }
                 }
             }
         }
-
-        CustomAnimator.rotationImage(binding.imgSong)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             binding.imageCover.setRenderEffect(
@@ -78,30 +133,25 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                 )
             )
         }
-
-        val repeat = viewModel.getTypeRepeat()
-        binding.imgRepeat.setImageResource(repeat.value)
-
-        initMusic(idSong)
     }
 
     private fun handleRepeat() {
+        val pb = playerPageBinding ?: return
         val repeat = viewModel.getTypeRepeat()
-        val resourceImageId = when (repeat) {
+        when (repeat) {
             Repeat.NOT_REPEAT -> {
                 viewModel.saveTypeRepeat(Repeat.REPEAT_ALL)
-                R.drawable.ic_repeat_all
+                pb.imgRepeat.setImageResource(R.drawable.ic_repeat_all)
             }
             Repeat.REPEAT_ALL -> {
                 viewModel.saveTypeRepeat(Repeat.REPEAT_ONE)
-                R.drawable.ic_repeat_one
+                pb.imgRepeat.setImageResource(R.drawable.ic_repeat_one)
             }
             Repeat.REPEAT_ONE -> {
                 viewModel.saveTypeRepeat(Repeat.NOT_REPEAT)
-                R.drawable.ic_not_repeat
+                pb.imgRepeat.setImageResource(R.drawable.ic_not_repeat)
             }
         }
-        binding.imgRepeat.setImageResource(resourceImageId)
         playbackViewModel.syncRepeatMode(requireContext())
     }
 
@@ -109,14 +159,19 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         binding.backMusic.setOnClickListener {
             activity?.onBackPressed()
         }
-        binding.imgNext.setOnClickListener {
+    }
+
+    private fun setupPlayerInteractions() {
+        val pb = playerPageBinding ?: return
+
+        pb.imgNext.setOnClickListener {
             playbackViewModel.next(requireContext())
         }
-        binding.imgPrevious.setOnClickListener {
+        pb.imgPrevious.setOnClickListener {
             playbackViewModel.previous(requireContext())
         }
 
-        binding.imgPlay.setOnClickListener {
+        pb.imgPlay.setOnClickListener {
             CustomAnimator.endAnimation(rotate45) {
                 val st = playbackViewModel.playbackState.value
                 if (!st.isPlaying) {
@@ -125,14 +180,14 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                     playbackViewModel.pause(requireContext())
                 }
             }
-            binding.imgPlay.startAnimation(rotate45)
+            pb.imgPlay.startAnimation(rotate45)
         }
 
-        binding.imgRepeat.setOnClickListener {
+        pb.imgRepeat.setOnClickListener {
             handleRepeat()
         }
 
-        binding.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        pb.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     playbackViewModel.seekTo(requireContext(), progress)
@@ -145,7 +200,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             override fun onStopTrackingTouch(p0: SeekBar?) {}
         })
 
-        binding.imgFavourite.setOnClickListener {
+        pb.imgFavourite.setOnClickListener {
             val song = playbackViewModel.playbackState.value.currentSong ?: return@setOnClickListener
             if (!isFavourite) {
                 viewModel.insertSong(song, DateUtils.getTimeCurrent()) {
@@ -177,6 +232,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     private fun initMusic(idSong: Int) {
+        if (playerPageBinding == null) return
         resetFavourite()
         val resolvedIndex = playbackViewModel.resolveQueueIndexForSongId(idSong)
         val song = playbackViewModel.getPlaylist()[resolvedIndex]
@@ -195,26 +251,116 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     private fun bindSongMetadata(song: Song) {
+        val pb = playerPageBinding ?: return
         lastRenderedSongId = song.idSong
+        lastActiveLineIndex = Int.MIN_VALUE
+        lastSeekUiSyncedMs = Int.MIN_VALUE
+        lastDurationLabelMs = -1
         Glide.with(this)
             .load(song.avatar)
             .error(R.drawable.ic_circle)
             .placeholder(R.drawable.ic_circle)
-            .into(binding.imgSong)
+            .into(pb.imgSong)
         binding.imageCover.setImageResource(song.avatar)
-        binding.imgSong.startAnimation(fadeIn)
-        binding.tvNameSong.text = song.title
-        binding.tvNameSinger.text = song.nameSinger
+        pb.imgSong.startAnimation(fadeIn)
+        pb.tvNameSong.text = song.title
+        pb.tvNameSinger.text = song.nameSinger
         val st = playbackViewModel.playbackState.value
         val duration = st.durationMs
         if (duration > 0) {
             setMaxProgress(duration)
             setTotalTimeFromDuration(duration)
+            lastDurationLabelMs = duration
             val pos = st.positionMs.coerceIn(0, duration)
-            binding.progressMusic.progress = pos
+            pb.progressMusic.progress = pos
             setProgressTime(pos)
+            lastSeekUiSyncedMs = pos
         }
         if (st.isPlaying) startMusic() else pauseMusic()
+
+        loadLyricsForSong(song)
+    }
+
+    private fun ensureLineLyricsAdapter(): LineLyricsAdapter {
+        lineLyricsAdapter?.let { return it }
+        val adapter = LineLyricsAdapter(
+            requireContext().getColor(R.color.text_white),
+            requireContext().getColor(R.color.lyric_line_active),
+        )
+        lineLyricsAdapter = adapter
+        return adapter
+    }
+
+    private fun activeLineIndexAt(lines: List<TimedLyricLine>, positionSec: Double): Int {
+        if (lines.isEmpty()) return -1
+        val t = positionSec + LYRIC_TIME_EPS
+        if (t < lines[0].startSec) return -1
+        var last = -1
+        for (i in lines.indices) {
+            if (lines[i].startSec <= t) last = i
+        }
+        return last
+    }
+
+    private fun attachLyricsRecyclerAdapterIfNeeded() {
+        val rv = pagerAdapter.lyricsRecycler ?: return
+        val lines = lyricLines ?: return
+        if (lines.isEmpty()) return
+        val adapter = ensureLineLyricsAdapter()
+        if (rv.adapter !== adapter) {
+            rv.adapter = adapter
+            adapter.submitLines(lines)
+        }
+    }
+
+    private fun loadLyricsForSong(song: Song) {
+        if (pagerAdapter.lyricsRecycler == null || pagerAdapter.lyricsEmpty == null) {
+            binding.playerPager.post { loadLyricsForSong(song) }
+            return
+        }
+        val rv = pagerAdapter.lyricsRecycler!!
+        val empty = pagerAdapter.lyricsEmpty!!
+        lyricLines = null
+        lastActiveLineIndex = Int.MIN_VALUE
+        rv.adapter = null
+        val targetSongId = song.idSong
+        viewLifecycleOwner.lifecycleScope.launch {
+            val lines = withContext(Dispatchers.IO) {
+                SongLyricsLoader.loadTimedLines(requireContext(), song)
+            }
+            if (!isAdded) return@launch
+            if (lastRenderedSongId != targetSongId) return@launch
+            if (lines.isNullOrEmpty()) {
+                lyricLines = null
+                rv.visibility = android.view.View.GONE
+                empty.visibility = android.view.View.VISIBLE
+            } else {
+                lyricLines = lines
+                empty.visibility = android.view.View.GONE
+                rv.visibility = android.view.View.VISIBLE
+                val adapter = ensureLineLyricsAdapter()
+                rv.adapter = adapter
+                adapter.submitLines(lines)
+                lastActiveLineIndex = Int.MIN_VALUE
+                updateLineLyricsPlayback(playbackViewModel.playbackState.value.positionMs, force = true)
+            }
+        }
+    }
+
+    private fun updateLineLyricsPlayback(positionMs: Int, force: Boolean = false) {
+        val lines = lyricLines ?: return
+        if (lines.isEmpty()) return
+        val rv = pagerAdapter.lyricsRecycler ?: return
+        attachLyricsRecyclerAdapterIfNeeded()
+        val t = positionMs / 1000.0
+        val active = activeLineIndexAt(lines, t)
+        if (!force && active == lastActiveLineIndex) return
+        lastActiveLineIndex = active
+        val adapter = ensureLineLyricsAdapter()
+        adapter.setActiveLine(active)
+        if (active >= 0 && binding.playerPager.currentItem == 1) {
+            rv.smoothScrollToPosition(active)
+        }
     }
 
     fun onPlaybackStateChanged(state: PlaybackUiState) {
@@ -223,44 +369,67 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             bindSongMetadata(song)
             viewModel.checkSongById(song.idSong)
         }
+        val pb = playerPageBinding ?: return
         if (state.durationMs > 0) {
-            binding.progressMusic.max = state.durationMs
-            binding.progressMusic.progress =
-                state.positionMs.coerceIn(0, state.durationMs)
-            setProgressTime(state.positionMs)
-            setTotalTimeFromDuration(state.durationMs)
+            val pos = state.positionMs.coerceIn(0, state.durationMs)
+            if (pb.progressMusic.max != state.durationMs) {
+                pb.progressMusic.max = state.durationMs
+                lastSeekUiSyncedMs = Int.MIN_VALUE
+            }
+            val forceSeekUi = !state.isPlaying ||
+                lastSeekUiSyncedMs == Int.MIN_VALUE ||
+                kotlin.math.abs(pos - lastSeekUiSyncedMs) >= SEEK_UI_THROTTLE_MS
+            if (forceSeekUi) {
+                lastSeekUiSyncedMs = pos
+                pb.progressMusic.progress = pos
+                setProgressTime(pos)
+            }
+            if (state.durationMs != lastDurationLabelMs) {
+                lastDurationLabelMs = state.durationMs
+                setTotalTimeFromDuration(state.durationMs)
+            }
         }
         if (state.isPlaying) startMusic() else pauseMusic()
+        updateLineLyricsPlayback(state.positionMs)
     }
 
     @SuppressLint("SimpleDateFormat")
     private fun setProgressTime(currentPosition: Int) {
-        binding.tvProgressTime.text = SimpleDateFormat(Constants.MINUTES).format(currentPosition)
+        playerPageBinding?.tvProgressTime?.text =
+            SimpleDateFormat(Constants.MINUTES).format(currentPosition)
     }
 
     @SuppressLint("SimpleDateFormat")
     private fun setTotalTimeFromDuration(durationMs: Int) {
-        binding.tvTotalTime.text = SimpleDateFormat(Constants.MINUTES).format(durationMs)
+        playerPageBinding?.tvTotalTime?.text =
+            SimpleDateFormat(Constants.MINUTES).format(durationMs)
     }
 
     private fun setMaxProgress(duration: Int) {
-        binding.progressMusic.apply {
+        playerPageBinding?.progressMusic?.apply {
             max = duration
         }
     }
 
     private fun startMusic() {
-        binding.imgPlay.setImageResource(R.drawable.ic_pause_music)
+        playerPageBinding?.imgPlay?.setImageResource(R.drawable.ic_pause_music)
     }
 
     private fun pauseMusic() {
-        binding.imgPlay.setImageResource(R.drawable.ic_play_music)
+        playerPageBinding?.imgPlay?.setImageResource(R.drawable.ic_play_music)
     }
 
     private fun resetFavourite() {
         isFavourite = false
-        binding.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
-        binding.imgFavourite.imageTintList =
-            ColorStateList.valueOf(requireContext().getColor(R.color.white))
+        playerPageBinding?.let { pb ->
+            pb.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
+            pb.imgFavourite.imageTintList =
+                ColorStateList.valueOf(requireContext().getColor(R.color.white))
+        }
+    }
+
+    override fun onDestroyView() {
+        binding.playerPager.unregisterOnPageChangeCallback(playerPagerCallback)
+        super.onDestroyView()
     }
 }

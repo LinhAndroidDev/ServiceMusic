@@ -26,6 +26,7 @@ import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.getCurrentFragment
 import com.example.serviceandroid.utils.moveTo
 import dagger.hilt.android.AndroidEntryPoint
+import kotlin.math.abs
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -35,8 +36,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     private var doubleBackToExitPressedOnce = false
     private val playbackViewModel by viewModels<PlaybackViewModel>()
 
+    /** Avoid mini-player work every playback tick (reduces layout jank in FragmentMusic). */
+    private var lastMiniPlayerSongId: Int = -1
+    private var lastMiniPlayerSeekSyncedMs: Int = Int.MIN_VALUE
+
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
+        private const val MINI_SEEK_UI_THROTTLE_MS = 200
     }
 
     override fun onStart() {
@@ -199,17 +205,32 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
 
         state.currentSong?.let { song ->
-            binding.avatar.setImageResource(song.avatar)
+            if (song.idSong != lastMiniPlayerSongId) {
+                lastMiniPlayerSongId = song.idSong
+                binding.avatar.setImageResource(song.avatar)
+                lastMiniPlayerSeekSyncedMs = Int.MIN_VALUE
+            }
+        } ?: run {
+            lastMiniPlayerSongId = -1
+            lastMiniPlayerSeekSyncedMs = Int.MIN_VALUE
         }
 
-        if (state.queueIndex >= 0) {
+        if (state.queueIndex >= 0 && binding.viewPagerInfoSong.currentItem != state.queueIndex) {
             binding.viewPagerInfoSong.setCurrentItem(state.queueIndex, false)
         }
 
-        binding.progressMusic.max = state.durationMs.coerceAtLeast(0)
-        if (state.durationMs > 0) {
-            binding.progressMusic.progress =
-                state.positionMs.coerceIn(0, state.durationMs)
+        val dur = state.durationMs.coerceAtLeast(0)
+        binding.progressMusic.max = dur
+        if (dur > 0) {
+            val pos = state.positionMs.coerceIn(0, dur)
+            val forceSeek =
+                !state.isPlaying ||
+                    lastMiniPlayerSeekSyncedMs == Int.MIN_VALUE ||
+                    abs(pos - lastMiniPlayerSeekSyncedMs) >= MINI_SEEK_UI_THROTTLE_MS
+            if (forceSeek) {
+                lastMiniPlayerSeekSyncedMs = pos
+                binding.progressMusic.progress = pos
+            }
         }
         binding.play.setImageResource(
             if (state.isPlaying) R.drawable.pause else R.drawable.play

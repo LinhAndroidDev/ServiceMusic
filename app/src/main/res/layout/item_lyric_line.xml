@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="1dp">
+
+    <TextView
+        android:id="@+id/tvLine"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipToOutline="false"
+        android:gravity="start|center_vertical"
+        android:textAlignment="viewStart"
+        android:lineSpacingExtra="2dp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="4dp"
+        android:textColor="@color/white"
+        android:textIsSelectable="false"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        tools:text="Lyric line text" />
+</FrameLayout>

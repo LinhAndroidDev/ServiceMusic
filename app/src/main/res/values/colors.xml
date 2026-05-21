@@ -31,6 +31,9 @@
     <color name="green3">#3e979f</color>
     <color name="purple_1">#673AB7</color>
     <color name="yellow_dark">#FFC107</color>
+    <color name="lyric_line_active">#FFEB3B</color>
+    <!-- Light gray, slightly translucent pill behind active lyric line -->
+    <color name="lyric_highlight_scrim">#6AE5E5E5</color>
     <color name="grey_light">#EFEFEF</color>
     <color name="grey_1">#8E8E8E</color>
     <color name="grey_blur">#488E8E8E</color>

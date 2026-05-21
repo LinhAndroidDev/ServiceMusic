@@ -46,6 +46,11 @@ class MusicService : Service() {
     private var mediaSession: MediaSessionCompat? = null
     private var index: Int = -1
     private var tickPosted = false
+    private var msSinceNotificationRefresh: Long = 0
+
+    /** Frequent position updates for UI (lyrics); notification refreshed at [NOTIFICATION_REFRESH_MS]. */
+    private val tickIntervalMs = 80L
+    private val notificationRefreshMs = 1000L
 
     private val tickRunnable = object : Runnable {
         override fun run() {
@@ -63,11 +68,15 @@ class MusicService : Service() {
                     )
                 }
                 if (mp.isPlaying) {
-                    refreshNotification()
+                    msSinceNotificationRefresh += tickIntervalMs
+                    if (msSinceNotificationRefresh >= notificationRefreshMs) {
+                        msSinceNotificationRefresh = 0L
+                        refreshNotification()
+                    }
                 }
             }
             if (tickPosted) {
-                handler.postDelayed(this, 1000L)
+                handler.postDelayed(this, tickIntervalMs)
             }
         }
     }
@@ -172,12 +181,14 @@ class MusicService : Service() {
 
     private fun startProgressTicker() {
         if (tickPosted) return
+        msSinceNotificationRefresh = 0L
         tickPosted = true
         handler.post(tickRunnable)
     }
 
     private fun stopProgressTicker() {
         tickPosted = false
+        msSinceNotificationRefresh = 0L
         handler.removeCallbacks(tickRunnable)
     }
 
