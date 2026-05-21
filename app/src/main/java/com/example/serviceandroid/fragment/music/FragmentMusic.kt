@@ -15,6 +15,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.R
@@ -60,6 +63,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     /** Coalesces SeekBar/time label updates while playing to avoid layout thrash vs. cover rotation. */
     private var lastSeekUiSyncedMs: Int = Int.MIN_VALUE
     private var lastDurationLabelMs: Int = -1
+    /** Last anchor used for lyric list scroll (activeLine - 1); avoids restarting identical smooth scrolls. */
+    private var lastLyricsScrollAnchor: Int = Int.MIN_VALUE
     private var pendingInitSongId: Int? = null
 
     private val playerPagerCallback = object : ViewPager2.OnPageChangeCallback() {
@@ -256,6 +261,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         lastActiveLineIndex = Int.MIN_VALUE
         lastSeekUiSyncedMs = Int.MIN_VALUE
         lastDurationLabelMs = -1
+        lastLyricsScrollAnchor = Int.MIN_VALUE
         Glide.with(this)
             .load(song.avatar)
             .error(R.drawable.ic_circle)
@@ -342,6 +348,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                 rv.adapter = adapter
                 adapter.submitLines(lines)
                 lastActiveLineIndex = Int.MIN_VALUE
+                lastLyricsScrollAnchor = Int.MIN_VALUE
                 updateLineLyricsPlayback(playbackViewModel.playbackState.value.positionMs, force = true)
             }
         }
@@ -359,8 +366,25 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         val adapter = ensureLineLyricsAdapter()
         adapter.setActiveLine(active)
         if (active >= 0 && binding.playerPager.currentItem == 1) {
-            rv.smoothScrollToPosition(active)
+            val anchor = (active - 1).coerceAtLeast(0)
+            if (force || anchor != lastLyricsScrollAnchor) {
+                lastLyricsScrollAnchor = anchor
+                smoothScrollLyricsAnchorToTop(rv, anchor)
+            }
         }
+    }
+
+    /**
+     * Scrolls so [anchorPosition] is the first visible row; the active line (anchor + 1) sits
+     * as the second row from the top (one context line above), when it exists.
+     */
+    private fun smoothScrollLyricsAnchorToTop(rv: RecyclerView, anchorPosition: Int) {
+        val lm = rv.layoutManager as? LinearLayoutManager ?: return
+        val scroller = object : LinearSmoothScroller(rv.context) {
+            override fun getVerticalSnapPreference(): Int = SNAP_TO_START
+        }
+        scroller.targetPosition = anchorPosition
+        lm.startSmoothScroll(scroller)
     }
 
     fun onPlaybackStateChanged(state: PlaybackUiState) {

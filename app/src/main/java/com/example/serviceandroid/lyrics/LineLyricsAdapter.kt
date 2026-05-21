@@ -1,10 +1,15 @@
 package com.example.serviceandroid.lyrics
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ArgbEvaluator
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.PathInterpolator
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.serviceandroid.R
@@ -31,6 +36,18 @@ class LineLyricsAdapter(
         holder.bind(lines[position], position == selectedIndex, defaultColor, activeColor)
     }
 
+    override fun onBindViewHolder(holder: VH, position: Int, payloads: MutableList<Any>) {
+        if (payloads.size == 1 && payloads[0] == PAYLOAD_SELECTION) {
+            holder.bindSelectionOnly(
+                position == selectedIndex,
+                defaultColor,
+                activeColor,
+            )
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
     @SuppressLint("NotifyDataSetChanged")
     fun updateColors(defaultColor: Int, activeColor: Int) {
         this.defaultColor = defaultColor
@@ -47,7 +64,8 @@ class LineLyricsAdapter(
     }
 
     /**
-     * Highlights [index] (-1 = none). Notifies only changed rows.
+     * Highlights [index] (-1 = none). Notifies only changed rows with a selection payload
+     * so color/scale can animate without rebinding text.
      */
     fun setActiveLine(index: Int) {
         if (lines.isEmpty()) {
@@ -58,14 +76,16 @@ class LineLyricsAdapter(
         if (safe == selectedIndex) return
         val old = selectedIndex
         selectedIndex = safe
-        if (old in lines.indices) notifyItemChanged(old)
-        if (selectedIndex in lines.indices) notifyItemChanged(selectedIndex)
+        if (old in lines.indices) notifyItemChanged(old, PAYLOAD_SELECTION)
+        if (selectedIndex in lines.indices) notifyItemChanged(selectedIndex, PAYLOAD_SELECTION)
     }
 
     class VH(
         root: ViewGroup,
         private val tv: TextView,
     ) : RecyclerView.ViewHolder(root) {
+
+        private val argbEvaluator = ArgbEvaluator()
 
         init {
             tv.scaleX = IDLE_SCALE
@@ -74,29 +94,82 @@ class LineLyricsAdapter(
 
         fun bind(line: TimedLyricLine, selected: Boolean, defaultColor: Int, activeColor: Int) {
             tv.animate().cancel()
+            cancelColorAnimator(tv)
             tv.text = line.text
-            tv.setTextColor(if (selected) activeColor else defaultColor)
-            applyHighlightChrome(tv, selected)
-            tv.post {
-                applyPivotLeftAligned(tv)
-                if (selected) {
-                    tv.scaleX = IDLE_SCALE
-                    tv.scaleY = IDLE_SCALE
-                    tv.animate()
-                        .scaleX(HIGHLIGHT_SCALE)
-                        .scaleY(HIGHLIGHT_SCALE)
-                        .setDuration(SCALE_DURATION_MS)
-                        .setInterpolator(DecelerateInterpolator())
-                        .start()
-                } else {
-                    tv.animate()
-                        .scaleX(IDLE_SCALE)
-                        .scaleY(IDLE_SCALE)
-                        .setDuration(SCALE_DURATION_MS)
-                        .setInterpolator(DecelerateInterpolator())
-                        .start()
-                }
+            if (selected) {
+                tv.setTextColor(defaultColor)
+                animateTextColor(tv, defaultColor, activeColor, COLOR_DURATION_MS)
+            } else {
+                tv.setTextColor(defaultColor)
             }
+            applyHighlightChrome(tv, selected)
+            tv.post { animateScaleForSelection(selected) }
+        }
+
+        fun bindSelectionOnly(selected: Boolean, defaultColor: Int, activeColor: Int) {
+            tv.animate().cancel()
+            cancelColorAnimator(tv)
+            val target = if (selected) activeColor else defaultColor
+            animateTextColor(tv, tv.currentTextColor, target, COLOR_DURATION_MS)
+            applyHighlightChrome(tv, selected)
+            tv.post { animateScaleForSelection(selected) }
+        }
+
+        private fun animateScaleForSelection(selected: Boolean) {
+            applyPivotLeftAligned(tv)
+            if (selected) {
+                tv.scaleX = IDLE_SCALE
+                tv.scaleY = IDLE_SCALE
+                tv.animate()
+                    .scaleX(HIGHLIGHT_SCALE)
+                    .scaleY(HIGHLIGHT_SCALE)
+                    .setDuration(SCALE_DURATION_MS)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            } else {
+                tv.animate()
+                    .scaleX(IDLE_SCALE)
+                    .scaleY(IDLE_SCALE)
+                    .setDuration(SCALE_DURATION_MS)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
+        }
+
+        private fun cancelColorAnimator(view: TextView) {
+            (view.getTag(R.id.tag_lyric_line_color_animator) as? ValueAnimator)?.cancel()
+            view.setTag(R.id.tag_lyric_line_color_animator, null)
+        }
+
+        private fun animateTextColor(view: TextView, from: Int, to: Int, durationMs: Long) {
+            if (from == to) {
+                view.setTextColor(to)
+                return
+            }
+            cancelColorAnimator(view)
+            val anim = ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = durationMs
+                interpolator = COLOR_INTERPOLATOR
+                addUpdateListener { a ->
+                    val t = a.animatedValue as Float
+                    val color = argbEvaluator.evaluate(t, from, to) as Int
+                    view.setTextColor(color)
+                }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (view.getTag(R.id.tag_lyric_line_color_animator) === animation) {
+                            view.setTag(R.id.tag_lyric_line_color_animator, null)
+                        }
+                        view.setTextColor(to)
+                    }
+
+                    override fun onAnimationCancel(animation: Animator) {
+                        view.setTextColor(to)
+                    }
+                })
+            }
+            view.setTag(R.id.tag_lyric_line_color_animator, anim)
+            anim.start()
         }
 
         private fun applyHighlightChrome(tv: TextView, selected: Boolean) {
@@ -123,6 +196,14 @@ class LineLyricsAdapter(
             /** Size when highlighted (after animate from [IDLE_SCALE]) */
             private const val HIGHLIGHT_SCALE = 1.08f
             private const val SCALE_DURATION_MS = 220L
+            private const val COLOR_DURATION_MS = 300L
+
+            /** Material “standard” easing (fast out, slow in). */
+            private val COLOR_INTERPOLATOR = PathInterpolator(0.4f, 0f, 0.2f, 1f)
         }
+    }
+
+    companion object {
+        private const val PAYLOAD_SELECTION = "lyric_selection"
     }
 }

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="tag_avatar_rotation_animator" type="id" />
+    <item name="tag_lyric_line_color_animator" type="id" />
 </resources>
