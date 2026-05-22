@@ -1,43 +1,48 @@
-[00:18.19] 幽靜 窗外滿地片片寒花
-[00:24.80] 一瞬間永恆的時差 窩在棉被裡
-[00:35.47] 傾聽 踏雪聽沉默的聲音
-[00:42.11] 飄雪藏永恆的身影 雪樹下等你
-[00:51.64] 在一瞬間 有一百萬個可能
-[00:56.11] 該向前走 或者繼續等
-[01:00.21] 這冬夜裡 有百萬個不確定
-[01:04.69] 漸入深夜 或期盼天明
-[01:08.80] 雲空的淚 一如冰凌結晶了 成雪花垂
-[01:18.06] 這一瞬間 有一百萬個可能
-[01:22.25] 窩進棉被 或面對寒冷
-[01:29.00]
-[01:45.36] 幽靜 寒風吹來一縷聲音
-[01:52.05] 一瞬間看著你走近 暖了我冬心
-[02:02.98] 傾聽 踏雪聽沉默的聲音
-[02:09.32] 飄雪藏永恆的身影 雪樹下等你
-[02:19.02] 在一瞬間 有一百萬個可能
-[02:23.34] 該向前走 或者繼續等
-[02:27.59] 這冬夜裡 有百萬個不確定
-[02:32.03] 漸入深夜 或期盼天明
-[02:36.10] 雲空的淚 一如冰凌結晶了 成雪花垂
-[02:45.12] 這一瞬間 有一百萬個可能
-[02:49.54] 窩進棉被 或面對寒冷
-[02:55.96]
-[03:12.88] 那晚上會是哪個瞬間
-[03:14.88] 說好的愛會不會改變
-[03:16.86] 而你讓我徘徊在千里之外
-[03:19.10] Yeah 你讓我等待好久 baby
-[03:21.84] 突然間那是哪個瞬間
-[03:23.58] 你終於出現 就是那個瞬間
-[03:25.76] 等了好久 忍不住伸手 那個瞬間
-[03:28.85] 在一瞬間 有一百萬個可能
-[03:33.23] 該向前走 或者繼續等
-[03:37.56] 這深夜裡 有百萬個不確定
-[03:41.84] 漸入冬林 或走向街燈
-[03:46.21] 雲空的淚 一如冰凌結晶了 成雪花垂
-[03:55.16] 這一瞬間 有一百萬個可能
-[03:59.27] 暖這冬心 或面對寒冷
-[04:03.71] 該向前走 或者繼續等
-[04:07.99] 漸入冬林 或走向街燈
-[04:12.35] 窩進棉被 或面對寒冷
-[04:16.82] 暖這冬心 或面對寒冷
+[00:18.19] Yōujìng chuāngwài mǎndì piànpiàn hánhua
+[00:24.80] Yī shùnjiān yǒnghéng de shíchā wō zài miánbèi lǐ
+
+[00:35.47] Qīngtīng tàxuě tīng chénmò de shēngyīn
+[00:42.11] Piāoxuě cáng yǒnghéng de shēnyǐng xuěshù xià děng nǐ
+
+[00:51.64] Zài yī shùnjiān yǒu yībǎi wàn gè kěnéng
+[00:56.11] Gāi xiàng qián zǒu huòzhě jìxù děng
+[01:00.21] Zhè dōngyè lǐ yǒu bǎiwàn gè bù quèdìng
+[01:04.69] Jiànrù shēnyè huò qīpàn tiānmíng
+[01:08.80] Yúnkōng de lèi yīrú bīnglíng jiéjīng le chéng xuěhuā chuí
+[01:18.06] Zhè yī shùnjiān yǒu yībǎi wàn gè kěnéng
+[01:22.25] Wō jìn miánbèi huò miànduì hánlěng
+
+[01:45.36] Yōujìng hánfēng chuī lái yīlǚ shēngyīn
+[01:52.05] Yī shùnjiān kànzhe nǐ zǒujìn nuǎn le wǒ dōngxīn
+
+[02:02.98] Qīngtīng tàxuě tīng chénmò de shēngyīn
+[02:09.32] Piāoxuě cáng yǒnghéng de shēnyǐng xuěshù xià děng nǐ
+
+[02:19.02] Zài yī shùnjiān yǒu yībǎi wàn gè kěnéng
+[02:23.34] Gāi xiàng qián zǒu huòzhě jìxù děng
+[02:27.59] Zhè dōngyè lǐ yǒu bǎiwàn gè bù quèdìng
+[02:32.03] Jiànrù shēnyè huò qīpàn tiānmíng
+[02:36.10] Yúnkōng de lèi yīrú bīnglíng jiéjīng le chéng xuěhuā chuí
+[02:45.12] Zhè yī shùnjiān yǒu yībǎi wàn gè kěnéng
+[02:49.54] Wō jìn miánbèi huò miànduì hánlěng
+
+[03:12.88] Nà wǎnshàng huì shì nǎge shùnjiān
+[03:14.88] Shuō hǎo de ài huì bú huì gǎibiàn
+[03:16.86] Ér nǐ ràng wǒ páihuái zài qiānlǐ zhīwài
+[03:19.10] Yeah nǐ ràng wǒ děngdài hǎojiǔ baby
+[03:21.84] Tūránjiān nà shì nǎge shùnjiān
+[03:23.58] Nǐ zhōngyú chūxiàn jiùshì nàge shùnjiān
+[03:25.76] Děng le hǎojiǔ rěn búzhù shēnshǒu nàge shùnjiān
+
+[03:28.85] Zài yī shùnjiān yǒu yībǎi wàn gè kěnéng
+[03:33.23] Gāi xiàng qián zǒu huòzhě jìxù děng
+[03:37.56] Zhè shēnyè lǐ yǒu bǎiwàn gè bù quèdìng
+[03:41.84] Jiànrù dōnglín huò zǒuxiàng jiēdēng
+[03:46.21] Yúnkōng de lèi yīrú bīnglíng jiéjīng le chéng xuěhuā chuí
+[03:55.16] Zhè yī shùnjiān yǒu yībǎi wàn gè kěnéng
+[03:59.27] Nuǎn zhè dōngxīn huò miànduì hánlěng
+[04:03.71] Gāi xiàng qián zǒu huòzhě jìxù děng
+[04:07.99] Jiànrù dōnglín huò zǒuxiàng jiēdēng
+[04:12.35] Wō jìn miánbèi huò miànduì hánlěng
+[04:16.82] Nuǎn zhè dōngxīn huò miànduì hánlěng
 [04:26.44]

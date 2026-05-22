@@ -1,28 +1,34 @@
-[00:31.46] 风吹沙蝶恋花千古佳话
-[00:36.25] 似水中月情迷着镜中花
-[00:41.26] 竹篱笆木琵琶拱桥月下
-[00:46.26] 谁在弹唱思念远方牵挂
-[00:51.36] 那年仲夏你背上行囊离开家
-[00:56.80] 古道旁我欲语泪先下
-[01:01.52] 庙里求签我哭诉青梅等竹马
-[01:07.29] 求菩萨保佑我俩
-[01:11.77] 不停的猜猜猜又卜了一卦
-[01:16.64] 吉凶祸福还是担惊受怕
-[01:21.64] 对你的爱爱爱望断了天涯
-[01:26.74] 造化弄人缘分阴错阳差
-[01:52.47] 风吹沙蝶恋花千古佳话
-[01:57.03] 似水中月情迷着镜中花
-[02:02.10] 竹篱笆木琵琶拱桥月下
-[02:07.00] 谁在弹唱思念远方牵挂
-[02:12.18] 那年仲夏你背上行囊离开家
-[02:17.55] 古道旁我欲语泪先下
-[02:22.23] 田里庄稼收获了一茬又一茬
-[02:28.08] 而我们何时发芽
-[02:32.54] 不停的猜猜猜又卜了一卦
-[02:37.45] 吉凶祸福还是担惊受怕
-[02:42.37] 对你的爱爱爱望断了天涯
-[02:47.45] 造化弄人缘分阴错阳差
-[02:53.83] 猜猜猜又卜了一卦
-[02:57.60] 是上上签可还是放不下
-[03:02.60] 对你的爱爱挨过几个冬夏
-[03:07.64] 日夜思念祈求别再变卦
+[00:31.46] Fēng chuī shā dié liàn huā qiān gǔ jiā huà
+[00:36.25] Sì shuǐ zhōng yuè qíng mí zhe jìng zhōng huā
+[00:41.26] Zhú lí ba mù pí pa gǒng qiáo yuè xià
+[00:46.26] Shéi zài tán chàng sī niàn yuǎn fāng qiān guà
+
+[00:51.36] Nà nián zhòng xià nǐ bèi shàng xíng nang lí kāi jiā
+[00:56.80] Gǔ dào páng wǒ yù yǔ lèi xiān xià
+[01:01.52] Miào lǐ qiú qiān wǒ kū sù qīng méi děng zhú mǎ
+[01:07.29] Qiú pú sà bǎo yòu wǒ liǎng
+
+[01:11.77] Bù tíng de cāi cāi cāi yòu bǔ le yī guà
+[01:16.64] Jí xiōng huò fú hái shì dān jīng shòu pà
+[01:21.64] Duì nǐ de ài ài ài wàng duàn le tiān yá
+[01:26.74] Zào huà nòng rén yuán fèn yīn cuò yáng chā
+
+[01:52.47] Fēng chuī shā dié liàn huā qiān gǔ jiā huà
+[01:57.03] Sì shuǐ zhōng yuè qíng mí zhe jìng zhōng huā
+[02:02.10] Zhú lí ba mù pí pa gǒng qiáo yuè xià
+[02:07.00] Shéi zài tán chàng sī niàn yuǎn fāng qiān guà
+
+[02:12.18] Nà nián zhòng xià nǐ bèi shàng xíng nang lí kāi jiā
+[02:17.55] Gǔ dào páng wǒ yù yǔ lèi xiān xià
+[02:22.23] Tián lǐ zhuāng jia shōu huò le yī chá yòu yī chá
+[02:28.08] Ér wǒ men hé shí fā yá
+
+[02:32.54] Bù tíng de cāi cāi cāi yòu bǔ le yī guà
+[02:37.45] Jí xiōng huò fú hái shì dān jīng shòu pà
+[02:42.37] Duì nǐ de ài ài ài wàng duàn le tiān yá
+[02:47.45] Zào huà nòng rén yuán fèn yīn cuò yáng chā
+
+[02:53.83] Cāi cāi cāi yòu bǔ le yī guà
+[02:57.60] Shì shàng shàng qiān kě hái shì fàng bù xià
+[03:02.60] Duì nǐ de ài ài āi guò jǐ gè dōng xià
+[03:07.64] Rì yè sī niàn qí qiú bié zài biàn guà
