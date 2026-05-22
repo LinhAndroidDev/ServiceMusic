@@ -20,8 +20,9 @@
         tools:targetApi="31">
         <activity
             android:name=".MainActivity"
-            android:windowSoftInputMode="adjustResize|adjustPan"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize|adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

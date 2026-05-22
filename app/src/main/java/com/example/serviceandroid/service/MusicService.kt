@@ -17,6 +17,7 @@ import android.os.Looper
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.data.repository.SongRepository
 import com.example.serviceandroid.helper.Constants
@@ -398,6 +399,8 @@ class MusicService : Service() {
     private fun buildNotification(song: Song): NotificationCompat.Builder {
         val bitmap = BitmapFactory.decodeResource(resources, song.avatar)
         val session = ensureMediaSession()
+        val openPlayer = openPlayerContentPendingIntent(song)
+        session.setSessionActivity(openPlayer)
 
         val builder = NotificationCompat.Builder(this, MyApplication.CHANNEL_ID)
             .setSmallIcon(R.drawable.music)
@@ -405,6 +408,7 @@ class MusicService : Service() {
             .setContentTitle(song.title)
             .setContentText("Ca sĩ: ${song.nameSinger}")
             .setLargeIcon(bitmap)
+            .setContentIntent(openPlayer)
             .setOnlyAlertOnce(true)
             .setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
@@ -515,6 +519,20 @@ class MusicService : Service() {
         getSharedPreferences(PREF_RESTORE, Context.MODE_PRIVATE).edit().clear().apply()
     }
 
+    private fun openPlayerContentPendingIntent(song: Song): PendingIntent {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(Constants.EXTRA_OPEN_PLAYER_FROM_NOTIFICATION, true)
+            putExtra(Constants.EXTRA_NOTIFICATION_TARGET_SONG_ID, song.idSong)
+        }
+        return PendingIntent.getActivity(
+            this,
+            REQUEST_CODE_OPEN_PLAYER_FROM_NOTIFICATION,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     private fun pending(action: Action): PendingIntent {
         val intent = Intent(this, MusicService::class.java).apply {
             putExtra(Constants.RECEIVER_ACTION_MUSIC, action)
@@ -545,5 +563,6 @@ class MusicService : Service() {
         private const val KEY_WAS_PLAYING = "was_playing"
         /** ~2s at 80ms/tick — đủ để khôi phục vị trí sau process bị kill mà không ghi prefs quá dày. */
         private const val SNAPSHOT_TICKS_INTERVAL = 25
+        private const val REQUEST_CODE_OPEN_PLAYER_FROM_NOTIFICATION = 3100
     }
 }

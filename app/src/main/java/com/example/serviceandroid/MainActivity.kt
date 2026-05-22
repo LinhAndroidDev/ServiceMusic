@@ -1,5 +1,6 @@
 package com.example.serviceandroid
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
@@ -21,6 +22,7 @@ import com.example.serviceandroid.custom.ActionBottomBar
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.fragment.music.FragmentMusic
+import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.getCurrentFragment
@@ -44,6 +46,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
         private const val MINI_SEEK_UI_THROTTLE_MS = 200
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        handleOpenPlayerFromNotification(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleOpenPlayerFromNotification(intent)
     }
 
     override fun onStart() {
@@ -172,9 +185,34 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
     }
 
-    private fun openMusicFromBottomPlay() {
-        val song = playbackViewModel.playbackState.value.currentSong ?: return
-        playbackViewModel.setPendingOpenFromMiniPlayer()
+    private fun handleOpenPlayerFromNotification(intent: Intent?) {
+        if (intent?.getBooleanExtra(Constants.EXTRA_OPEN_PLAYER_FROM_NOTIFICATION, false) != true) return
+        val songId = intent.getIntExtra(Constants.EXTRA_NOTIFICATION_TARGET_SONG_ID, 0)
+        intent.removeExtra(Constants.EXTRA_OPEN_PLAYER_FROM_NOTIFICATION)
+        intent.removeExtra(Constants.EXTRA_NOTIFICATION_TARGET_SONG_ID)
+        val resolvedId = songId.takeIf { it != 0 }
+            ?: playbackViewModel.playbackState.value.currentSong?.idSong
+            ?: return
+        binding.root.post {
+            val navHost =
+                supportFragmentManager.findFragmentById(R.id.navHostFragment) as? NavHostFragment
+                    ?: return@post
+            val navController = navHost.navController
+            if (navController.currentDestination?.id == R.id.fragmentMusic) {
+                // Đã ở màn player — chỉ mở lại app (task đã lên foreground); không navigate để tránh chồng FragmentMusic.
+                return@post
+            }
+            navigateToFragmentMusic(resolvedId, preservePlaybackWhenOpening = true)
+        }
+    }
+
+    private fun navigateToFragmentMusic(songId: Int, preservePlaybackWhenOpening: Boolean) {
+        val song = playbackViewModel.getPlaylist().find { it.idSong == songId }
+            ?: playbackViewModel.playbackState.value.currentSong
+            ?: return
+        if (preservePlaybackWhenOpening) {
+            playbackViewModel.setPendingOpenFromMiniPlayer()
+        }
         val options = NavOptions.Builder()
             .setEnterAnim(R.anim.slide_up)
             .setExitAnim(R.anim.anim_normal)
@@ -188,6 +226,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
         navController.navigate(R.id.fragmentMusic, bundle, options)
+    }
+
+    private fun openMusicFromBottomPlay() {
+        val song = playbackViewModel.playbackState.value.currentSong ?: return
+        navigateToFragmentMusic(song.idSong, preservePlaybackWhenOpening = true)
     }
 
     private fun applyPlaybackUi(state: PlaybackUiState) {
