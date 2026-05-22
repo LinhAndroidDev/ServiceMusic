@@ -1,9 +1,12 @@
 package com.example.serviceandroid.service
 
 import android.annotation.SuppressLint
+import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.os.Binder
@@ -47,6 +50,7 @@ class MusicService : Service() {
     private var index: Int = -1
     private var tickPosted = false
     private var msSinceNotificationRefresh: Long = 0
+    private var snapshotTickCounter: Int = 0
 
     /** Frequent position updates for UI (lyrics); notification refreshed at [NOTIFICATION_REFRESH_MS]. */
     private val tickIntervalMs = 80L
@@ -73,6 +77,11 @@ class MusicService : Service() {
                         msSinceNotificationRefresh = 0L
                         refreshNotification()
                     }
+                }
+                snapshotTickCounter++
+                if (snapshotTickCounter >= SNAPSHOT_TICKS_INTERVAL) {
+                    snapshotTickCounter = 0
+                    persistPlaybackSnapshot()
                 }
             }
             if (tickPosted) {
@@ -133,7 +142,12 @@ class MusicService : Service() {
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent == null) return START_STICKY
+        if (intent == null) {
+            if (!restorePlaybackFromPersistedState()) {
+                stopSelf()
+            }
+            return START_STICKY
+        }
 
         readReceiverAction(intent)?.let {
             handleAction(it)
@@ -155,6 +169,12 @@ class MusicService : Service() {
             playSongInternal(startSong)
         }
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        // Vuốt app khỏi danh sách gần đây — dừng phát và gỡ notification (user "kill" task).
+        clearInternal()
+        super.onTaskRemoved(rootIntent)
     }
 
     private fun readReceiverAction(intent: Intent): Action? {
@@ -182,6 +202,7 @@ class MusicService : Service() {
     private fun startProgressTicker() {
         if (tickPosted) return
         msSinceNotificationRefresh = 0L
+        snapshotTickCounter = 0
         tickPosted = true
         handler.post(tickRunnable)
     }
@@ -225,7 +246,8 @@ class MusicService : Service() {
             )
         }
         updateMediaSessionPlaybackState()
-        startForeground(1, buildNotification(resolved).build())
+        startForegroundTyped(buildNotification(resolved).build())
+        persistPlaybackSnapshot()
         startProgressTicker()
     }
 
@@ -249,10 +271,16 @@ class MusicService : Service() {
         playbackStateHolder.update { it.copy(isPlaying = false) }
         updateMediaSessionPlaybackState()
         stopProgressTicker()
-        mediaPlayer?.let { refreshNotification() }
+        mediaPlayer?.let {
+            refreshNotification()
+            persistPlaybackSnapshot()
+        }
     }
 
     private fun resumeInternal() {
+        if (mediaPlayer == null && !restorePlaybackFromPersistedState()) {
+            return
+        }
         val mp = mediaPlayer ?: return
         if (!mp.isPlaying) {
             mp.start()
@@ -260,10 +288,12 @@ class MusicService : Service() {
         playbackStateHolder.update { it.copy(isPlaying = true) }
         updateMediaSessionPlaybackState()
         refreshNotification()
+        persistPlaybackSnapshot()
         startProgressTicker()
     }
 
     private fun nextInternal() {
+        ensureActiveSessionOrRestore()
         if (index < 0) return
         if (index < songRepository.lastIndex()) {
             index++
@@ -277,6 +307,7 @@ class MusicService : Service() {
     }
 
     private fun previousInternal() {
+        ensureActiveSessionOrRestore()
         if (index < 0) return
         if (index > 0) {
             index--
@@ -284,6 +315,12 @@ class MusicService : Service() {
             index = songRepository.lastIndex()
         }
         playSongInternal(songRepository.getSong(index))
+    }
+
+    private fun ensureActiveSessionOrRestore() {
+        if (index < 0 || mediaPlayer == null) {
+            restorePlaybackFromPersistedState()
+        }
     }
 
     private fun cancelNextAtEnd() {
@@ -305,22 +342,36 @@ class MusicService : Service() {
         }
         updateMediaSessionPlaybackState()
         refreshNotification()
+        if (mp != null) {
+            persistPlaybackSnapshot()
+        }
     }
 
     private fun clearInternal() {
+        tearDownServicePlayback()
+        stopSelf()
+    }
+
+    private fun tearDownServicePlayback() {
         stopProgressTicker()
-        mediaPlayer?.stop()
+        try {
+            mediaPlayer?.stop()
+        } catch (_: Exception) {
+        }
         mediaPlayer?.release()
         mediaPlayer = null
         index = -1
+        clearPersistedPlayback()
         playbackStateHolder.reset()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-        } else {
-            @Suppress("DEPRECATION")
-            stopForeground(true)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
+        } catch (_: IllegalStateException) {
         }
-        stopSelf()
     }
 
     private fun updateMediaSessionPlaybackState() {
@@ -383,7 +434,85 @@ class MusicService : Service() {
 
     private fun refreshNotification() {
         val song = playbackStateHolder.state.value.currentSong ?: return
-        startForeground(1, buildNotification(song).build())
+        startForegroundTyped(buildNotification(song).build())
+    }
+
+    @SuppressLint("ForegroundServiceType")
+    private fun startForegroundTyped(notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun restorePlaybackFromPersistedState(): Boolean {
+        val sp = getSharedPreferences(PREF_RESTORE, Context.MODE_PRIVATE)
+        if (!sp.getBoolean(KEY_ACTIVE, false)) {
+            return false
+        }
+        val idx = sp.getInt(KEY_QUEUE_INDEX, -1)
+        val posMs = sp.getInt(KEY_POSITION_MS, 0)
+        val wasPlaying = sp.getBoolean(KEY_WAS_PLAYING, false)
+        if (idx < 0 || idx > songRepository.lastIndex()) {
+            clearPersistedPlayback()
+            return false
+        }
+        ensureMediaSession()
+        index = idx
+        val resolved = songRepository.getSong(index)
+        mediaPlayer?.release()
+        val newPlayer = MediaPlayer.create(this, resolved.sing)?.apply {
+            setOnCompletionListener { onTrackCompleted() }
+            isLooping = prefs.getTypeRepeat() == Repeat.REPEAT_ONE
+        } ?: run {
+            clearPersistedPlayback()
+            return false
+        }
+        mediaPlayer = newPlayer
+        val dur = newPlayer.duration.coerceAtLeast(0)
+        val safePos = if (dur > 0) posMs.coerceIn(0, dur) else posMs.coerceAtLeast(0)
+        newPlayer.seekTo(safePos)
+        if (wasPlaying) {
+            newPlayer.start()
+        }
+        playbackStateHolder.update {
+            PlaybackUiState(
+                currentSong = resolved,
+                queueIndex = index,
+                isPlaying = wasPlaying,
+                positionMs = safePos,
+                durationMs = dur,
+                hasActivePlayer = true,
+            )
+        }
+        updateMediaSessionPlaybackState()
+        startForegroundTyped(buildNotification(resolved).build())
+        if (wasPlaying) {
+            startProgressTicker()
+        }
+        return true
+    }
+
+    private fun persistPlaybackSnapshot() {
+        val mp = mediaPlayer ?: return
+        if (index < 0 || index > songRepository.lastIndex()) return
+        val dur = mp.duration
+        val pos = if (dur > 0) mp.currentPosition.coerceIn(0, dur) else mp.currentPosition.coerceAtLeast(0)
+        getSharedPreferences(PREF_RESTORE, Context.MODE_PRIVATE).edit()
+            .putBoolean(KEY_ACTIVE, true)
+            .putInt(KEY_QUEUE_INDEX, index)
+            .putInt(KEY_POSITION_MS, pos)
+            .putBoolean(KEY_WAS_PLAYING, mp.isPlaying)
+            .apply()
+    }
+
+    private fun clearPersistedPlayback() {
+        getSharedPreferences(PREF_RESTORE, Context.MODE_PRIVATE).edit().clear().apply()
     }
 
     private fun pending(action: Action): PendingIntent {
@@ -400,12 +529,21 @@ class MusicService : Service() {
     }
 
     override fun onDestroy() {
-        stopProgressTicker()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        tearDownServicePlayback()
         mediaSession?.setCallback(null)
         mediaSession?.release()
         mediaSession = null
         super.onDestroy()
+    }
+
+    companion object {
+        private const val NOTIFICATION_ID = 1
+        private const val PREF_RESTORE = "music_playback_restore"
+        private const val KEY_ACTIVE = "active"
+        private const val KEY_QUEUE_INDEX = "queue_index"
+        private const val KEY_POSITION_MS = "position_ms"
+        private const val KEY_WAS_PLAYING = "was_playing"
+        /** ~2s at 80ms/tick — đủ để khôi phục vị trí sau process bị kill mà không ghi prefs quá dày. */
+        private const val SNAPSHOT_TICKS_INTERVAL = 25
     }
 }

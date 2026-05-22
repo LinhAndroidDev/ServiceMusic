@@ -51,11 +51,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         playbackViewModel.bind(this)
     }
 
-    override fun onStop() {
-        playbackViewModel.unbind(this)
-        super.onStop()
-    }
-
     override fun initView() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -269,6 +264,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     override fun onDestroy() {
         if (isFinishing && !isChangingConfigurations) {
+            playbackViewModel.unbind(this)
             val intent = android.content.Intent(this, com.example.serviceandroid.service.MusicService::class.java)
             stopService(intent)
         }
