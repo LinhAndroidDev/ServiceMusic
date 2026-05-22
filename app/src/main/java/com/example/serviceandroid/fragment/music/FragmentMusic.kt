@@ -101,9 +101,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             if (!playerControlsAttached) {
                 playerControlsAttached = true
                 CustomAnimator.rotationImage(pb.imgSong)
-                val repeat = viewModel.getTypeRepeat()
-                pb.imgRepeat.setImageResource(repeat.value)
-                setupPlayerInteractions()
+                setupPlayerPageInteractions(pb)
                 pendingInitSongId?.let {
                     initMusic(it)
                     pendingInitSongId = null
@@ -114,6 +112,9 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         binding.playerPager.registerOnPageChangeCallback(playerPagerCallback)
         @Suppress("DEPRECATION")
         binding.playerPager.offscreenPageLimit = 1
+
+        binding.playerTransport.imgRepeat.setImageResource(viewModel.getTypeRepeat().value)
+        setupTransportControls()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -144,20 +145,20 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     private fun handleRepeat() {
-        val pb = playerPageBinding ?: return
+        val transport = binding.playerTransport
         val repeat = viewModel.getTypeRepeat()
         when (repeat) {
             Repeat.NOT_REPEAT -> {
                 viewModel.saveTypeRepeat(Repeat.REPEAT_ALL)
-                pb.imgRepeat.setImageResource(R.drawable.ic_repeat_all)
+                transport.imgRepeat.setImageResource(R.drawable.ic_repeat_all)
             }
             Repeat.REPEAT_ALL -> {
                 viewModel.saveTypeRepeat(Repeat.REPEAT_ONE)
-                pb.imgRepeat.setImageResource(R.drawable.ic_repeat_one)
+                transport.imgRepeat.setImageResource(R.drawable.ic_repeat_one)
             }
             Repeat.REPEAT_ONE -> {
                 viewModel.saveTypeRepeat(Repeat.NOT_REPEAT)
-                pb.imgRepeat.setImageResource(R.drawable.ic_not_repeat)
+                transport.imgRepeat.setImageResource(R.drawable.ic_not_repeat)
             }
         }
         playbackViewModel.syncRepeatMode(requireContext())
@@ -169,17 +170,17 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
     }
 
-    private fun setupPlayerInteractions() {
-        val pb = playerPageBinding ?: return
+    private fun setupTransportControls() {
+        val transport = binding.playerTransport
 
-        pb.imgNext.setOnClickListener {
+        transport.imgNext.setOnClickListener {
             playbackViewModel.next(requireContext())
         }
-        pb.imgPrevious.setOnClickListener {
+        transport.imgPrevious.setOnClickListener {
             playbackViewModel.previous(requireContext())
         }
 
-        pb.imgPlay.setOnClickListener {
+        transport.imgPlay.setOnClickListener {
             CustomAnimator.endAnimation(rotate45) {
                 val st = playbackViewModel.playbackState.value
                 if (!st.isPlaying) {
@@ -188,14 +189,14 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                     playbackViewModel.pause(requireContext())
                 }
             }
-            pb.imgPlay.startAnimation(rotate45)
+            transport.imgPlay.startAnimation(rotate45)
         }
 
-        pb.imgRepeat.setOnClickListener {
+        transport.imgRepeat.setOnClickListener {
             handleRepeat()
         }
 
-        pb.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        transport.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     playbackViewModel.seekTo(requireContext(), progress)
@@ -207,7 +208,9 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
 
             override fun onStopTrackingTouch(p0: SeekBar?) {}
         })
+    }
 
+    private fun setupPlayerPageInteractions(pb: ItemMusicPlayerPageBinding) {
         pb.imgFavourite.setOnClickListener {
             val song = playbackViewModel.playbackState.value.currentSong ?: return@setOnClickListener
             if (!isFavourite) {
@@ -282,7 +285,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             setTotalTimeFromDuration(duration)
             lastDurationLabelMs = duration
             val pos = st.positionMs.coerceIn(0, duration)
-            pb.progressMusic.progress = pos
+            binding.playerTransport.progressMusic.progress = pos
             setProgressTime(pos)
             lastSeekUiSyncedMs = pos
         }
@@ -415,11 +418,11 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             bindSongMetadata(song)
             viewModel.checkSongById(song.idSong)
         }
-        val pb = playerPageBinding ?: return
+        val transport = binding.playerTransport
         if (state.durationMs > 0) {
             val pos = state.positionMs.coerceIn(0, state.durationMs)
-            if (pb.progressMusic.max != state.durationMs) {
-                pb.progressMusic.max = state.durationMs
+            if (transport.progressMusic.max != state.durationMs) {
+                transport.progressMusic.max = state.durationMs
                 lastSeekUiSyncedMs = Int.MIN_VALUE
             }
             val forceSeekUi = !state.isPlaying ||
@@ -427,7 +430,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                 kotlin.math.abs(pos - lastSeekUiSyncedMs) >= SEEK_UI_THROTTLE_MS
             if (forceSeekUi) {
                 lastSeekUiSyncedMs = pos
-                pb.progressMusic.progress = pos
+                transport.progressMusic.progress = pos
                 setProgressTime(pos)
             }
             if (state.durationMs != lastDurationLabelMs) {
@@ -441,28 +444,26 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
 
     @SuppressLint("SimpleDateFormat")
     private fun setProgressTime(currentPosition: Int) {
-        playerPageBinding?.tvProgressTime?.text =
+        binding.playerTransport.tvProgressTime.text =
             SimpleDateFormat(Constants.MINUTES).format(currentPosition)
     }
 
     @SuppressLint("SimpleDateFormat")
     private fun setTotalTimeFromDuration(durationMs: Int) {
-        playerPageBinding?.tvTotalTime?.text =
+        binding.playerTransport.tvTotalTime.text =
             SimpleDateFormat(Constants.MINUTES).format(durationMs)
     }
 
     private fun setMaxProgress(duration: Int) {
-        playerPageBinding?.progressMusic?.apply {
-            max = duration
-        }
+        binding.playerTransport.progressMusic.max = duration
     }
 
     private fun startMusic() {
-        playerPageBinding?.imgPlay?.setImageResource(R.drawable.ic_pause_music)
+        binding.playerTransport.imgPlay.setImageResource(R.drawable.ic_pause_music)
     }
 
     private fun pauseMusic() {
-        playerPageBinding?.imgPlay?.setImageResource(R.drawable.ic_play_music)
+        binding.playerTransport.imgPlay.setImageResource(R.drawable.ic_play_music)
     }
 
     private fun resetFavourite() {
