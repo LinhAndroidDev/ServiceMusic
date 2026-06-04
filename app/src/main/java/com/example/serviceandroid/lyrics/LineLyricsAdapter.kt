@@ -32,8 +32,9 @@ class LineLyricsAdapter(
         val root = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_lyric_line, parent, false) as ViewGroup
         root.clipChildren = false
+        val highlightBg = root.findViewById<View>(R.id.lyricHighlightBg)
         val tv = root.findViewById<TextView>(R.id.tvLine)
-        return VH(root, tv)
+        return VH(root, highlightBg, tv)
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
@@ -92,6 +93,7 @@ class LineLyricsAdapter(
 
     class VH(
         root: ViewGroup,
+        private val highlightBg: View,
         private val tv: TextView,
     ) : RecyclerView.ViewHolder(root) {
 
@@ -118,8 +120,8 @@ class LineLyricsAdapter(
             } else {
                 tv.setTextColor(defaultColor)
             }
-            applyHighlightChrome(tv, selected)
-            tv.post { animateScaleForSelection(selected) }
+            applyHighlightChrome(highlightBg, tv, selected)
+            tv.post { animateTextScaleForSelection(selected) }
             val listener = onLineClick
             itemView.setOnClickListener(
                 if (listener != null) View.OnClickListener { listener(line) } else null,
@@ -131,11 +133,11 @@ class LineLyricsAdapter(
             cancelColorAnimator(tv)
             val target = if (selected) activeColor else defaultColor
             animateTextColor(tv, tv.currentTextColor, target, COLOR_DURATION_MS)
-            applyHighlightChrome(tv, selected)
-            tv.post { animateScaleForSelection(selected) }
+            applyHighlightChrome(highlightBg, tv, selected)
+            tv.post { animateTextScaleForSelection(selected) }
         }
 
-        private fun animateScaleForSelection(selected: Boolean) {
+        private fun animateTextScaleForSelection(selected: Boolean) {
             applyPivotLeftAligned(tv)
             if (selected) {
                 tv.scaleX = IDLE_SCALE
@@ -192,18 +194,21 @@ class LineLyricsAdapter(
             anim.start()
         }
 
-        private fun applyHighlightChrome(tv: TextView, selected: Boolean) {
+        private fun applyHighlightChrome(highlightBg: View, tv: TextView, selected: Boolean) {
             val d = tv.resources.displayMetrics.density
             if (selected) {
-                tv.setBackgroundResource(R.drawable.bg_lyric_line_highlight)
+                highlightBg.setBackgroundResource(R.drawable.bg_lyric_line_highlight)
+                highlightBg.visibility = View.VISIBLE
+                highlightBg.alpha = 1f
                 tv.setShadowLayer(6f * d, 0f, 1f * d, Color.argb(90, 40, 40, 40))
             } else {
-                tv.background = null
+                highlightBg.background = null
+                highlightBg.visibility = View.GONE
                 tv.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
             }
         }
 
-        /** Scale from the logical start edge so lines stay start-aligned. */
+        /** Scale text from the start edge so lines stay left-aligned. */
         private fun applyPivotLeftAligned(view: TextView) {
             view.pivotX = view.paddingStart.toFloat()
             val h = view.height
