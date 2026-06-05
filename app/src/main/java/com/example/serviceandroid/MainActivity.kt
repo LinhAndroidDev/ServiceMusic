@@ -39,7 +39,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     private val playbackViewModel by viewModels<PlaybackViewModel>()
 
     /** Avoid mini-player work every playback tick (reduces layout jank in FragmentMusic). */
-    private var lastMiniPlayerSongId: Int = -1
+    private var lastMiniPlayerSongId: String? = null
     private var lastMiniPlayerSeekSyncedMs: Int = Int.MIN_VALUE
     private var lastMiniPlayerSeekSequence: Long = -1L
 
@@ -81,11 +81,20 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
 
         val adapterInfoSong = InformationSongAdapter()
-        adapterInfoSong.items = playbackViewModel.getPlaylist()
         adapterInfoSong.onClickView = {
             openMusicFromBottomPlay()
         }
         binding.viewPagerInfoSong.adapter = adapterInfoSong
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playbackViewModel.playlistLoading.collect { loading ->
+                    if (!loading) {
+                        adapterInfoSong.items = playbackViewModel.getPlaylist().toMutableList()
+                        adapterInfoSong.notifyDataSetChanged()
+                    }
+                }
+            }
+        }
 
         binding.viewPagerInfoSong.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
@@ -187,11 +196,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     private fun handleOpenPlayerFromNotification(intent: Intent?) {
         if (intent?.getBooleanExtra(Constants.EXTRA_OPEN_PLAYER_FROM_NOTIFICATION, false) != true) return
-        val songId = intent.getIntExtra(Constants.EXTRA_NOTIFICATION_TARGET_SONG_ID, 0)
+        val songId = intent.getStringExtra(Constants.EXTRA_NOTIFICATION_TARGET_SONG_ID).orEmpty()
         intent.removeExtra(Constants.EXTRA_OPEN_PLAYER_FROM_NOTIFICATION)
         intent.removeExtra(Constants.EXTRA_NOTIFICATION_TARGET_SONG_ID)
-        val resolvedId = songId.takeIf { it != 0 }
-            ?: playbackViewModel.playbackState.value.currentSong?.idSong
+        val resolvedId = songId.takeIf { it.isNotBlank() }
+            ?: playbackViewModel.playbackState.value.currentSong?.id
             ?: return
         binding.root.post {
             val navHost =
@@ -206,8 +215,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
     }
 
-    private fun navigateToFragmentMusic(songId: Int, preservePlaybackWhenOpening: Boolean) {
-        val song = playbackViewModel.getPlaylist().find { it.idSong == songId }
+    private fun navigateToFragmentMusic(songId: String, preservePlaybackWhenOpening: Boolean) {
+        val song = playbackViewModel.getPlaylist().find { it.id == songId }
             ?: playbackViewModel.playbackState.value.currentSong
             ?: return
         if (preservePlaybackWhenOpening) {
@@ -220,7 +229,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             .setPopExitAnim(R.anim.slide_down)
             .build()
         val bundle = Bundle().apply {
-            putInt("id_music", song.idSong)
+            putString("song_id", song.id)
         }
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
@@ -230,7 +239,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     private fun openMusicFromBottomPlay() {
         val song = playbackViewModel.playbackState.value.currentSong ?: return
-        navigateToFragmentMusic(song.idSong, preservePlaybackWhenOpening = true)
+        navigateToFragmentMusic(song.id, preservePlaybackWhenOpening = true)
     }
 
     private fun applyPlaybackUi(state: PlaybackUiState) {
@@ -249,13 +258,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
 
         state.currentSong?.let { song ->
-            if (song.idSong != lastMiniPlayerSongId) {
-                lastMiniPlayerSongId = song.idSong
-                binding.avatar.setImageResource(song.avatar)
+            if (song.id != lastMiniPlayerSongId) {
+                lastMiniPlayerSongId = song.id
+                com.bumptech.glide.Glide.with(this)
+                    .load(song.thumbnailUrl)
+                    .placeholder(R.drawable.ic_circle)
+                    .error(R.drawable.ic_circle)
+                    .into(binding.avatar)
                 lastMiniPlayerSeekSyncedMs = Int.MIN_VALUE
             }
         } ?: run {
-            lastMiniPlayerSongId = -1
+            lastMiniPlayerSongId = null
             lastMiniPlayerSeekSyncedMs = Int.MIN_VALUE
         }
 

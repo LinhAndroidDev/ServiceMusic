@@ -51,7 +51,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private val fadeIn by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.anim_fade_in) }
     private val rotate45 by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.rotation_45) }
     private var isFavourite: Boolean = false
-    private var lastRenderedSongId: Int? = null
+    private var lastRenderedSongId: String? = null
 
     private lateinit var pagerAdapter: MusicNowPlayingPagerAdapter
     private var playerPageBinding: ItemMusicPlayerPageBinding? = null
@@ -68,7 +68,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private var lastLyricsScrollAnchor: Int = Int.MIN_VALUE
     /** When [PlaybackUiState.seekSequence] changes, SeekBar throttling is bypassed so bars jump to seek target. */
     private var lastPlaybackSeekSequence: Long = -1L
-    private var pendingInitSongId: Int? = null
+    private var pendingInitSongId: String? = null
 
     private val playerPagerCallback = object : ViewPager2.OnPageChangeCallback() {
         override fun onPageSelected(position: Int) {
@@ -89,12 +89,10 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     override fun initView() {
-        val idSong = if (args.idMusic == 0) {
-            arguments?.getInt("id_music") ?: 0
-        } else {
-            args.idMusic
+        val songId = args.songId.ifBlank {
+            arguments?.getString("song_id").orEmpty()
         }
-        pendingInitSongId = idSong
+        pendingInitSongId = songId.takeIf { it.isNotBlank() }
 
         pagerAdapter = MusicNowPlayingPagerAdapter { pb ->
             playerPageBinding = pb
@@ -227,7 +225,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                 DialogConfirm().apply {
                     title = song.title
                     onClickRemove = {
-                        viewModel.deleteSongById(song.idSong) {
+                        viewModel.deleteSongById(song.id) {
                             if (!this@FragmentMusic.isAdded) return@deleteSongById
                             playbackViewModel.refreshMiniPlayerFavouriteForCurrentSong()
                             Toast.makeText(
@@ -242,10 +240,10 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
     }
 
-    private fun initMusic(idSong: Int) {
+    private fun initMusic(songId: String) {
         if (playerPageBinding == null) return
         resetFavourite()
-        val resolvedIndex = playbackViewModel.resolveQueueIndexForSongId(idSong)
+        val resolvedIndex = playbackViewModel.resolveQueueIndexForSongId(songId)
         val song = playbackViewModel.getPlaylist()[resolvedIndex]
         val fromMini = playbackViewModel.consumePendingOpenFromMiniPlayer()
         val st = playbackViewModel.playbackState.value
@@ -258,23 +256,27 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
 
         bindSongMetadata(song)
-        viewModel.checkSongById(song.idSong)
+        viewModel.checkSongById(song.id)
     }
 
     private fun bindSongMetadata(song: Song) {
         val pb = playerPageBinding ?: return
-        lastRenderedSongId = song.idSong
+        lastRenderedSongId = song.id
         lastActiveLineIndex = Int.MIN_VALUE
         lastSeekUiSyncedMs = Int.MIN_VALUE
         lastDurationLabelMs = -1
         lastLyricsScrollAnchor = Int.MIN_VALUE
         lastPlaybackSeekSequence = -1L
         Glide.with(this)
-            .load(song.avatar)
+            .load(song.thumbnailUrl)
             .error(R.drawable.ic_circle)
             .placeholder(R.drawable.ic_circle)
             .into(pb.imgSong)
-        binding.imageCover.setImageResource(song.avatar)
+        Glide.with(this)
+            .load(song.thumbnailUrl)
+            .error(R.drawable.ic_circle)
+            .placeholder(R.drawable.ic_circle)
+            .into(binding.imageCover)
         pb.imgSong.startAnimation(fadeIn)
         pb.tvNameSong.text = song.title
         pb.tvNameSinger.text = song.nameSinger
@@ -350,10 +352,10 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         lyricLines = null
         lastActiveLineIndex = Int.MIN_VALUE
         rv.adapter = null
-        val targetSongId = song.idSong
+        val targetSongId = song.id
         viewLifecycleOwner.lifecycleScope.launch {
             val lines = withContext(Dispatchers.IO) {
-                SongLyricsLoader.loadTimedLines(requireContext(), song)
+                SongLyricsLoader.loadTimedLines(song)
             }
             if (!isAdded) return@launch
             if (lastRenderedSongId != targetSongId) return@launch
@@ -414,9 +416,9 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             lastSeekUiSyncedMs = Int.MIN_VALUE
         }
         val song = state.currentSong ?: return
-        if (song.idSong != lastRenderedSongId) {
+        if (song.id != lastRenderedSongId) {
             bindSongMetadata(song)
-            viewModel.checkSongById(song.idSong)
+            viewModel.checkSongById(song.id)
         }
         val transport = binding.playerTransport
         if (state.durationMs > 0) {

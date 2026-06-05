@@ -1,6 +1,6 @@
 # ServiceMusic
 
-Ứng dụng Android mẫu phát nhạc cục bộ (raw resources), kết hợp **Foreground Service**, **MediaStyle notification**, **Navigation Component** và kiến trúc **MVVM** cùng **Dagger Hilt**.
+Ứng dụng Android phát nhạc online qua **Firestore**, stream audio bằng **MediaPlayer**, kết hợp **Foreground Service**, **MediaStyle notification**, **Navigation Component** và kiến trúc **MVVM** cùng **Dagger Hilt**.
 
 ## Mục lục
 
@@ -24,14 +24,16 @@
 | JDK | 8+ (project dùng `jvmTarget = 1.8`) |
 | Android SDK | `compileSdk` / `targetSdk` **34** |
 | Thiết bị / emulator | **API 26+** (`minSdk = 26`) |
+| Firebase | `google-services.json` khớp `applicationId` |
 
 ---
 
 ## Cách chạy dự án
 
 1. Clone hoặc mở thư mục dự án trong Android Studio.
-2. Đồng bộ Gradle (**File → Sync Project with Gradle Files**).
-3. Chọn variant **debug**, chọn thiết bị/emulator, bấm **Run**.
+2. Đặt `app/google-services.json` (Firebase project đã cấu hình Firestore theo [`ANDROID_INTEGRATION.md`](app/ANDROID_INTEGRATION.md)).
+3. Đồng bộ Gradle (**File → Sync Project with Gradle Files**).
+4. Chọn variant **debug**, thiết bị/emulator có mạng, bấm **Run**.
 
 > **Lưu ý:** Trên Android 13+ cần cấp quyền **POST_NOTIFICATIONS** để hiển thị notification media đầy đủ.
 
@@ -40,12 +42,13 @@
 ## Tính năng chính
 
 - **Khám phá / Thư viện / #zingchart / Radio / Cá nhân** — điều hướng bằng bottom bar và Navigation Graph.
-- **Danh sách nhạc demo** — nguồn dữ liệu tĩnh qua `SongRepository` (hiện bọc `Data.listMusic()`).
-- **Phát nhạc** — `MusicService` (foreground) sở hữu `MediaPlayer`, cập nhật trạng thái qua `PlaybackStateHolder` (`StateFlow`).
-- **Mini player** trên `MainActivity` — đồng bộ với service qua `PlaybackViewModel` + `MusicServiceConnector` (bind + `startForegroundService`).
-- **Màn hình phát đầy đủ** — `FragmentMusic` (seek, next/prev, repeat, yêu thích với Room).
-- **Yêu thích** — Room + `FavouriteSongRepository`.
-- **Biểu đồ / tùy chỉnh UI** — MPAndroidChart, bottom sheet, v.v.
+- **Catalog online** — `FirestoreMusicRepository` đọc `songs`, `singers`, `categories`; `SongRepository` cache playlist trong memory.
+- **Phát nhạc stream** — `MusicService` dùng `MediaPlayer.setDataSource(audioUrl)` + `prepareAsync()`, tăng `views` khi bắt đầu phát.
+- **Mini player** trên `MainActivity` — đồng bộ với service qua `PlaybackViewModel` + `MusicServiceConnector`.
+- **Màn hình phát đầy đủ** — `FragmentMusic` (seek, next/prev, repeat, lyric remote, yêu thích Room).
+- **Tìm kiếm** — prefix query Firestore theo tiêu đề bài hát.
+- **Yêu thích** — Room v3 (`SongEntity` với Firestore `id` + URL fields).
+- **Ảnh bìa / lyric** — Glide `thumbnailUrl`; lyric tải HTTP từ `lyricUrl` + `LrcLineParser`.
 
 ---
 
@@ -53,30 +56,36 @@
 
 ### MVVM
 
-- **Activity / Fragment:** chủ yếu binding UI, gọi ViewModel, `collect` state.
+- **Activity / Fragment:** binding UI, gọi ViewModel, `collect` state.
 - **ViewModel (`@HiltViewModel`):** logic màn hình, coroutine (`viewModelScope`).
-- **Repository:** tách nguồn dữ liệu (`SongRepository`, `FavouriteSongRepository`, `SharePreferenceRepository`).
+- **Repository:** `FirestoreMusicRepository`, `SongRepository`, `FavouriteSongRepository`, `SharePreferenceRepository`.
 
-### Phát nhạc (tóm tắt)
+### Luồng dữ liệu (tóm tắt)
 
 ```text
+UI (Home / ZingChart / Search)
+    → ViewModel.refreshPlaylist / search
+        → SongRepository / FirestoreMusicRepository
+            → Firestore
+
 UI (MainActivity / FragmentMusic)
     → PlaybackViewModel
-        → MusicServiceConnector (bind + startForegroundService)
-            → MusicService (MediaPlayer, notification, MediaSessionCompat.Callback)
+        → MusicServiceConnector
+            → MusicService (MediaPlayer stream, notification, incrementViews)
                 → PlaybackStateHolder (StateFlow)
     ← UI collect playbackState
 ```
 
-- **`PlaybackStateHolder`:** một snapshot UI (`PlaybackUiState`: bài hát hiện tại, index, `isPlaying`, `positionMs`, `durationMs`, …).
-- **`MusicServiceConnector`:** `bind`/`unbind` trong lifecycle Activity; gửi lệnh tới service (binder hoặc intent).
-- **`MusicService`:** `Foreground Service` (`mediaPlayback`), `MediaStyle`, điều khiển qua **MediaSession callback** và **PendingIntent.getForegroundService** tới chính service.
+- **`PlaybackStateHolder`:** snapshot UI (`PlaybackUiState`: bài hát, index, `isPlaying`, `positionMs`, `durationMs`, …).
+- **`MusicService`:** Foreground Service (`mediaPlayback`), stream URL, Glide thumbnail cho notification.
 
 ### Dependency Injection (Hilt)
 
 - `@HiltAndroidApp` — `MyApplication`
-- `@AndroidEntryPoint` — `MainActivity`, các `Fragment` / `Service` cần inject
-- Module: [`AppModule`](app/src/main/java/com/example/serviceandroid/di/AppModule.kt), [`DatabaseModule`](app/src/main/java/com/example/serviceandroid/di/DatabaseModule.kt)
+- `@AndroidEntryPoint` — `MainActivity`, Fragment, `MusicService`
+- Module: [`AppModule`](app/src/main/java/com/example/serviceandroid/di/AppModule.kt), [`DatabaseModule`](app/src/main/java/com/example/serviceandroid/di/DatabaseModule.kt), [`FirebaseModule`](app/src/main/java/com/example/serviceandroid/di/FirebaseModule.kt)
+
+Chi tiết schema Firestore và query: [`app/ANDROID_INTEGRATION.md`](app/ANDROID_INTEGRATION.md).
 
 ---
 
@@ -84,42 +93,32 @@ UI (MainActivity / FragmentMusic)
 
 | Package / thư mục | Vai trò |
 |-------------------|--------|
-| `base/` | `BaseActivity`, `BaseFragment`, `CoreInterface` |
-| `playback/` | `PlaybackViewModel`, `PlaybackStateHolder`, `PlaybackUiState`, `MusicServiceConnector` |
-| `service/` | `MusicService` — foreground, media, notification |
-| `data/repository/` | `SongRepository` + implementation |
-| `database/` | Room (`MusicDatabase`, DAO, entity) |
-| `database/repository/` | `FavouriteSongRepository` |
-| `fragment/*` | Các màn theo feature + ViewModel tương ứng |
-| `di/` | Hilt `@Module` |
-| `helper/` | `Constants`, `Data`, `MyApplication` |
-| `model/` | `Song`, `Action`, `Repeat`, … |
-| `adapter/` | RecyclerView / ViewPager adapters |
-| `utils/` | Tiện ích, SharedPreferences abstraction, `getCurrentFragment()` |
-
-> Điều khiển media trên notification dùng **PendingIntent.getForegroundService** trực tiếp tới `MusicService` (không qua `BroadcastReceiver`).
+| `data/firestore/` | `FirestoreSong`, `FirestoreMusicRepository` |
+| `data/repository/` | `SongRepository` cache playlist |
+| `playback/` | `PlaybackViewModel`, `PlaybackStateHolder`, `MusicServiceConnector` |
+| `service/` | `MusicService` — foreground, stream, notification |
+| `database/` | Room favourites v3 |
+| `fragment/*` | Các màn theo feature + ViewModel |
+| `lyrics/` | `SongLyricsLoader`, `LrcLineParser` |
+| `di/` | Hilt modules (App, Database, Firebase) |
+| `helper/` | `Constants`, `MyApplication` |
+| `model/` | `Song` (String id, URLs), `Action`, `Repeat`, … |
 
 ---
 
 ## Phát nhạc & thông báo
 
-- **Kênh notification:** `MyApplication.CHANNEL_ID` — tạo khi app khởi động (importance phù hợp media).
-- **Notification:** `NotificationCompat` + `MediaStyle` + `MediaSessionCompat` token.
-- **Nút Previous / Play-Pause / Next:**  
-  - `MediaSessionCompat.Callback` (play, pause, skip)  
-  - `addAction` + `PendingIntent.getForegroundService` → `MusicService` với extra `RECEIVER_ACTION_MUSIC`.
-
-Đảm bảo service khai báo `android:foregroundServiceType="mediaPlayback"` trong manifest (đã có).
+- **Audio:** stream từ `Song.audioUrl` (HTTPS).
+- **Notification:** `MediaStyle` + Glide `thumbnailUrl` + tap mở `FragmentMusic` với `song_id`.
+- **Khôi phục:** snapshot `queueIndex` + `positionMs` trong SharedPreferences khi process bị kill.
 
 ---
 
 ## Quyền (Permissions)
 
-Trong [`AndroidManifest.xml`](app/src/main/AndroidManifest.xml) gồm (không đầy đủ liệt kê tại đây):
-
 - `POST_NOTIFICATIONS` — Android 13+
 - `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_MEDIA_PLAYBACK`
-- `INTERNET`, v.v.
+- `INTERNET` — Firestore, stream audio, lyric, ảnh
 
 ---
 
@@ -133,7 +132,7 @@ Trong [`AndroidManifest.xml`](app/src/main/AndroidManifest.xml) gồm (không đ
 ./gradlew :app:compileDebugKotlin
 ```
 
-Unit test / Android test mặc định của template có thể chạy qua Android Studio (**Run tests**).
+Kiểm thử thủ công: phát/nền/notification/seek/favourite/search/top chart/views increment.
 
 ---
 

@@ -83,7 +83,7 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
                 DialogConfirm().apply {
                     title = adapterFavouriteSong.items[index].title
                     onClickRemove = {
-                        viewModel.deleteSongById(adapterFavouriteSong.items[index].idSong) {
+                        viewModel.deleteSongById(adapterFavouriteSong.items[index].id) {
                             notifyDataSetChanged()
                         }
                     }
@@ -95,7 +95,7 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
                     DialogConfirm().apply {
                         title = song.title
                         onClickRemove = {
-                            viewModel.deleteSongById(song.idSong) {
+                            viewModel.deleteSongById(song.id) {
                                 Toast.makeText(
                                     requireActivity(),
                                     "Đã xoá khỏi bài hát yêu thích",

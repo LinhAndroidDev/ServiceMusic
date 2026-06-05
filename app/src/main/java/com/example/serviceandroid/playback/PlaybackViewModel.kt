@@ -28,18 +28,30 @@ class PlaybackViewModel @Inject constructor(
     private val _miniPlayerIsFavourite = MutableStateFlow(false)
     val miniPlayerIsFavourite: StateFlow<Boolean> = _miniPlayerIsFavourite.asStateFlow()
 
-    private var lastSongIdForFavouriteCheck: Int? = null
+    private val _playlistLoading = MutableStateFlow(false)
+    val playlistLoading: StateFlow<Boolean> = _playlistLoading.asStateFlow()
+
+    private var lastSongIdForFavouriteCheck: String? = null
 
     init {
+        refreshPlaylist()
         viewModelScope.launch {
             playbackState.collect { st ->
-                val id = st.currentSong?.idSong
+                val id = st.currentSong?.id
                 if (id != lastSongIdForFavouriteCheck) {
                     lastSongIdForFavouriteCheck = id
                     _miniPlayerIsFavourite.value =
                         id?.let { favouriteSongRepository.checkSongById(it) } ?: false
                 }
             }
+        }
+    }
+
+    fun refreshPlaylist() {
+        viewModelScope.launch {
+            _playlistLoading.value = true
+            songRepository.refreshPlaylist()
+            _playlistLoading.value = false
         }
     }
 
@@ -52,17 +64,21 @@ class PlaybackViewModel @Inject constructor(
     fun consumePendingOpenFromMiniPlayer(): Boolean =
         stateHolder.consumePendingOpenFromMiniPlayer()
 
-    fun getPlaylist(): ArrayList<Song> = songRepository.getPlaylist()
+    fun getPlaylist(): List<Song> = songRepository.getPlaylist()
 
-    fun resolveQueueIndexForSongId(idSong: Int): Int {
-        val idx = songRepository.getPlaylist().indexOfFirst { it.idSong == idSong }
+    fun resolveQueueIndexForSongId(songId: String): Int {
+        if (songId.isBlank()) return 0
+        val idx = songRepository.getPlaylist().indexOfFirst { it.id == songId }
         return if (idx < 0) 0 else idx
     }
 
     fun playSong(context: Context, song: Song) = connector.playSong(context, song)
 
     fun playSongAtIndex(context: Context, index: Int) {
-        val safe = index.coerceIn(0, songRepository.lastIndex())
+        if (!songRepository.isLoaded()) return
+        val last = songRepository.lastIndex()
+        if (last < 0) return
+        val safe = index.coerceIn(0, last)
         connector.playSong(context, songRepository.getSong(safe))
     }
 
@@ -82,9 +98,6 @@ class PlaybackViewModel @Inject constructor(
 
     fun syncRepeatMode(context: Context) = connector.syncRepeatMode(context)
 
-    /**
-     * Bottom mini-player play button: matches legacy MainActivity logic.
-     */
     fun toggleBottomPlayPause(context: Context, progress: Int, max: Int, isPlaying: Boolean) {
         when {
             max in 1..progress && !isPlaying -> {
@@ -96,24 +109,18 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Re-read favourite state from DB for the track currently playing (mini player), e.g. after add/remove on full-screen player.
-     */
     fun refreshMiniPlayerFavouriteForCurrentSong() {
         viewModelScope.launch {
-            val id = stateHolder.state.value.currentSong?.idSong
+            val id = stateHolder.state.value.currentSong?.id
             _miniPlayerIsFavourite.value =
                 id?.let { favouriteSongRepository.checkSongById(it) } ?: false
         }
     }
 
-    /**
-     * Mini player favourite: toggle Room favourite for [song]. [onFinished] receives true if song is now favourite, false if removed.
-     */
     fun toggleCurrentSongFavourite(song: Song, onFinished: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
-            val nowFavourite = if (favouriteSongRepository.checkSongById(song.idSong)) {
-                favouriteSongRepository.deleteSongById(song.idSong)
+            val nowFavourite = if (favouriteSongRepository.checkSongById(song.id)) {
+                favouriteSongRepository.deleteSongById(song.id)
                 false
             } else {
                 favouriteSongRepository.insertSong(song, DateUtils.getTimeCurrent())

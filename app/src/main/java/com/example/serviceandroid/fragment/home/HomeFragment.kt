@@ -6,7 +6,9 @@ import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearSnapHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -57,14 +59,30 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
          */
         ExtensionFunctions.gradientTextColor(binding.tvZingChat)
 
-        initializeViews()
-    }
-
-    private fun initializeViews() {
         initAdvertisement()
         initTopic()
-        initNewRelease()
-        initNewUpdate()
+        observePlaylist()
+    }
+
+    private fun observePlaylist() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.playlist.collect { songs ->
+                    if (songs.isEmpty()) return@collect
+                    if (!::adapterNational.isInitialized) {
+                        initNewRelease(songs)
+                        initNewUpdate(songs)
+                    } else {
+                        adapterNational.resetList(songsToHashMap(ArrayList(songs)))
+                        resetMusicInterNational()
+                        (binding.rcvNewupdate.adapter as? PagerNewReleaseAdapter)?.let { adapter ->
+                            adapter.items = ArrayList(songs.take(5))
+                            adapter.notifyDataSetChanged()
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -144,12 +162,12 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     }
 
     @SuppressLint("NotifyDataSetChanged")
-    private fun initNewUpdate() {
+    private fun initNewUpdate(songs: List<Song>) {
         val adapter = PagerNewReleaseAdapter(requireActivity(), type = TypeList.TYPE_NEW_UPDATE)
-        adapter.items = viewModel.getPlaylist().take(5) as ArrayList<Song>
+        adapter.items = ArrayList(songs.take(5))
         binding.rcvNewupdate.adapter = adapter
         adapter.onClickItem = {
-            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(idMusic = it)
+            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = it)
             findNavController().navigate(action)
         }
         adapter.onClickMoreOption = { song ->
@@ -165,12 +183,12 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
     }
 
-    private fun initNewRelease() {
+    private fun initNewRelease(songs: List<Song>) {
         adapterNational = PagerNationalAdapter(requireActivity(), type = TypeList.TYPE_NATIONAL)
-        adapterNational.pagerSong = songsToHashMap(viewModel.getPlaylist())
+        adapterNational.pagerSong = songsToHashMap(ArrayList(songs))
         binding.pagerNewRelease.adapter = adapterNational
         adapterNational.onClickItem = {
-            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(idMusic = it)
+            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = it)
             findNavController().navigate(action)
         }
         adapterNational.onClickMoreOption = { song ->
@@ -190,7 +208,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         DialogConfirm().apply {
             title = song.title
             onClickRemove = {
-                viewModel.deleteSongById(song.idSong) {
+                viewModel.deleteSongById(song.id) {
                     Toast.makeText(
                         requireActivity(),
                         "Đã xoá khỏi bài hát yêu thích",

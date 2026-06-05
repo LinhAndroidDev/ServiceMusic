@@ -9,21 +9,22 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FavouriteSongDao {
-    @Query("SELECT * FROM songEntity")
-    suspend fun getAll(): List<SongEntity>?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSong(song: SongEntity)
 
     @Query("SELECT * FROM songEntity")
-    fun observeAllEntities(): Flow<List<SongEntity>>
+    suspend fun getAll(): List<SongEntity>?
 
     @Query("SELECT COUNT(*) FROM songEntity")
     fun observeFavouriteCount(): Flow<Int>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSong(songEntity: SongEntity)
+    @Query("SELECT * FROM songEntity")
+    fun observeAllEntities(): Flow<List<SongEntity>>
 
-    @Query("DELETE FROM songEntity WHERE idSong = :id")
-    suspend fun deleteSongById(id: Int)
+    @Query("DELETE FROM songEntity WHERE id = :id")
+    suspend fun deleteSongById(id: String)
 
-    @Query("SELECT * FROM songEntity WHERE idSong = :id")
-    suspend fun checkSongById(id: Int): SongEntity?
+    @Query("SELECT * FROM songEntity WHERE id = :id")
+    suspend fun checkSongById(id: String): SongEntity?
 }

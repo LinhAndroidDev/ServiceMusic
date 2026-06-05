@@ -15,6 +15,7 @@ class CustomSearchView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : RelativeLayout(context, attrs, defStyleAttr) {
     private var binding: CustomSearchViewBinding? = null
+    var onQueryChanged: ((String) -> Unit)? = null
 
     init {
         binding = CustomSearchViewBinding.inflate(LayoutInflater.from(context))
@@ -25,6 +26,7 @@ class CustomSearchView @JvmOverloads constructor(
     private fun initView() {
         binding?.search?.doOnTextChanged { text, _, _, _ ->
             binding?.removeText?.isVisible = text?.isNotEmpty() == true
+            onQueryChanged?.invoke(text?.toString().orEmpty())
         }
 
         binding?.removeText?.setOnClickListener {

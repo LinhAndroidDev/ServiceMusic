@@ -35,6 +35,15 @@
             android:layout_marginEnd="15dp" />
     </LinearLayout>
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rcvSearchResults"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/header"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:visibility="gone" />
+
     <RelativeLayout
         android:id="@+id/contentView"
         android:layout_width="match_parent"

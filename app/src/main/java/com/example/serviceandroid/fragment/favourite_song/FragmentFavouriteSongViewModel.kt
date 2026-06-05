@@ -50,7 +50,7 @@ class FragmentFavouriteSongViewModel @Inject constructor(
         }
     }
 
-    fun deleteSongById(id: Int, callBackDeleteSong: () -> Unit) = viewModelScope.launch {
+    fun deleteSongById(id: String, callBackDeleteSong: () -> Unit) = viewModelScope.launch {
         repository.deleteSongById(id)
         callBackDeleteSong.invoke()
     }

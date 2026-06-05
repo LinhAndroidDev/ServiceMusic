@@ -1,29 +1,34 @@
 package com.example.serviceandroid.lyrics
 
-import android.content.Context
 import com.example.serviceandroid.model.Song
-import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 
 object SongLyricsLoader {
 
-    private const val ASSET_DIR = "lyrics"
-
     /**
-     * Loads `assets/lyrics/{rawName}.txt` (LRC-style lines). Returns `null` if file missing / IO error.
-     * Returns empty list if file exists but no valid lines parsed.
+     * Loads lyrics from [Song.lyricUrl] (LRC-style). Returns `null` if URL missing / IO error.
      */
-    fun loadTimedLines(context: Context, song: Song): List<TimedLyricLine>? {
-        val entry = try {
-            context.resources.getResourceEntryName(song.sing)
+    suspend fun loadTimedLines(song: Song): List<TimedLyricLine>? {
+        val url = song.lyricUrl.trim()
+        if (url.isBlank()) return null
+        val text = try {
+            downloadText(url)
         } catch (_: Exception) {
             return null
         }
-        val path = "$ASSET_DIR/$entry.txt"
-        val text = try {
-            context.assets.open(path).bufferedReader().use { it.readText() }
-        } catch (_: IOException) {
-            return null
+        val parsed = LrcLineParser.parse(text)
+        return parsed.ifEmpty { null }
+    }
+
+    private fun downloadText(urlString: String): String {
+        val conn = (URL(urlString).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 10_000
+            readTimeout = 15_000
+            requestMethod = "GET"
         }
-        return LrcLineParser.parse(text)
+        return conn.inputStream.bufferedReader().use { it.readText() }.also {
+            conn.disconnect()
+        }
     }
 }

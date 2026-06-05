@@ -7,8 +7,10 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
+import android.util.Log
 import android.os.Binder
 import android.os.Build
 import android.os.Handler
@@ -19,7 +21,16 @@ import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
 import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
+import com.example.serviceandroid.data.firestore.FirestoreMusicRepository
 import com.example.serviceandroid.data.repository.SongRepository
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.MyApplication
 import com.example.serviceandroid.model.Action
@@ -43,6 +54,12 @@ class MusicService : Service() {
 
     @Inject
     lateinit var prefs: SharePreferenceRepository
+
+    @Inject
+    lateinit var firestoreMusicRepository: FirestoreMusicRepository
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var prepareGeneration = 0
 
     private val binder = MusicBinder()
     private val handler = Handler(Looper.getMainLooper())
@@ -222,34 +239,114 @@ class MusicService : Service() {
     fun playSongInternal(song: Song) {
         ensureMediaSession()
         stopProgressTicker()
-        mediaPlayer?.release()
-        mediaPlayer = null
+        releaseMediaPlayer()
 
         index = songRepository.indexOf(song).let { if (it < 0) 0 else it }
         val resolved = songRepository.getSong(index)
+        val estimatedDurationMs = (resolved.durationSec * 1000L).toInt().coerceAtLeast(0)
 
-        mediaPlayer = MediaPlayer.create(this, resolved.sing)?.apply {
-            setOnCompletionListener { onTrackCompleted() }
-            isLooping = prefs.getTypeRepeat() == Repeat.REPEAT_ONE
-            start()
-        } ?: return
-
-        val mp = mediaPlayer!!
-        val duration = mp.duration.coerceAtLeast(0)
         playbackStateHolder.update {
             PlaybackUiState(
                 currentSong = resolved,
                 queueIndex = index,
-                isPlaying = true,
+                isPlaying = false,
                 positionMs = 0,
-                durationMs = duration,
-                hasActivePlayer = true
+                durationMs = estimatedDurationMs,
+                hasActivePlayer = true,
             )
         }
         updateMediaSessionPlaybackState()
-        startForegroundTyped(buildNotification(resolved).build())
-        persistPlaybackSnapshot()
-        startProgressTicker()
+        showForegroundWithPlaceholder(resolved)
+        startStreaming(resolved, startPositionMs = 0, autoStart = true)
+    }
+
+    private fun releaseMediaPlayer() {
+        prepareGeneration++
+        try {
+            mediaPlayer?.stop()
+        } catch (_: Exception) {
+        }
+        mediaPlayer?.release()
+        mediaPlayer = null
+    }
+
+    private fun startStreaming(resolved: Song, startPositionMs: Int, autoStart: Boolean) {
+        if (resolved.audioUrl.isBlank()) {
+            Log.e(TAG, "Missing audioUrl for song ${resolved.id}")
+            return
+        }
+        val generation = ++prepareGeneration
+        val player = MediaPlayer()
+        mediaPlayer = player
+        player.setOnCompletionListener {
+            if (generation == prepareGeneration) onTrackCompleted()
+        }
+        player.setOnErrorListener { _, what, extra ->
+            Log.e(TAG, "MediaPlayer error what=$what extra=$extra url=${resolved.audioUrl}")
+            if (generation == prepareGeneration) {
+                playbackStateHolder.update { it.copy(isPlaying = false) }
+            }
+            true
+        }
+        player.setOnPreparedListener { mp ->
+            if (generation != prepareGeneration) return@setOnPreparedListener
+            mp.isLooping = prefs.getTypeRepeat() == Repeat.REPEAT_ONE
+            val dur = mp.duration.coerceAtLeast(0)
+            val safePos = if (dur > 0) startPositionMs.coerceIn(0, dur) else startPositionMs.coerceAtLeast(0)
+            if (safePos > 0) mp.seekTo(safePos)
+            if (autoStart) mp.start()
+            playbackStateHolder.update {
+                PlaybackUiState(
+                    currentSong = resolved,
+                    queueIndex = index,
+                    isPlaying = autoStart,
+                    positionMs = safePos,
+                    durationMs = dur,
+                    hasActivePlayer = true,
+                )
+            }
+            updateMediaSessionPlaybackState()
+            refreshNotificationAsync(resolved)
+            persistPlaybackSnapshot()
+            if (autoStart) {
+                serviceScope.launch {
+                    runCatching { firestoreMusicRepository.incrementViews(resolved.id) }
+                }
+                startProgressTicker()
+            }
+        }
+        try {
+            player.setDataSource(resolved.audioUrl)
+            player.prepareAsync()
+        } catch (e: Exception) {
+            Log.e(TAG, "setDataSource failed", e)
+            if (generation == prepareGeneration) releaseMediaPlayer()
+        }
+    }
+
+    private fun showForegroundWithPlaceholder(song: Song) {
+        startForegroundTyped(buildNotification(song, null).build())
+    }
+
+    private fun refreshNotificationAsync(song: Song) {
+        serviceScope.launch {
+            val bitmap = loadThumbnailBitmap(song.thumbnailUrl)
+            if (playbackStateHolder.state.value.currentSong?.id == song.id) {
+                startForegroundTyped(buildNotification(song, bitmap).build())
+            }
+        }
+    }
+
+    private suspend fun loadThumbnailBitmap(url: String): Bitmap? = withContext(Dispatchers.IO) {
+        if (url.isBlank()) return@withContext null
+        runCatching {
+            Glide.with(applicationContext)
+                .asBitmap()
+                .load(url)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .submit()
+                .get()
+        }.getOrNull()
     }
 
     private fun onTrackCompleted() {
@@ -359,8 +456,7 @@ class MusicService : Service() {
             mediaPlayer?.stop()
         } catch (_: Exception) {
         }
-        mediaPlayer?.release()
-        mediaPlayer = null
+        releaseMediaPlayer()
         index = -1
         clearPersistedPlayback()
         playbackStateHolder.reset()
@@ -396,8 +492,8 @@ class MusicService : Service() {
     }
 
     @SuppressLint("ForegroundServiceType")
-    private fun buildNotification(song: Song): NotificationCompat.Builder {
-        val bitmap = BitmapFactory.decodeResource(resources, song.avatar)
+    private fun buildNotification(song: Song, bitmap: Bitmap?): NotificationCompat.Builder {
+        val largeIcon = bitmap ?: BitmapFactory.decodeResource(resources, R.drawable.ic_circle)
         val session = ensureMediaSession()
         val openPlayer = openPlayerContentPendingIntent(song)
         session.setSessionActivity(openPlayer)
@@ -407,7 +503,7 @@ class MusicService : Service() {
             .setSubText("Linh Nguyen")
             .setContentTitle(song.title)
             .setContentText("Ca sĩ: ${song.nameSinger}")
-            .setLargeIcon(bitmap)
+            .setLargeIcon(largeIcon)
             .setContentIntent(openPlayer)
             .setOnlyAlertOnce(true)
             .setStyle(
@@ -438,7 +534,7 @@ class MusicService : Service() {
 
     private fun refreshNotification() {
         val song = playbackStateHolder.state.value.currentSong ?: return
-        startForegroundTyped(buildNotification(song).build())
+        refreshNotificationAsync(song)
     }
 
     @SuppressLint("ForegroundServiceType")
@@ -462,43 +558,30 @@ class MusicService : Service() {
         val idx = sp.getInt(KEY_QUEUE_INDEX, -1)
         val posMs = sp.getInt(KEY_POSITION_MS, 0)
         val wasPlaying = sp.getBoolean(KEY_WAS_PLAYING, false)
-        if (idx < 0 || idx > songRepository.lastIndex()) {
+        if (!songRepository.isLoaded()) {
+            runBlocking { songRepository.refreshPlaylist() }
+        }
+        if (!songRepository.isLoaded() || idx < 0 || idx > songRepository.lastIndex()) {
             clearPersistedPlayback()
             return false
         }
         ensureMediaSession()
         index = idx
         val resolved = songRepository.getSong(index)
-        mediaPlayer?.release()
-        val newPlayer = MediaPlayer.create(this, resolved.sing)?.apply {
-            setOnCompletionListener { onTrackCompleted() }
-            isLooping = prefs.getTypeRepeat() == Repeat.REPEAT_ONE
-        } ?: run {
-            clearPersistedPlayback()
-            return false
-        }
-        mediaPlayer = newPlayer
-        val dur = newPlayer.duration.coerceAtLeast(0)
-        val safePos = if (dur > 0) posMs.coerceIn(0, dur) else posMs.coerceAtLeast(0)
-        newPlayer.seekTo(safePos)
-        if (wasPlaying) {
-            newPlayer.start()
-        }
+        val estimatedDurationMs = (resolved.durationSec * 1000L).toInt().coerceAtLeast(0)
         playbackStateHolder.update {
             PlaybackUiState(
                 currentSong = resolved,
                 queueIndex = index,
-                isPlaying = wasPlaying,
-                positionMs = safePos,
-                durationMs = dur,
+                isPlaying = false,
+                positionMs = posMs.coerceAtLeast(0),
+                durationMs = estimatedDurationMs,
                 hasActivePlayer = true,
             )
         }
         updateMediaSessionPlaybackState()
-        startForegroundTyped(buildNotification(resolved).build())
-        if (wasPlaying) {
-            startProgressTicker()
-        }
+        showForegroundWithPlaceholder(resolved)
+        startStreaming(resolved, startPositionMs = posMs, autoStart = wasPlaying)
         return true
     }
 
@@ -523,7 +606,7 @@ class MusicService : Service() {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(Constants.EXTRA_OPEN_PLAYER_FROM_NOTIFICATION, true)
-            putExtra(Constants.EXTRA_NOTIFICATION_TARGET_SONG_ID, song.idSong)
+            putExtra(Constants.EXTRA_NOTIFICATION_TARGET_SONG_ID, song.id)
         }
         return PendingIntent.getActivity(
             this,
@@ -564,5 +647,6 @@ class MusicService : Service() {
         /** ~2s at 80ms/tick — đủ để khôi phục vị trí sau process bị kill mà không ghi prefs quá dày. */
         private const val SNAPSHOT_TICKS_INTERVAL = 25
         private const val REQUEST_CODE_OPEN_PLAYER_FROM_NOTIFICATION = 3100
+        private const val TAG = "MusicService"
     }
 }

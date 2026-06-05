@@ -86,9 +86,9 @@ class FavouriteSongRepository @Inject constructor(private val dao: FavouriteSong
         dao.insertSong(SongEntity(song, timeCreate))
     }
 
-    suspend fun deleteSongById(id: Int) = dao.deleteSongById(id)
+    suspend fun deleteSongById(id: String) = dao.deleteSongById(id)
 
-    suspend fun checkSongById(id: Int): Boolean {
+    suspend fun checkSongById(id: String): Boolean {
         return dao.checkSongById(id) != null
     }
 }

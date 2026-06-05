@@ -94,7 +94,15 @@
         android:id="@+id/fragmentSearchSong"
         android:name="com.example.serviceandroid.fragment.FragmentSearchSong"
         android:label="fragment_search_song"
-        tools:layout="@layout/fragment_search_song" />
+        tools:layout="@layout/fragment_search_song">
+        <action
+            android:id="@+id/action_fragmentSearchSong_to_fragmentMusic"
+            app:destination="@id/fragmentMusic"
+            app:enterAnim="@anim/slide_up"
+            app:exitAnim="@anim/anim_normal"
+            app:popEnterAnim="@anim/anim_normal"
+            app:popExitAnim="@anim/slide_down" />
+    </fragment>
     <fragment
         android:id="@+id/fragmentMusic"
         android:name="com.example.serviceandroid.fragment.music.FragmentMusic"
@@ -102,7 +110,8 @@
         tools:layout="@layout/fragment_music">
 
         <argument
-            android:name="id_music"
-            app:argType="integer" />
+            android:name="song_id"
+            app:argType="string"
+            android:defaultValue="" />
     </fragment>
 </navigation>

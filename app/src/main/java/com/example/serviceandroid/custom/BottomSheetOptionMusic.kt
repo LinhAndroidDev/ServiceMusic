@@ -34,11 +34,13 @@ class BottomSheetOptionMusic :
         song?.let {
             songModel = it
             Glide.with(requireActivity())
-                .load(song.avatar)
+                .load(song.thumbnailUrl)
+                .placeholder(R.drawable.ic_circle)
+                .error(R.drawable.ic_circle)
                 .into(binding.avatar)
             binding.titleSong.text = song.title
             binding.tvNameSinger.text = song.nameSinger
-            viewModel.checkSongById(song.idSong)
+            viewModel.checkSongById(song.id)
         }
 
         lifecycleScope.launch {
@@ -76,7 +78,7 @@ class BottomSheetOptionMusic :
             if(!isFavourite) {
                 songModel?.let {
                     viewModel.insertSong(it, DateUtils.getTimeCurrent()) {
-                        viewModel.checkSongById(songModel?.idSong ?: 0)
+                        songModel?.id?.let { viewModel.checkSongById(it) }
                         Toast.makeText(requireActivity(), "Đã thêm vào bài hát yêu thích", Toast.LENGTH_SHORT).show()
                     }
                 }
