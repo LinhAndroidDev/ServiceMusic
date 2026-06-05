@@ -42,6 +42,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     private var lastMiniPlayerSongId: String? = null
     private var lastMiniPlayerSeekSyncedMs: Int = Int.MIN_VALUE
     private var lastMiniPlayerSeekSequence: Long = -1L
+    private lateinit var miniPlayerSongAdapter: InformationSongAdapter
 
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
@@ -80,21 +81,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             }
         }
 
-        val adapterInfoSong = InformationSongAdapter()
-        adapterInfoSong.onClickView = {
+        miniPlayerSongAdapter = InformationSongAdapter()
+        miniPlayerSongAdapter.onClickView = {
             openMusicFromBottomPlay()
         }
-        binding.viewPagerInfoSong.adapter = adapterInfoSong
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                playbackViewModel.playlistLoading.collect { loading ->
-                    if (!loading) {
-                        adapterInfoSong.items = playbackViewModel.getPlaylist().toMutableList()
-                        adapterInfoSong.notifyDataSetChanged()
-                    }
-                }
-            }
-        }
+        binding.viewPagerInfoSong.adapter = miniPlayerSongAdapter
 
         binding.viewPagerInfoSong.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
@@ -267,13 +258,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                     .into(binding.avatar)
                 lastMiniPlayerSeekSyncedMs = Int.MIN_VALUE
             }
+            syncMiniPlayerSongInfo(state)
         } ?: run {
             lastMiniPlayerSongId = null
             lastMiniPlayerSeekSyncedMs = Int.MIN_VALUE
-        }
-
-        if (state.queueIndex >= 0 && binding.viewPagerInfoSong.currentItem != state.queueIndex) {
-            binding.viewPagerInfoSong.setCurrentItem(state.queueIndex, false)
         }
 
         val dur = state.durationMs.coerceAtLeast(0)
@@ -294,6 +282,32 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         )
 
         (getCurrentFragment() as? FragmentMusic)?.onPlaybackStateChanged(state)
+    }
+
+    /**
+     * Title/artist come from [InformationSongAdapter] (ViewPager pages).
+     * Avatar comes from [PlaybackUiState.currentSong] directly.
+     * When Home vs ZingChart refresh different playlists into [SongRepository],
+     * the adapter must be re-synced or text at [queueIndex] no longer matches the playing track.
+     */
+    private fun syncMiniPlayerSongInfo(state: PlaybackUiState) {
+        val song = state.currentSong ?: return
+        val playlist = playbackViewModel.getPlaylist()
+        if (playlist.isEmpty()) return
+
+        val idx = state.queueIndex
+        val adapterOutOfSync = miniPlayerSongAdapter.items.size != playlist.size ||
+            idx !in miniPlayerSongAdapter.items.indices ||
+            miniPlayerSongAdapter.items[idx].id != song.id
+
+        if (adapterOutOfSync) {
+            miniPlayerSongAdapter.items = playlist.toMutableList()
+            miniPlayerSongAdapter.notifyDataSetChanged()
+        }
+
+        if (idx >= 0 && binding.viewPagerInfoSong.currentItem != idx) {
+            binding.viewPagerInfoSong.setCurrentItem(idx, false)
+        }
     }
 
     private fun applyMiniPlayerFavouriteIcon(favourite: Boolean) {

@@ -16,6 +16,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
@@ -69,6 +70,8 @@ class MusicService : Service() {
     private var tickPosted = false
     private var msSinceNotificationRefresh: Long = 0
     private var snapshotTickCounter: Int = 0
+    private var lastSeekPositionMs: Int = -1
+    private var lastSeekElapsedMs: Long = 0L
 
     /** Frequent position updates for UI (lyrics); notification refreshed at [NOTIFICATION_REFRESH_MS]. */
     private val tickIntervalMs = 80L
@@ -428,10 +431,26 @@ class MusicService : Service() {
     }
 
     private fun seekToInternal(positionMs: Int) {
-        val mp = mediaPlayer
-        val dur = mp?.takeIf { it.duration > 0 }?.duration ?: 0
+        val mp = mediaPlayer ?: return
+        val dur = mp.takeIf { it.duration > 0 }?.duration ?: 0
         val safe = if (dur > 0) positionMs.coerceIn(0, dur) else positionMs.coerceAtLeast(0)
-        mp?.seekTo(safe)
+        val now = SystemClock.elapsedRealtime()
+        if (safe == lastSeekPositionMs && now - lastSeekElapsedMs < SEEK_DEBOUNCE_MS) {
+            return
+        }
+        lastSeekPositionMs = safe
+        lastSeekElapsedMs = now
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                mp.seekTo(safe.toLong(), MediaPlayer.SEEK_CLOSEST)
+            } else {
+                @Suppress("DEPRECATION")
+                mp.seekTo(safe)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "seekTo failed at $safe", e)
+            return
+        }
         playbackStateHolder.update {
             it.copy(
                 positionMs = safe,
@@ -439,10 +458,7 @@ class MusicService : Service() {
             )
         }
         updateMediaSessionPlaybackState()
-        refreshNotification()
-        if (mp != null) {
-            persistPlaybackSnapshot()
-        }
+        persistPlaybackSnapshot()
     }
 
     private fun clearInternal() {
@@ -648,5 +664,7 @@ class MusicService : Service() {
         private const val SNAPSHOT_TICKS_INTERVAL = 25
         private const val REQUEST_CODE_OPEN_PLAYER_FROM_NOTIFICATION = 3100
         private const val TAG = "MusicService"
+        /** Ignore duplicate seeks within this window (stream re-buffer is expensive). */
+        private const val SEEK_DEBOUNCE_MS = 200L
     }
 }

@@ -69,6 +69,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     /** When [PlaybackUiState.seekSequence] changes, SeekBar throttling is bypassed so bars jump to seek target. */
     private var lastPlaybackSeekSequence: Long = -1L
     private var pendingInitSongId: String? = null
+    /** True while user drags the seek bar — avoids spamming MediaPlayer.seekTo during scrub. */
+    private var isUserSeeking: Boolean = false
 
     private val playerPagerCallback = object : ViewPager2.OnPageChangeCallback() {
         override fun onPageSelected(position: Int) {
@@ -197,14 +199,21 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         transport.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    playbackViewModel.seekTo(requireContext(), progress)
+                    // Preview time only while dragging; actual seek on release avoids stream re-buffer glitches.
                     setProgressTime(progress)
                 }
             }
 
-            override fun onStartTrackingTouch(p0: SeekBar?) {}
+            override fun onStartTrackingTouch(p0: SeekBar?) {
+                isUserSeeking = true
+            }
 
-            override fun onStopTrackingTouch(p0: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                isUserSeeking = false
+                val progress = seekBar?.progress ?: return
+                playbackViewModel.seekTo(requireContext(), progress)
+                setProgressTime(progress)
+            }
         })
     }
 
@@ -427,9 +436,11 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                 transport.progressMusic.max = state.durationMs
                 lastSeekUiSyncedMs = Int.MIN_VALUE
             }
-            val forceSeekUi = !state.isPlaying ||
-                lastSeekUiSyncedMs == Int.MIN_VALUE ||
-                kotlin.math.abs(pos - lastSeekUiSyncedMs) >= SEEK_UI_THROTTLE_MS
+            val forceSeekUi = !isUserSeeking && (
+                !state.isPlaying ||
+                    lastSeekUiSyncedMs == Int.MIN_VALUE ||
+                    kotlin.math.abs(pos - lastSeekUiSyncedMs) >= SEEK_UI_THROTTLE_MS
+                )
             if (forceSeekUi) {
                 lastSeekUiSyncedMs = pos
                 transport.progressMusic.progress = pos
