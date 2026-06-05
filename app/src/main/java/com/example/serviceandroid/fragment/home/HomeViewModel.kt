@@ -25,19 +25,42 @@ class HomeViewModel @Inject constructor(
     val playlist: StateFlow<List<Song>> = _playlist.asStateFlow()
 
     init {
+        ensureLoaded()
+    }
+
+    fun ensureLoaded() {
+        if (_playlist.value.isNotEmpty()) {
+            _isLoading.value = false
+            return
+        }
+        val cached = songRepository.getLatestPlaylist()
+        if (cached.isNotEmpty()) {
+            _playlist.value = cached
+            _isLoading.value = false
+            return
+        }
         loadPlaylist()
     }
 
-    fun loadPlaylist() {
+    fun loadPlaylist(force: Boolean = false) {
+        if (!force && _playlist.value.isNotEmpty()) return
+        if (!force) {
+            val cached = songRepository.getLatestPlaylist()
+            if (cached.isNotEmpty()) {
+                _playlist.value = cached
+                _isLoading.value = false
+                return
+            }
+        }
         viewModelScope.launch {
             _isLoading.value = true
             songRepository.refreshPlaylist()
-            _playlist.value = songRepository.getPlaylist()
+            _playlist.value = songRepository.getLatestPlaylist()
             _isLoading.value = false
         }
     }
 
-    fun getPlaylist(): List<Song> = _playlist.value.ifEmpty { songRepository.getPlaylist() }
+    fun getPlaylist(): List<Song> = _playlist.value.ifEmpty { songRepository.getLatestPlaylist() }
 
     fun deleteSongById(id: String, onCallBackDeleteSong: () -> Unit) = viewModelScope.launch {
         repository.deleteSongById(id)

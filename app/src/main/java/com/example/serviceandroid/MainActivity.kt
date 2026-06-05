@@ -23,12 +23,15 @@ import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.fragment.music.FragmentMusic
 import com.example.serviceandroid.helper.Constants
+import com.example.serviceandroid.data.repository.SongRepository
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.getCurrentFragment
 import com.example.serviceandroid.utils.moveTo
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlin.math.abs
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -37,6 +40,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     private var doubleBackToExitPressedOnce = false
     private val playbackViewModel by viewModels<PlaybackViewModel>()
+
+    @Inject
+    lateinit var songRepository: SongRepository
 
     /** Avoid mini-player work every playback tick (reduces layout jank in FragmentMusic). */
     private var lastMiniPlayerSongId: String? = null
@@ -66,6 +72,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     override fun initView() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            if (songRepository.getTopPlaylist().isEmpty()) {
+                songRepository.refreshTopPlaylist()
+            }
+        }
+
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {

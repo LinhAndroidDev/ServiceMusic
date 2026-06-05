@@ -25,19 +25,43 @@ class ZingChartViewModel @Inject constructor(
     val playlist: StateFlow<List<Song>> = _playlist.asStateFlow()
 
     init {
+        ensureLoaded()
+    }
+
+    /** Uses ViewModel cache, then repository top cache, then network (once). */
+    fun ensureLoaded() {
+        if (_playlist.value.isNotEmpty()) {
+            _isLoading.value = false
+            return
+        }
+        val cached = songRepository.getTopPlaylist()
+        if (cached.isNotEmpty()) {
+            _playlist.value = cached
+            _isLoading.value = false
+            return
+        }
         loadTopSongs()
     }
 
-    fun loadTopSongs() {
+    fun loadTopSongs(force: Boolean = false) {
+        if (!force && _playlist.value.isNotEmpty()) return
+        if (!force) {
+            val cached = songRepository.getTopPlaylist()
+            if (cached.isNotEmpty()) {
+                _playlist.value = cached
+                _isLoading.value = false
+                return
+            }
+        }
         viewModelScope.launch {
             _isLoading.value = true
             songRepository.refreshTopPlaylist()
-            _playlist.value = songRepository.getPlaylist()
+            _playlist.value = songRepository.getTopPlaylist()
             _isLoading.value = false
         }
     }
 
-    fun getPlaylist(): List<Song> = _playlist.value.ifEmpty { songRepository.getPlaylist() }
+    fun getPlaylist(): List<Song> = _playlist.value.ifEmpty { songRepository.getTopPlaylist() }
 
     fun deleteSongById(id: String, onCallBackDeleteSong: () -> Unit) = viewModelScope.launch {
         repository.deleteSongById(id)

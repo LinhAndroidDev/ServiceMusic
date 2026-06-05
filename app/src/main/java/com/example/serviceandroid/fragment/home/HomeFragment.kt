@@ -46,7 +46,9 @@ enum class Title {
 @AndroidEntryPoint
 class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var national = National.ALL_NATIONAL
-    private lateinit var adapterNational: PagerNationalAdapter
+    private var adapterNational: PagerNationalAdapter? = null
+    private var newUpdateAdapter: PagerNewReleaseAdapter? = null
+    private var newReleasePagerConfigured = false
     private var stickTile = Title.TITLE_TOPIC
     private val viewModel by viewModels<HomeViewModel>()
 
@@ -67,22 +69,66 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private fun observePlaylist() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.ensureLoaded()
                 viewModel.playlist.collect { songs ->
                     if (songs.isEmpty()) return@collect
-                    if (!::adapterNational.isInitialized) {
-                        initNewRelease(songs)
-                        initNewUpdate(songs)
-                    } else {
-                        adapterNational.resetList(songsToHashMap(ArrayList(songs)))
-                        resetMusicInterNational()
-                        (binding.rcvNewupdate.adapter as? PagerNewReleaseAdapter)?.let { adapter ->
-                            adapter.items = ArrayList(songs.take(5))
-                            adapter.notifyDataSetChanged()
-                        }
-                    }
+                    applyPlaylistToUi(songs)
                 }
             }
         }
+    }
+
+    /**
+     * Re-binds adapters every time playlist updates. Required after [onDestroyView] recreates
+     * the layout but the fragment instance (and adapter fields) may still exist.
+     */
+    @SuppressLint("NotifyDataSetChanged")
+    private fun applyPlaylistToUi(songs: List<Song>) {
+        val nationalAdapter = adapterNational ?: PagerNationalAdapter(
+            requireActivity(),
+            type = TypeList.TYPE_NATIONAL,
+        ).also { adapter ->
+            adapter.onClickItem = { songId ->
+                val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = songId)
+                findNavController().navigate(action)
+            }
+            adapter.onClickMoreOption = { song -> showMoreOptions(song) }
+            adapterNational = adapter
+        }
+
+        val filtered = songs.filter { it.checkMusicNational(national) }
+        nationalAdapter.resetList(songsToHashMap(ArrayList(filtered)))
+        binding.pagerNewRelease.adapter = nationalAdapter
+        if (!newReleasePagerConfigured) {
+            setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)
+            newReleasePagerConfigured = true
+        }
+
+        val chartAdapter = newUpdateAdapter ?: PagerNewReleaseAdapter(
+            requireActivity(),
+            type = TypeList.TYPE_NEW_UPDATE,
+        ).also { adapter ->
+            adapter.onClickItem = { songId ->
+                val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = songId)
+                findNavController().navigate(action)
+            }
+            adapter.onClickMoreOption = { song -> showMoreOptions(song) }
+            newUpdateAdapter = adapter
+        }
+        chartAdapter.items = ArrayList(songs.take(5))
+        binding.rcvNewupdate.adapter = chartAdapter
+        chartAdapter.notifyDataSetChanged()
+    }
+
+    private fun showMoreOptions(song: Song) {
+        val dialog = BottomSheetOptionMusic()
+        dialog.removeFavourite = {
+            showDialogConfirmRemoveFavourite(song)
+        }
+        val bundle = Bundle()
+        bundle.putParcelable(Constant.KEY_SONG, song)
+        dialog.arguments = bundle
+        dialog.show(parentFragmentManager, "")
     }
 
     /**
@@ -154,54 +200,8 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     }
 
     private fun resetMusicInterNational() {
-        adapterNational.resetList(
-            songsToHashMap(viewModel.getPlaylist().filter {
-                it.checkMusicNational(national)
-            } as ArrayList<Song>)
-        )
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    private fun initNewUpdate(songs: List<Song>) {
-        val adapter = PagerNewReleaseAdapter(requireActivity(), type = TypeList.TYPE_NEW_UPDATE)
-        adapter.items = ArrayList(songs.take(5))
-        binding.rcvNewupdate.adapter = adapter
-        adapter.onClickItem = {
-            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = it)
-            findNavController().navigate(action)
-        }
-        adapter.onClickMoreOption = { song ->
-            val dialog = BottomSheetOptionMusic()
-            dialog.removeFavourite = {
-                showDialogConfirmRemoveFavourite(song)
-            }
-            val bundle = Bundle()
-            bundle.putParcelable(Constant.KEY_SONG, song)
-            dialog.arguments = bundle
-            dialog.show(parentFragmentManager, "")
-
-        }
-    }
-
-    private fun initNewRelease(songs: List<Song>) {
-        adapterNational = PagerNationalAdapter(requireActivity(), type = TypeList.TYPE_NATIONAL)
-        adapterNational.pagerSong = songsToHashMap(ArrayList(songs))
-        binding.pagerNewRelease.adapter = adapterNational
-        adapterNational.onClickItem = {
-            val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = it)
-            findNavController().navigate(action)
-        }
-        adapterNational.onClickMoreOption = { song ->
-            val dialog = BottomSheetOptionMusic()
-            dialog.removeFavourite = {
-                showDialogConfirmRemoveFavourite(song)
-            }
-            val bundle = Bundle()
-            bundle.putParcelable(Constant.KEY_SONG, song)
-            dialog.arguments = bundle
-            dialog.show(parentFragmentManager, "")
-        }
-        setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)
+        val songs = viewModel.getPlaylist().filter { it.checkMusicNational(national) }
+        adapterNational?.resetList(songsToHashMap(ArrayList(songs)))
     }
 
     private fun showDialogConfirmRemoveFavourite(song: Song) {
@@ -310,6 +310,13 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                 resources.getDimensionPixelSize(R.dimen.item_overlap_width)
             )
         )
+    }
+
+    override fun onDestroyView() {
+        binding.pagerNewRelease.adapter = null
+        binding.rcvNewupdate.adapter = null
+        newReleasePagerConfigured = false
+        super.onDestroyView()
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =

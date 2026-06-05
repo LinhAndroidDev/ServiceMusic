@@ -11,27 +11,38 @@ class SongRepositoryImpl @Inject constructor(
     private val firestore: FirestoreMusicRepository,
 ) : SongRepository {
 
-    private val playlist = mutableListOf<Song>()
+    private val latestCache = mutableListOf<Song>()
+    private val topCache = mutableListOf<Song>()
+    /** Playback queue — last refreshed source (latest or top). */
+    private val playbackQueue = mutableListOf<Song>()
 
     override suspend fun refreshPlaylist(): Result<Unit> = runCatching {
         val songs = firestore.getLatestSongs(limit = 100)
             .map { it.toDomainSong() }
-        synchronized(playlist) {
-            playlist.clear()
-            playlist.addAll(songs)
+        synchronized(this) {
+            latestCache.clear()
+            latestCache.addAll(songs)
+            playbackQueue.clear()
+            playbackQueue.addAll(songs)
         }
     }
 
     override suspend fun refreshTopPlaylist(): Result<Unit> = runCatching {
         val songs = firestore.getTopSongs(limit = 100)
             .map { it.toDomainSong() }
-        synchronized(playlist) {
-            playlist.clear()
-            playlist.addAll(songs)
+        synchronized(this) {
+            topCache.clear()
+            topCache.addAll(songs)
+            playbackQueue.clear()
+            playbackQueue.addAll(songs)
         }
     }
 
-    override fun getPlaylist(): List<Song> = synchronized(playlist) { playlist.toList() }
+    override fun getPlaylist(): List<Song> = synchronized(this) { playbackQueue.toList() }
+
+    override fun getLatestPlaylist(): List<Song> = synchronized(this) { latestCache.toList() }
+
+    override fun getTopPlaylist(): List<Song> = synchronized(this) { topCache.toList() }
 
     override fun getSong(index: Int): Song {
         val list = getPlaylist()

@@ -14,18 +14,21 @@ fun FragmentActivity.getCurrentFragment(): Fragment? {
 }
 
 fun NavController.moveTo(fragmentId: Int) {
-    val currentDestination = this.currentDestination
-    
     if (currentDestination?.id == fragmentId) {
         return
     }
-    
-    val popped = this.popBackStack(fragmentId, false)
-    
-    if (!popped) {
-        val navOptions = NavOptions.Builder()
-            .setPopUpTo(fragmentId, false)
-            .build()
-        this.navigate(fragmentId, null, navOptions)
+
+    // Reuse an existing tab entry when it is still on the back stack.
+    if (popBackStack(fragmentId, false)) {
+        return
     }
+
+    // Bottom-nav pattern: keep [homeFragment] as root, save/restore tab state instead of
+    // clearing the entire stack (avoids cold recreation delay on every tab switch).
+    val navOptions = NavOptions.Builder()
+        .setLaunchSingleTop(true)
+        .setRestoreState(true)
+        .setPopUpTo(R.id.homeFragment, false, true)
+        .build()
+    navigate(fragmentId, null, navOptions)
 }
