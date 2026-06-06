@@ -8,6 +8,6 @@ enum class Action {
     ACTION_NEXT,
     ACTION_PREVIOUS,
     ACTION_FINISH,
-    /** UI changed repeat mode; service refreshes [MediaPlayer.isLooping] from prefs. */
+    /** UI changed repeat mode; service refreshes ExoPlayer repeat mode from prefs. */
     ACTION_SYNC_REPEAT,
 }

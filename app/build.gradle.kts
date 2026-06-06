@@ -84,6 +84,8 @@ dependencies {
 
     implementation ("de.hdodenhof:circleimageview:3.1.0")
     implementation("androidx.media:media:1.7.0")
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-common:1.4.1")
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
     //Coroutine

@@ -9,8 +9,6 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.media.MediaPlayer
-import android.util.Log
 import android.os.Binder
 import android.os.Build
 import android.os.Handler
@@ -19,19 +17,19 @@ import android.os.Looper
 import android.os.SystemClock
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.data.firestore.FirestoreMusicRepository
 import com.example.serviceandroid.data.repository.SongRepository
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.MyApplication
 import com.example.serviceandroid.model.Action
@@ -42,6 +40,12 @@ import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.utils.SharePreferenceRepository
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 @Suppress("DEPRECATION")
 @AndroidEntryPoint
@@ -64,7 +68,7 @@ class MusicService : Service() {
 
     private val binder = MusicBinder()
     private val handler = Handler(Looper.getMainLooper())
-    private var mediaPlayer: MediaPlayer? = null
+    private var exoPlayer: ExoPlayer? = null
     private var mediaSession: MediaSessionCompat? = null
     private var index: Int = -1
     private var tickPosted = false
@@ -73,26 +77,54 @@ class MusicService : Service() {
     private var lastSeekPositionMs: Int = -1
     private var lastSeekElapsedMs: Long = 0L
 
+    private var pendingStartPositionMs: Int = 0
+    private var pendingAutoStart: Boolean = true
+    private var pendingSong: Song? = null
+    private var pendingGeneration: Int = 0
+    private var viewsIncrementedForSongId: String? = null
+
     /** Frequent position updates for UI (lyrics); notification refreshed at [NOTIFICATION_REFRESH_MS]. */
     private val tickIntervalMs = 80L
     private val notificationRefreshMs = 1000L
 
+    private val playerListener = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            when (playbackState) {
+                Player.STATE_READY -> onPlayerReady()
+                Player.STATE_ENDED -> onTrackCompleted()
+            }
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            playbackStateHolder.update { it.copy(isPlaying = isPlaying) }
+            updateMediaSessionPlaybackState()
+            if (isPlaying) {
+                startProgressTicker()
+            }
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            Log.e(TAG, "ExoPlayer error", error)
+            playbackStateHolder.update { it.copy(isPlaying = false) }
+        }
+    }
+
     private val tickRunnable = object : Runnable {
         override fun run() {
             if (!tickPosted) return
-            val mp = mediaPlayer
-            if (mp != null && mp.duration > 0) {
-                val pos = mp.currentPosition
-                val dur = mp.duration
+            val player = exoPlayer
+            val dur = playerDurationMs(player)
+            if (player != null && dur > 0) {
+                val pos = player.currentPosition.toInt()
                 playbackStateHolder.update { st ->
                     st.copy(
                         positionMs = pos,
                         durationMs = dur,
-                        isPlaying = mp.isPlaying,
-                        hasActivePlayer = true
+                        isPlaying = player.isPlaying,
+                        hasActivePlayer = true,
                     )
                 }
-                if (mp.isPlaying) {
+                if (player.isPlaying) {
                     msSinceNotificationRefresh += tickIntervalMs
                     if (msSinceNotificationRefresh >= notificationRefreshMs) {
                         msSinceNotificationRefresh = 0L
@@ -155,6 +187,14 @@ class MusicService : Service() {
         return mediaSession!!
     }
 
+    private fun ensureExoPlayer(): ExoPlayer {
+        exoPlayer?.let { return it }
+        return ExoPlayer.Builder(this).build().also { player ->
+            player.addListener(playerListener)
+            exoPlayer = player
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         ensureMediaSession()
@@ -193,7 +233,6 @@ class MusicService : Service() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // Vuốt app khỏi danh sách gần đây — dừng phát và gỡ notification (user "kill" task).
         clearInternal()
         super.onTaskRemoved(rootIntent)
     }
@@ -235,14 +274,22 @@ class MusicService : Service() {
     }
 
     private fun applyRepeatFromPrefs() {
-        mediaPlayer?.isLooping = prefs.getTypeRepeat() == Repeat.REPEAT_ONE
+        applyRepeatMode()
         refreshNotification()
+    }
+
+    private fun applyRepeatMode() {
+        val player = exoPlayer ?: return
+        player.repeatMode = if (prefs.getTypeRepeat() == Repeat.REPEAT_ONE) {
+            Player.REPEAT_MODE_ONE
+        } else {
+            Player.REPEAT_MODE_OFF
+        }
     }
 
     fun playSongInternal(song: Song) {
         ensureMediaSession()
         stopProgressTicker()
-        releaseMediaPlayer()
 
         index = songRepository.indexOf(song).let { if (it < 0) 0 else it }
         val resolved = songRepository.getSong(index)
@@ -263,68 +310,81 @@ class MusicService : Service() {
         startStreaming(resolved, startPositionMs = 0, autoStart = true)
     }
 
-    private fun releaseMediaPlayer() {
-        prepareGeneration++
-        try {
-            mediaPlayer?.stop()
-        } catch (_: Exception) {
-        }
-        mediaPlayer?.release()
-        mediaPlayer = null
-    }
-
     private fun startStreaming(resolved: Song, startPositionMs: Int, autoStart: Boolean) {
         if (resolved.audioUrl.isBlank()) {
             Log.e(TAG, "Missing audioUrl for song ${resolved.id}")
             return
         }
         val generation = ++prepareGeneration
-        val player = MediaPlayer()
-        mediaPlayer = player
-        player.setOnCompletionListener {
-            if (generation == prepareGeneration) onTrackCompleted()
-        }
-        player.setOnErrorListener { _, what, extra ->
-            Log.e(TAG, "MediaPlayer error what=$what extra=$extra url=${resolved.audioUrl}")
-            if (generation == prepareGeneration) {
-                playbackStateHolder.update { it.copy(isPlaying = false) }
-            }
-            true
-        }
-        player.setOnPreparedListener { mp ->
-            if (generation != prepareGeneration) return@setOnPreparedListener
-            mp.isLooping = prefs.getTypeRepeat() == Repeat.REPEAT_ONE
-            val dur = mp.duration.coerceAtLeast(0)
-            val safePos = if (dur > 0) startPositionMs.coerceIn(0, dur) else startPositionMs.coerceAtLeast(0)
-            if (safePos > 0) mp.seekTo(safePos)
-            if (autoStart) mp.start()
-            playbackStateHolder.update {
-                PlaybackUiState(
-                    currentSong = resolved,
-                    queueIndex = index,
-                    isPlaying = autoStart,
-                    positionMs = safePos,
-                    durationMs = dur,
-                    hasActivePlayer = true,
-                )
-            }
-            updateMediaSessionPlaybackState()
-            refreshNotificationAsync(resolved)
-            persistPlaybackSnapshot()
-            if (autoStart) {
-                serviceScope.launch {
-                    runCatching { firestoreMusicRepository.incrementViews(resolved.id) }
-                }
-                startProgressTicker()
-            }
-        }
+        pendingGeneration = generation
+        pendingSong = resolved
+        pendingStartPositionMs = startPositionMs
+        pendingAutoStart = autoStart
+
+        val player = ensureExoPlayer()
         try {
-            player.setDataSource(resolved.audioUrl)
-            player.prepareAsync()
+            player.stop()
+            player.setMediaItem(MediaItem.fromUri(resolved.audioUrl))
+            player.prepare()
         } catch (e: Exception) {
-            Log.e(TAG, "setDataSource failed", e)
-            if (generation == prepareGeneration) releaseMediaPlayer()
+            Log.e(TAG, "ExoPlayer prepare failed url=${resolved.audioUrl}", e)
+            playbackStateHolder.update { it.copy(isPlaying = false) }
         }
+    }
+
+    private fun onPlayerReady() {
+        val player = exoPlayer ?: return
+        if (pendingGeneration != prepareGeneration) return
+
+        val resolved = pendingSong ?: playbackStateHolder.state.value.currentSong ?: return
+        applyRepeatMode()
+
+        val dur = playerDurationMs(player)
+        val safePos = if (dur > 0) {
+            pendingStartPositionMs.coerceIn(0, dur)
+        } else {
+            pendingStartPositionMs.coerceAtLeast(0)
+        }
+        if (safePos > 0) {
+            player.seekTo(safePos.toLong())
+        }
+
+        val shouldPlay = pendingAutoStart
+        pendingStartPositionMs = 0
+
+        if (shouldPlay) {
+            player.play()
+        }
+
+        playbackStateHolder.update {
+            PlaybackUiState(
+                currentSong = resolved,
+                queueIndex = index,
+                isPlaying = shouldPlay && player.isPlaying,
+                positionMs = player.currentPosition.toInt().coerceAtLeast(safePos),
+                durationMs = dur,
+                hasActivePlayer = true,
+            )
+        }
+        updateMediaSessionPlaybackState()
+        refreshNotificationAsync(resolved)
+        persistPlaybackSnapshot()
+
+        if (shouldPlay && viewsIncrementedForSongId != resolved.id) {
+            viewsIncrementedForSongId = resolved.id
+            serviceScope.launch {
+                runCatching { firestoreMusicRepository.incrementViews(resolved.id) }
+            }
+            startProgressTicker()
+        }
+    }
+
+    private fun playerDurationMs(player: ExoPlayer?): Int {
+        val raw = player?.duration ?: C.TIME_UNSET
+        if (raw == C.TIME_UNSET || raw < 0) {
+            return playbackStateHolder.state.value.durationMs.coerceAtLeast(0)
+        }
+        return raw.toInt()
     }
 
     private fun showForegroundWithPlaceholder(song: Song) {
@@ -353,7 +413,8 @@ class MusicService : Service() {
     }
 
     private fun onTrackCompleted() {
-        if (mediaPlayer?.isLooping == true) return
+        val player = exoPlayer ?: return
+        if (player.repeatMode == Player.REPEAT_MODE_ONE) return
         if (index < songRepository.lastIndex()) {
             index++
             playSongInternal(songRepository.getSong(index))
@@ -361,30 +422,30 @@ class MusicService : Service() {
             index = 0
             playSongInternal(songRepository.getSong(0))
         } else {
-            mediaPlayer?.seekTo(0)
+            player.seekTo(0)
             pauseInternal()
             playbackStateHolder.update { it.copy(positionMs = 0) }
         }
     }
 
     private fun pauseInternal() {
-        mediaPlayer?.pause()
+        exoPlayer?.pause()
         playbackStateHolder.update { it.copy(isPlaying = false) }
         updateMediaSessionPlaybackState()
         stopProgressTicker()
-        mediaPlayer?.let {
+        exoPlayer?.let {
             refreshNotification()
             persistPlaybackSnapshot()
         }
     }
 
     private fun resumeInternal() {
-        if (mediaPlayer == null && !restorePlaybackFromPersistedState()) {
+        if (exoPlayer == null && !restorePlaybackFromPersistedState()) {
             return
         }
-        val mp = mediaPlayer ?: return
-        if (!mp.isPlaying) {
-            mp.start()
+        val player = exoPlayer ?: return
+        if (!player.isPlaying) {
+            player.play()
         }
         playbackStateHolder.update { it.copy(isPlaying = true) }
         updateMediaSessionPlaybackState()
@@ -419,20 +480,20 @@ class MusicService : Service() {
     }
 
     private fun ensureActiveSessionOrRestore() {
-        if (index < 0 || mediaPlayer == null) {
+        if (index < 0 || exoPlayer == null) {
             restorePlaybackFromPersistedState()
         }
     }
 
     private fun cancelNextAtEnd() {
-        mediaPlayer?.seekTo(0)
+        exoPlayer?.seekTo(0)
         pauseInternal()
         playbackStateHolder.update { it.copy(positionMs = 0) }
     }
 
     private fun seekToInternal(positionMs: Int) {
-        val mp = mediaPlayer ?: return
-        val dur = mp.takeIf { it.duration > 0 }?.duration ?: 0
+        val player = exoPlayer ?: return
+        val dur = playerDurationMs(player)
         val safe = if (dur > 0) positionMs.coerceIn(0, dur) else positionMs.coerceAtLeast(0)
         val now = SystemClock.elapsedRealtime()
         if (safe == lastSeekPositionMs && now - lastSeekElapsedMs < SEEK_DEBOUNCE_MS) {
@@ -440,17 +501,7 @@ class MusicService : Service() {
         }
         lastSeekPositionMs = safe
         lastSeekElapsedMs = now
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                mp.seekTo(safe.toLong(), MediaPlayer.SEEK_CLOSEST)
-            } else {
-                @Suppress("DEPRECATION")
-                mp.seekTo(safe)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "seekTo failed at $safe", e)
-            return
-        }
+        player.seekTo(safe.toLong())
         playbackStateHolder.update {
             it.copy(
                 positionMs = safe,
@@ -468,12 +519,16 @@ class MusicService : Service() {
 
     private fun tearDownServicePlayback() {
         stopProgressTicker()
-        try {
-            mediaPlayer?.stop()
-        } catch (_: Exception) {
+        prepareGeneration++
+        exoPlayer?.run {
+            stop()
+            clearMediaItems()
+            removeListener(playerListener)
+            release()
         }
-        releaseMediaPlayer()
+        exoPlayer = null
         index = -1
+        viewsIncrementedForSongId = null
         clearPersistedPlayback()
         playbackStateHolder.reset()
         try {
@@ -488,8 +543,9 @@ class MusicService : Service() {
     }
 
     private fun updateMediaSessionPlaybackState() {
-        val playing = mediaPlayer?.isPlaying == true
-        val pos = mediaPlayer?.currentPosition?.toLong() ?: 0L
+        val player = exoPlayer
+        val playing = player?.isPlaying == true
+        val pos = player?.currentPosition ?: 0L
         val speed = if (playing) 1f else 0f
         val state = if (playing) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED
         val session = ensureMediaSession()
@@ -528,11 +584,15 @@ class MusicService : Service() {
                     .setMediaSession(session.sessionToken)
             )
 
-        val mp = mediaPlayer
-        val duration = mp?.duration?.takeIf { it > 0 } ?: 0
-        val position = mp?.currentPosition?.takeIf { mp.duration > 0 } ?: 0
+        val player = exoPlayer
+        val duration = playerDurationMs(player)
+        val position = if (duration > 0) {
+            (player?.currentPosition ?: 0L).toInt().coerceIn(0, duration)
+        } else {
+            0
+        }
 
-        if (mp != null && mp.isPlaying) {
+        if (player != null && player.isPlaying) {
             builder
                 .addAction(R.drawable.skip_previous, "Previous", pending(Action.ACTION_PREVIOUS))
                 .addAction(R.drawable.pause, "Pause", pending(Action.ACTION_PAUSE))
@@ -602,15 +662,19 @@ class MusicService : Service() {
     }
 
     private fun persistPlaybackSnapshot() {
-        val mp = mediaPlayer ?: return
+        val player = exoPlayer ?: return
         if (index < 0 || index > songRepository.lastIndex()) return
-        val dur = mp.duration
-        val pos = if (dur > 0) mp.currentPosition.coerceIn(0, dur) else mp.currentPosition.coerceAtLeast(0)
+        val dur = playerDurationMs(player)
+        val pos = if (dur > 0) {
+            player.currentPosition.toInt().coerceIn(0, dur)
+        } else {
+            player.currentPosition.toInt().coerceAtLeast(0)
+        }
         getSharedPreferences(PREF_RESTORE, Context.MODE_PRIVATE).edit()
             .putBoolean(KEY_ACTIVE, true)
             .putInt(KEY_QUEUE_INDEX, index)
             .putInt(KEY_POSITION_MS, pos)
-            .putBoolean(KEY_WAS_PLAYING, mp.isPlaying)
+            .putBoolean(KEY_WAS_PLAYING, player.isPlaying)
             .apply()
     }
 
@@ -660,11 +724,9 @@ class MusicService : Service() {
         private const val KEY_QUEUE_INDEX = "queue_index"
         private const val KEY_POSITION_MS = "position_ms"
         private const val KEY_WAS_PLAYING = "was_playing"
-        /** ~2s at 80ms/tick — đủ để khôi phục vị trí sau process bị kill mà không ghi prefs quá dày. */
         private const val SNAPSHOT_TICKS_INTERVAL = 25
         private const val REQUEST_CODE_OPEN_PLAYER_FROM_NOTIFICATION = 3100
         private const val TAG = "MusicService"
-        /** Ignore duplicate seeks within this window (stream re-buffer is expensive). */
-        private const val SEEK_DEBOUNCE_MS = 200L
+        private const val SEEK_DEBOUNCE_MS = 80L
     }
 }
