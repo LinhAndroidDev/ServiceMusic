@@ -91,13 +91,13 @@ class HomeViewModel @Inject constructor(
             try {
                 coroutineScope {
                     val playlistJob = async {
-                        songRepository.refreshPlaylist()
+                        songRepository.refreshPlaylist().getOrThrow()
                         songRepository.getLatestPlaylist()
                     }
                     val adsJob = async {
                         firestoreMusicRepository.invalidateAdvertisementCache()
                         runCatching {
-                            firestoreMusicRepository.getAdvertisements()
+                            firestoreMusicRepository.getAdvertisements(fromServer = true)
                                 .map { it.toDomainAdvertisement() }
                         }.getOrDefault(emptyList())
                     }
@@ -111,6 +111,8 @@ class HomeViewModel @Inject constructor(
     }
 
     fun getPlaylist(): List<Song> = _playlist.value.ifEmpty { songRepository.getLatestPlaylist() }
+
+    fun getAdvertisements(): List<Advertisement> = _advertisements.value
 
     fun deleteSongById(id: String, onCallBackDeleteSong: () -> Unit) = viewModelScope.launch {
         repository.deleteSongById(id)

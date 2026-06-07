@@ -68,7 +68,7 @@ class ZingChartViewModel @Inject constructor(
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                songRepository.refreshTopPlaylist()
+                songRepository.refreshTopPlaylist().getOrThrow()
                 _playlist.value = songRepository.getTopPlaylist()
             } finally {
                 _isRefreshing.value = false

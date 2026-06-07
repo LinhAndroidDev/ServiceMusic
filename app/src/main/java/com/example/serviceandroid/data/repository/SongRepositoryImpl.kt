@@ -17,7 +17,7 @@ class SongRepositoryImpl @Inject constructor(
     private val playbackQueue = mutableListOf<Song>()
 
     override suspend fun refreshPlaylist(): Result<Unit> = runCatching {
-        val songs = firestore.getLatestSongs(limit = 100)
+        val songs = firestore.getLatestSongs(limit = 100, fromServer = true)
             .map { it.toDomainSong() }
         synchronized(this) {
             latestCache.clear()
@@ -28,7 +28,7 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override suspend fun refreshTopPlaylist(): Result<Unit> = runCatching {
-        val songs = firestore.getTopSongs(limit = 100)
+        val songs = firestore.getTopSongs(limit = 100, fromServer = true)
             .map { it.toDomainSong() }
         synchronized(this) {
             topCache.clear()

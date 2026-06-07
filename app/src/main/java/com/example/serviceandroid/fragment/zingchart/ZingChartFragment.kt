@@ -83,13 +83,27 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             R.color.orange,
         )
         binding.swipeRefresh.setOnRefreshListener {
-            lastBoundChartIds = emptyList()
             viewModel.refreshTopSongs()
         }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.isRefreshing.collect { binding.swipeRefresh.isRefreshing = it }
+                var wasRefreshing = false
+                viewModel.isRefreshing.collect { refreshing ->
+                    binding.swipeRefresh.isRefreshing = refreshing
+                    if (wasRefreshing && !refreshing) {
+                        rebindAfterRefresh()
+                    }
+                    wasRefreshing = refreshing
+                }
             }
+        }
+    }
+
+    private fun rebindAfterRefresh() {
+        binding.timeCurrent.text = DateUtils.getTimeWithHourCurrent()
+        val playlist = viewModel.getPlaylist()
+        if (playlist.isNotEmpty()) {
+            applyPlaylistToUi(playlist, force = true)
         }
     }
 
@@ -114,8 +128,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         }
     }
 
-    private fun applyPlaylistToUi(playlist: List<Song>) {
-        bindSongChartList(playlist)
+    private fun applyPlaylistToUi(playlist: List<Song>, force: Boolean = false) {
+        bindSongChartList(playlist, force = force)
         bindSongSuggest(playlist)
     }
 
@@ -162,7 +176,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
 
     private var lastBoundChartIds: List<String> = emptyList()
 
-    private fun bindSongChartList(playlist: List<Song>) {
+    private fun bindSongChartList(playlist: List<Song>, force: Boolean = false) {
         val adapter = songChartAdapter ?: PagerNewReleaseAdapter(
             requireActivity(),
             type = TypeList.TYPE_NEW_UPDATE,
@@ -175,7 +189,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             songChartAdapter = created
         }
         val newIds = playlist.map { it.id }
-        if (newIds != lastBoundChartIds) {
+        if (force || newIds != lastBoundChartIds || adapter.items != playlist) {
             lastBoundChartIds = newIds
             adapter.items = ArrayList(playlist)
             adapter.notifyDataSetChanged()

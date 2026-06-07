@@ -77,14 +77,28 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             R.color.orange,
         )
         binding.swipeRefresh.setOnRefreshListener {
-            lastBoundAdvertisementIds = emptyList()
             viewModel.refreshAll()
         }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.isRefreshing.collect { binding.swipeRefresh.isRefreshing = it }
+                var wasRefreshing = false
+                viewModel.isRefreshing.collect { refreshing ->
+                    binding.swipeRefresh.isRefreshing = refreshing
+                    if (wasRefreshing && !refreshing) {
+                        rebindAfterRefresh()
+                    }
+                    wasRefreshing = refreshing
+                }
             }
         }
+    }
+
+    private fun rebindAfterRefresh() {
+        val songs = viewModel.getPlaylist()
+        if (songs.isNotEmpty()) {
+            applyPlaylistToUi(songs)
+        }
+        bindAdvertisements(viewModel.getAdvertisements(), force = true)
     }
 
     private fun observeAdvertisements() {
@@ -98,7 +112,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
     }
 
-    private fun bindAdvertisements(ads: List<Advertisement>) {
+    private fun bindAdvertisements(ads: List<Advertisement>, force: Boolean = false) {
         val adapter = advertisementAdapter ?: AdvertisementAdapter(requireActivity()).also {
             advertisementAdapter = it
         }
@@ -116,7 +130,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             binding.advertisement.adapter = adapter
         }
         val newIds = ads.map { it.id.ifBlank { "${it.image}|${it.update}" } }
-        if (newIds != lastBoundAdvertisementIds) {
+        if (force || newIds != lastBoundAdvertisementIds) {
             lastBoundAdvertisementIds = newIds
             adapter.advertisements = ads.toMutableList()
             adapter.notifyDataSetChanged()
