@@ -1,6 +1,6 @@
 # Tích hợp Android (Kotlin) với Firestore
 
-Tài liệu hướng dẫn app Android (Kotlin) đọc dữ liệu nhạc từ **cùng một project Firestore** mà web `music-admin` đang ghi vào. Bao gồm: cấu trúc dữ liệu, data class Kotlin, cách kết nối và các truy vấn thường dùng (danh sách, tìm kiếm, phân trang, top bài hát, tăng lượt xem, lắng nghe realtime).
+Tài liệu hướng dẫn app Android (Kotlin) đọc dữ liệu nhạc từ **cùng một project Firestore** mà web `music-admin` đang ghi vào. Bao gồm: cấu trúc dữ liệu, data class Kotlin, cách kết nối và các truy vấn thường dùng (danh sách, tìm kiếm, phân trang, top bài hát, banner quảng cáo, tăng lượt xem, lắng nghe realtime).
 
 ## Mục lục
 
@@ -11,14 +11,15 @@ Tài liệu hướng dẫn app Android (Kotlin) đọc dữ liệu nhạc từ *
 - [5. Phân trang](#5-phân-trang)
 - [6. Tìm kiếm theo tên](#6-tìm-kiếm-theo-tên)
 - [7. Top bài hát & tăng lượt xem](#7-top-bài-hát--tăng-lượt-xem)
-- [8. Lắng nghe realtime](#8-lắng-nghe-realtime)
-- [9. Lưu ý quan trọng](#9-lưu-ý-quan-trọng)
+- [8. Banner quảng cáo](#8-banner-quảng-cáo)
+- [9. Lắng nghe realtime](#9-lắng-nghe-realtime)
+- [10. Lưu ý quan trọng](#10-lưu-ý-quan-trọng)
 
 ---
 
 ## 1. Cấu trúc dữ liệu Firestore
 
-Có 3 collection ở cấp gốc: `songs`, `singers`, `categories`. Tất cả quan hệ đều dùng **id tham chiếu + tên denormalized** (đã copy sẵn tên vào document) nên app **không cần join** — đọc 1 document là có đủ tên ca sĩ và thể loại để hiển thị.
+Có 4 collection ở cấp gốc: `songs`, `singers`, `categories`, `advertisements`. Các collection `songs` dùng **id tham chiếu + tên denormalized** (đã copy sẵn tên vào document) nên app **không cần join** — đọc 1 document là có đủ tên ca sĩ và thể loại để hiển thị.
 
 ### Collection `songs`
 
@@ -53,6 +54,28 @@ Có 3 collection ở cấp gốc: `songs`, `singers`, `categories`. Tất cả q
 | Trường | Kiểu | Kotlin |
 |--------|------|--------|
 | `name` | string | `String` |
+
+### Collection `advertisements`
+
+Banner hiển thị trên màn hình chính app (carousel/slider). Tên field khớp trực tiếp với data class `Advertisement` trên Android.
+
+| Trường | Kiểu Firestore | Kiểu Kotlin | Ghi chú |
+|--------|----------------|-------------|---------|
+| `image` | string | `String` | URL ảnh banner |
+| `update` | string | `String` | Tiêu đề ngắn (vd: "Hay nhất của V-POP") |
+| `detail` | string | `String` | Mô tả chi tiết |
+| `createdAt` | timestamp | *(bỏ qua)* | Chỉ dùng admin sắp xếp — app không cần map |
+
+**Ví dụ document:**
+
+```json
+{
+  "image": "https://photo-resize-zmp3.zmdcdn.me/w600_r1x1_jpeg/banner/2/7/b/d/27bdc67fef29c7928298c5759de08534.jpg",
+  "update": "Hay nhất của V-POP",
+  "detail": "Thiên Lý Ơi đưa Jack - J97 trở lại với Top Trending",
+  "createdAt": "2026-06-05T10:00:00Z"
+}
+```
 
 ---
 
@@ -179,6 +202,25 @@ data class Category(
     val id: String = "",
     val name: String = "",
 )
+
+@IgnoreExtraProperties
+data class Advertisement(
+    @DocumentId
+    val id: String = "",
+    val image: String = "",
+    val update: String = "",
+    val detail: String = "",
+)
+```
+
+**Ví dụ khởi tạo thủ công (không qua Firestore):**
+
+```kotlin
+Advertisement(
+    image = "https://photo-resize-zmp3.zmdcdn.me/w600_r1x1_jpeg/banner/2/7/b/d/27bdc67fef29c7928298c5759de08534.jpg",
+    update = "Hay nhất của V-POP",
+    detail = "Thiên Lý Ơi đưa Jack - J97 trở lại với Top Trending",
+)
 ```
 
 Giải thích các annotation:
@@ -197,6 +239,7 @@ Dùng coroutine + `await()` cho gọn. Bọc trong Repository.
 ```kotlin
 package com.example.music.data
 
+import com.example.music.data.model.Advertisement
 import com.example.music.data.model.Category
 import com.example.music.data.model.Singer
 import com.example.music.data.model.Song
@@ -213,6 +256,7 @@ class MusicRepository {
     private val songs get() = db.collection("songs")
     private val singers get() = db.collection("singers")
     private val categories get() = db.collection("categories")
+    private val advertisements get() = db.collection("advertisements")
 
     /** Lấy 1 bài hát theo id. */
     suspend fun getSong(id: String): Song? =
@@ -246,6 +290,13 @@ class MusicRepository {
     suspend fun getSongsBySinger(singerId: String, limit: Long = 50): List<Song> =
         songs.whereArrayContains("singerIds", singerId)
             .limit(limit)
+            .get()
+            .await()
+            .toObjects()
+
+    /** Danh sách banner — sắp mới nhất trước. */
+    suspend fun getAdvertisements(): List<Advertisement> =
+        advertisements.orderBy("createdAt", Query.Direction.DESCENDING)
             .get()
             .await()
             .toObjects()
@@ -368,7 +419,57 @@ suspend fun incrementViews(songId: String) {
 
 ---
 
-## 8. Lắng nghe realtime
+## 8. Banner quảng cáo
+
+Banner được admin tạo trên web tại route `/advertisements`, lưu vào collection `advertisements`. App chỉ cần **đọc** — không cần ghi từ client.
+
+### Lấy danh sách banner
+
+```kotlin
+suspend fun getAdvertisements(): List<Advertisement> =
+    Firebase.firestore.collection("advertisements")
+        .orderBy("createdAt", Query.Direction.DESCENDING)
+        .get()
+        .await()
+        .toObjects()
+```
+
+### Hiển thị trên UI (ViewPager2 / Compose)
+
+```kotlin
+// Trong ViewModel
+val banners = MutableStateFlow<List<Advertisement>>(emptyList())
+
+init {
+    viewModelScope.launch {
+        banners.value = repository.getAdvertisements()
+    }
+}
+
+// Compose — ví dụ slider
+@Composable
+fun BannerCarousel(banners: List<Advertisement>) {
+    val pagerState = rememberPagerState { banners.size }
+    HorizontalPager(state = pagerState) { page ->
+        val banner = banners[page]
+        Column {
+            AsyncImage(
+                model = banner.image,
+                contentDescription = banner.update,
+                modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+            )
+            Text(text = banner.update, style = MaterialTheme.typography.titleMedium)
+            Text(text = banner.detail, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+```
+
+> Field `createdAt` tồn tại trong Firestore để admin sắp xếp, nhưng **không cần** khai báo trong `Advertisement` nhờ `@IgnoreExtraProperties`. App hiển thị banner theo thứ tự admin tạo (mới nhất trước).
+
+---
+
+## 9. Lắng nghe realtime
 
 Khi muốn UI tự cập nhật lúc admin thay đổi dữ liệu, dùng snapshot listener thay vì `get()`. Có thể bọc thành `Flow`:
 
@@ -405,10 +506,30 @@ val songs = latestSongsFlow()
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 ```
 
+**Banner realtime** — tương tự, bọc listener cho collection `advertisements`:
+
+```kotlin
+fun advertisementsFlow(): Flow<List<Advertisement>> = callbackFlow {
+    val registration = Firebase.firestore.collection("advertisements")
+        .orderBy("createdAt", Query.Direction.DESCENDING)
+        .addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                trySend(snapshot.toObjects())
+            }
+        }
+    awaitClose { registration.remove() }
+}
+```
+
 ---
 
-## 9. Lưu ý quan trọng
+## 10. Lưu ý quan trọng
 
+- **Banner:** collection `advertisements`, 3 field chính `image` / `update` / `detail`. Dùng Coil/Glide load `image` trực tiếp. Có thể cần index `createdAt` (DESC) nếu chưa có.
 - **Nhiều ca sĩ:** luôn ưu tiên `singerIds` / `singerNames`. Dùng `whereArrayContains("singerIds", id)` để lọc bài hát theo ca sĩ. Hai trường `singerId`/`singerName` chỉ để fallback cho document cũ.
 - **Lyric có thể rỗng:** kiểm tra `song.hasLyric` (hoặc `lyricUrl.isNotBlank()`) trước khi tải/hiển thị lyric.
 - **Composite index:** các truy vấn kết hợp `where` + `orderBy` có thể cần index. Khi chạy, nếu log Firestore báo lỗi `FAILED_PRECONDITION` kèm một URL, hãy mở URL đó để tạo index tự động.
@@ -416,5 +537,4 @@ val songs = latestSongsFlow()
 - **Múi giờ `createdAt`:** là `Timestamp` của Firebase; gọi `createdAt?.toDate()` để lấy `java.util.Date`.
 - **Bảo mật rules:** Firestore hiện đang mở (`allow read, write: if true`) — chỉ phù hợp dev. Trước khi phát hành app thật, cần siết rules (ví dụ chỉ cho `read` công khai, chặn `write` từ client; việc tăng `views` nên qua Cloud Function hoặc rule riêng cho field `views`).
 - **Offline:** Firestore Android tự bật cache offline. Có thể cấu hình `db.firestoreSettings` nếu cần kiểm soát.
-- **URL media:** `audioUrl` / `thumbnailUrl` / `lyricUrl` là link Cloudinary (hoặc URL nhập tay) — dùng trực tiếp với ExoPlayer/Coil/Glide, không cần qua Firebase Storage.
-```
+- **URL media:** `audioUrl` / `thumbnailUrl` / `lyricUrl` / `image` (banner) là link Cloudinary hoặc URL nhập tay — dùng trực tiếp với ExoPlayer/Coil/Glide, không cần qua Firebase Storage.

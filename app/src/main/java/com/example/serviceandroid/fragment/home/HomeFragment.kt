@@ -49,6 +49,9 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var adapterNational: PagerNationalAdapter? = null
     private var newUpdateAdapter: PagerNewReleaseAdapter? = null
     private var newReleasePagerConfigured = false
+    private var advertisementAdapter: AdvertisementAdapter? = null
+    private var advertisementRecyclerConfigured = false
+    private var lastBoundAdvertisementIds: List<String> = emptyList()
     private var stickTile = Title.TITLE_TOPIC
     private val viewModel by viewModels<HomeViewModel>()
 
@@ -61,9 +64,45 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
          */
         ExtensionFunctions.gradientTextColor(binding.tvZingChat)
 
-        initAdvertisement()
         initTopic()
+        observeAdvertisements()
         observePlaylist()
+    }
+
+    private fun observeAdvertisements() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.loadAdvertisements()
+                viewModel.advertisements.collect { ads ->
+                    bindAdvertisements(ads)
+                }
+            }
+        }
+    }
+
+    private fun bindAdvertisements(ads: List<Advertisement>) {
+        val adapter = advertisementAdapter ?: AdvertisementAdapter(requireActivity()).also {
+            advertisementAdapter = it
+        }
+        if (!advertisementRecyclerConfigured) {
+            binding.advertisement.adapter = adapter
+            LinearSnapHelper().attachToRecyclerView(binding.advertisement)
+            binding.advertisement.addItemDecoration(
+                OverlapItemDecoration(
+                    resources.getDimensionPixelSize(R.dimen.item_overlap_width),
+                    resources.getDimensionPixelSize(R.dimen.item_overlap_width),
+                ),
+            )
+            advertisementRecyclerConfigured = true
+        } else if (binding.advertisement.adapter !== adapter) {
+            binding.advertisement.adapter = adapter
+        }
+        val newIds = ads.map { it.id.ifBlank { "${it.image}|${it.update}" } }
+        if (newIds != lastBoundAdvertisementIds) {
+            lastBoundAdvertisementIds = newIds
+            adapter.advertisements = ads.toMutableList()
+            adapter.notifyDataSetChanged()
+        }
     }
 
     private fun observePlaylist() {
@@ -275,47 +314,13 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
     }
 
-    private fun initAdvertisement() {
-        val advertisements = arrayListOf<Advertisement>()
-        advertisements.add(
-            Advertisement(
-                "https://photo-resize-zmp3.zmdcdn.me/w600_r1x1_jpeg/banner/2/7/b/d/27bdc67fef29c7928298c5759de08534.jpg",
-                "Hay nhất của V-POP",
-                "Thiên  Lý Ơi đưa  Jack - J97 trở lại với Top Trending"
-            )
-        )
-        advertisements.add(
-            Advertisement(
-                "https://source.boomplaymusic.com/group10/M00/02/06/f9d04bde573f4737a9859f386331d68b_320_320.jpg",
-                "Mới Cập Nhật",
-                "Có Lẽ Bên Nhau Là Sai và những bản Hit tiềm năng"
-            )
-        )
-        advertisements.add(
-            Advertisement(
-                "https://i.ytimg.com/vi/yF1rUhDRzG0/maxresdefault.jpg",
-                "Mới Cập Nhật",
-                "Bản Hit Đánh Mất Em mới lạ qua giọng hát của các ca sĩ trẻ"
-            )
-        )
-        val adapter = AdvertisementAdapter(requireActivity())
-        adapter.advertisements = advertisements
-        binding.advertisement.adapter = adapter
-        LinearSnapHelper().attachToRecyclerView(binding.advertisement)
-
-        // Set ItemDecoration to add overlap/margin between items
-        binding.advertisement.addItemDecoration(
-            OverlapItemDecoration(
-                resources.getDimensionPixelSize(R.dimen.item_overlap_width),
-                resources.getDimensionPixelSize(R.dimen.item_overlap_width)
-            )
-        )
-    }
-
     override fun onDestroyView() {
         binding.pagerNewRelease.adapter = null
         binding.rcvNewupdate.adapter = null
+        binding.advertisement.adapter = null
         newReleasePagerConfigured = false
+        advertisementRecyclerConfigured = false
+        lastBoundAdvertisementIds = emptyList()
         super.onDestroyView()
     }
 

@@ -17,6 +17,8 @@ interface FirestoreMusicRepository {
     suspend fun getSongsBySinger(singerId: String, limit: Long = 50): List<FirestoreSong>
     suspend fun searchSongsByTitle(term: String, limit: Long = 20): List<FirestoreSong>
     suspend fun incrementViews(songId: String)
+    /** Banners — oldest first ([Query.Direction.ASCENDING] on `createdAt`). */
+    suspend fun getAdvertisements(): List<FirestoreAdvertisement>
 }
 
 @Singleton
@@ -27,6 +29,10 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
     private val songs get() = db.collection("songs")
     private val singers get() = db.collection("singers")
     private val categories get() = db.collection("categories")
+    private val advertisements get() = db.collection("advertisements")
+
+    @Volatile
+    private var advertisementCache: List<FirestoreAdvertisement>? = null
 
     override suspend fun getSong(id: String): FirestoreSong? =
         songs.document(id).get().await().toObject(FirestoreSong::class.java)
@@ -81,5 +87,14 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
         songs.document(songId)
             .update("views", FieldValue.increment(1))
             .await()
+    }
+
+    override suspend fun getAdvertisements(): List<FirestoreAdvertisement> {
+        advertisementCache?.let { return it }
+        return advertisements.orderBy("createdAt", Query.Direction.ASCENDING)
+            .get()
+            .await()
+            .toObjects(FirestoreAdvertisement::class.java)
+            .also { advertisementCache = it }
     }
 }

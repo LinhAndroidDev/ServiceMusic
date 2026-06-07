@@ -3,8 +3,11 @@ package com.example.serviceandroid.fragment.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.serviceandroid.database.repository.FavouriteSongRepository
+import com.example.serviceandroid.data.firestore.FirestoreMusicRepository
 import com.example.serviceandroid.data.repository.SongRepository
+import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.model.toDomainAdvertisement
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +19,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val repository: FavouriteSongRepository,
     private val songRepository: SongRepository,
+    private val firestoreMusicRepository: FirestoreMusicRepository,
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
@@ -24,8 +28,12 @@ class HomeViewModel @Inject constructor(
     private val _playlist = MutableStateFlow<List<Song>>(emptyList())
     val playlist: StateFlow<List<Song>> = _playlist.asStateFlow()
 
+    private val _advertisements = MutableStateFlow<List<Advertisement>>(emptyList())
+    val advertisements: StateFlow<List<Advertisement>> = _advertisements.asStateFlow()
+
     init {
         ensureLoaded()
+        loadAdvertisements()
     }
 
     fun ensureLoaded() {
@@ -57,6 +65,17 @@ class HomeViewModel @Inject constructor(
             songRepository.refreshPlaylist()
             _playlist.value = songRepository.getLatestPlaylist()
             _isLoading.value = false
+        }
+    }
+
+    fun loadAdvertisements(force: Boolean = false) {
+        if (!force && _advertisements.value.isNotEmpty()) return
+        viewModelScope.launch {
+            val ads = runCatching {
+                firestoreMusicRepository.getAdvertisements()
+                    .map { it.toDomainAdvertisement() }
+            }.getOrDefault(emptyList())
+            _advertisements.value = ads
         }
     }
 
