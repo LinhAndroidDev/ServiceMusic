@@ -21,6 +21,9 @@ class ZingChartViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     private val _playlist = MutableStateFlow<List<Song>>(emptyList())
     val playlist: StateFlow<List<Song>> = _playlist.asStateFlow()
 
@@ -58,6 +61,18 @@ class ZingChartViewModel @Inject constructor(
             songRepository.refreshTopPlaylist()
             _playlist.value = songRepository.getTopPlaylist()
             _isLoading.value = false
+        }
+    }
+
+    fun refreshTopSongs() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                songRepository.refreshTopPlaylist()
+                _playlist.value = songRepository.getTopPlaylist()
+            } finally {
+                _isRefreshing.value = false
+            }
         }
     }
 

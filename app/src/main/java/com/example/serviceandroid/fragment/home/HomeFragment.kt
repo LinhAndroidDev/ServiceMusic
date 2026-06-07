@@ -65,8 +65,26 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         ExtensionFunctions.gradientTextColor(binding.tvZingChat)
 
         initTopic()
+        setupSwipeRefresh()
         observeAdvertisements()
         observePlaylist()
+    }
+
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setColorSchemeResources(
+            R.color.blue,
+            R.color.bg_purple,
+            R.color.orange,
+        )
+        binding.swipeRefresh.setOnRefreshListener {
+            lastBoundAdvertisementIds = emptyList()
+            viewModel.refreshAll()
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.isRefreshing.collect { binding.swipeRefresh.isRefreshing = it }
+            }
+        }
     }
 
     private fun observeAdvertisements() {

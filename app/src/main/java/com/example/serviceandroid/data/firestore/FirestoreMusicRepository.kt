@@ -19,6 +19,7 @@ interface FirestoreMusicRepository {
     suspend fun incrementViews(songId: String)
     /** Banners — oldest first ([Query.Direction.ASCENDING] on `createdAt`). */
     suspend fun getAdvertisements(): List<FirestoreAdvertisement>
+    fun invalidateAdvertisementCache()
 }
 
 @Singleton
@@ -96,5 +97,9 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
             .await()
             .toObjects(FirestoreAdvertisement::class.java)
             .also { advertisementCache = it }
+    }
+
+    override fun invalidateAdvertisementCache() {
+        advertisementCache = null
     }
 }

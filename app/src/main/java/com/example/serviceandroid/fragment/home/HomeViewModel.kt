@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,6 +26,9 @@ class HomeViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private val _playlist = MutableStateFlow<List<Song>>(emptyList())
     val playlist: StateFlow<List<Song>> = _playlist.asStateFlow()
@@ -71,11 +76,37 @@ class HomeViewModel @Inject constructor(
     fun loadAdvertisements(force: Boolean = false) {
         if (!force && _advertisements.value.isNotEmpty()) return
         viewModelScope.launch {
+            if (force) firestoreMusicRepository.invalidateAdvertisementCache()
             val ads = runCatching {
                 firestoreMusicRepository.getAdvertisements()
                     .map { it.toDomainAdvertisement() }
             }.getOrDefault(emptyList())
             _advertisements.value = ads
+        }
+    }
+
+    fun refreshAll() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                coroutineScope {
+                    val playlistJob = async {
+                        songRepository.refreshPlaylist()
+                        songRepository.getLatestPlaylist()
+                    }
+                    val adsJob = async {
+                        firestoreMusicRepository.invalidateAdvertisementCache()
+                        runCatching {
+                            firestoreMusicRepository.getAdvertisements()
+                                .map { it.toDomainAdvertisement() }
+                        }.getOrDefault(emptyList())
+                    }
+                    _playlist.value = playlistJob.await()
+                    _advertisements.value = adsJob.await()
+                }
+            } finally {
+                _isRefreshing.value = false
+            }
         }
     }
 

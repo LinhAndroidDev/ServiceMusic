@@ -69,10 +69,28 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         setColorTint(binding.header.micro, R.color.white)
         binding.timeCurrent.text = DateUtils.getTimeWithHourCurrent()
 
+        setupSwipeRefresh()
         observePlaylist()
 
         // Defer heavy chart work so the tab transition can finish on the next frame.
         binding.root.post { prepareChartDeferred() }
+    }
+
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setColorSchemeResources(
+            R.color.blue1,
+            R.color.green3,
+            R.color.orange,
+        )
+        binding.swipeRefresh.setOnRefreshListener {
+            lastBoundChartIds = emptyList()
+            viewModel.refreshTopSongs()
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.isRefreshing.collect { binding.swipeRefresh.isRefreshing = it }
+            }
+        }
     }
 
     private fun prepareChartDeferred() {

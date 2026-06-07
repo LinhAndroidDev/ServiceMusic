@@ -6,6 +6,15 @@
     android:layout_height="match_parent"
     tools:context=".fragment.home.HomeFragment">
 
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollHome"
         android:layout_width="match_parent"
@@ -247,6 +256,8 @@
                 app:layout_constraintTop_toBottomOf="@id/cvNewUpdate" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <LinearLayout
         android:id="@+id/titleCover"
