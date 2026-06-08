@@ -60,8 +60,6 @@
             android:id="@+id/imgFavourite"
             android:layout_width="25dp"
             android:layout_height="25dp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
             android:importantForAccessibility="no"
             android:src="@drawable/ic_favourite_thin"
             app:tint="@color/white" />
