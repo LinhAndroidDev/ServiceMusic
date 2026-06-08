@@ -4,4 +4,6 @@
     <string name="toast_added_favourite">Đã thêm vào bài hát yêu thích</string>
     <string name="toast_removed_favourite">Đã xoá khỏi bài hát yêu thích</string>
     <string name="lyrics_empty">Chưa có lyrics cho bài hát</string>
+    <string name="singer_info_empty">Chưa có thông tin ca sĩ</string>
+    <string name="singer_bio_empty">Chưa có tiểu sử cho ca sĩ này</string>
 </resources>

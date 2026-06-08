@@ -12,6 +12,7 @@ interface FirestoreMusicRepository {
     suspend fun getSong(id: String): FirestoreSong?
     suspend fun getLatestSongs(limit: Long = 50, fromServer: Boolean = false): List<FirestoreSong>
     suspend fun getTopSongs(limit: Long = 50, fromServer: Boolean = false): List<FirestoreSong>
+    suspend fun getSinger(id: String): FirestoreSinger?
     suspend fun getSingers(): List<FirestoreSinger>
     suspend fun getCategories(): List<FirestoreCategory>
     suspend fun getSongsByCategory(categoryId: String, limit: Long = 50): List<FirestoreSong>
@@ -52,6 +53,11 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
             .get(if (fromServer) Source.SERVER else Source.DEFAULT)
             .await()
             .toObjects(FirestoreSong::class.java)
+
+    override suspend fun getSinger(id: String): FirestoreSinger? {
+        if (id.isBlank()) return null
+        return singers.document(id).get().await().toObject(FirestoreSinger::class.java)
+    }
 
     override suspend fun getSingers(): List<FirestoreSinger> =
         singers.orderBy("name").get().await().toObjects(FirestoreSinger::class.java)

@@ -6,6 +6,7 @@ import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
 import android.view.LayoutInflater
+import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.SeekBar
 import android.widget.Toast
@@ -25,7 +26,10 @@ import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentMusicBinding
 import com.example.serviceandroid.databinding.ItemMusicPlayerPageBinding
+import com.example.serviceandroid.databinding.ItemMusicSingerPageBinding
 import com.example.serviceandroid.helper.Constants
+import com.example.serviceandroid.model.Singer
+import com.google.android.material.tabs.TabLayout
 import com.example.serviceandroid.lyrics.LineLyricsAdapter
 import com.example.serviceandroid.lyrics.SongLyricsLoader
 import com.example.serviceandroid.lyrics.TimedLyricLine
@@ -71,16 +75,22 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private var pendingInitSongId: String? = null
     /** True while user drags the seek bar — avoids spamming MediaPlayer.seekTo during scrub. */
     private var isUserSeeking: Boolean = false
+    private var singerTabListener: TabLayout.OnTabSelectedListener? = null
+    private var isBindingSingerTabs: Boolean = false
+    private var lastSingerTabSongId: String? = null
 
     private val playerPagerCallback = object : ViewPager2.OnPageChangeCallback() {
         override fun onPageSelected(position: Int) {
-            if (position == 1) {
+            if (position == PAGE_LYRICS) {
                 updateLineLyricsPlayback(playbackViewModel.playbackState.value.positionMs, force = true)
             }
         }
     }
 
     private companion object {
+        private const val PAGE_SINGER = 0
+        private const val PAGE_SONG = 1
+        private const val PAGE_LYRICS = 2
         private const val LYRIC_TIME_EPS = 1e-4
         /** Min ms between SeekBar / clock UI updates while playing (lyrics still use full [positionMs]). */
         private const val SEEK_UI_THROTTLE_MS = 220
@@ -96,25 +106,34 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
         pendingInitSongId = songId.takeIf { it.isNotBlank() }
 
-        pagerAdapter = MusicNowPlayingPagerAdapter { pb ->
-            playerPageBinding = pb
-            if (!playerControlsAttached) {
-                playerControlsAttached = true
-                CustomAnimator.rotationImage(pb.imgSong)
-                setupPlayerPageInteractions(pb)
-                pendingInitSongId?.let {
-                    initMusic(it)
-                    pendingInitSongId = null
+        pagerAdapter = MusicNowPlayingPagerAdapter(
+            onSingerPageBound = { spb ->
+                setupSingerTabListener(spb)
+                bindSingerUi(viewModel.singerUiState.value)
+            },
+            onPlayerPageBound = { pb ->
+                playerPageBinding = pb
+                if (!playerControlsAttached) {
+                    playerControlsAttached = true
+                    CustomAnimator.rotationImage(pb.imgSong)
+                    setupPlayerPageInteractions(pb)
+                    pendingInitSongId?.let {
+                        initMusic(it)
+                        pendingInitSongId = null
+                    }
                 }
-            }
-        }
+            },
+        )
         binding.playerPager.adapter = pagerAdapter
+        binding.playerPager.setCurrentItem(PAGE_SONG, false)
         binding.playerPager.registerOnPageChangeCallback(playerPagerCallback)
         @Suppress("DEPRECATION")
-        binding.playerPager.offscreenPageLimit = 1
+        binding.playerPager.offscreenPageLimit = 2
 
         binding.playerTransport.imgRepeat.setImageResource(viewModel.getTypeRepeat().value)
         setupTransportControls()
+
+        observeSingerUiState()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -302,7 +321,98 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
         if (st.isPlaying) startMusic() else pauseMusic()
 
+        viewModel.loadSingersForSong(song.id, song.nameSinger)
         loadLyricsForSong(song)
+    }
+
+    private fun observeSingerUiState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.singerUiState.collect { state ->
+                    bindSingerUi(state)
+                }
+            }
+        }
+    }
+
+    private fun setupSingerTabListener(spb: ItemMusicSingerPageBinding) {
+        if (singerTabListener != null) return
+        singerTabListener = object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                if (isBindingSingerTabs) return
+                viewModel.selectSingerTab(tab.position)
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        }.also { spb.tabSingers.addOnTabSelectedListener(it) }
+    }
+
+    private fun bindSingerUi(state: SingerUiState) {
+        val spb = pagerAdapter.singerPageBinding ?: return
+        if (state.songId.isNotBlank() && state.songId != lastRenderedSongId) return
+
+        when {
+            state.isLoading -> {
+                spb.progressSinger.visibility = View.VISIBLE
+                spb.tvSingerEmpty.visibility = View.GONE
+                spb.singerContent.visibility = View.GONE
+            }
+            state.singers.isEmpty() -> {
+                spb.progressSinger.visibility = View.GONE
+                spb.tvSingerEmpty.visibility = View.VISIBLE
+                spb.singerContent.visibility = View.GONE
+            }
+            else -> {
+                spb.progressSinger.visibility = View.GONE
+                spb.tvSingerEmpty.visibility = View.GONE
+                spb.singerContent.visibility = View.VISIBLE
+                setupSingerTabs(spb, state)
+                state.selectedSinger?.let { bindSelectedSinger(spb, it) }
+            }
+        }
+    }
+
+    private fun setupSingerTabs(spb: ItemMusicSingerPageBinding, state: SingerUiState) {
+        val tabLayout = spb.tabSingers
+        if (state.singers.size > 1) {
+            tabLayout.visibility = View.VISIBLE
+            spb.tvSingerName.visibility = View.GONE
+            val needsRebuild = lastSingerTabSongId != state.songId ||
+                tabLayout.tabCount != state.singers.size
+            if (needsRebuild) {
+                lastSingerTabSongId = state.songId
+                isBindingSingerTabs = true
+                tabLayout.removeAllTabs()
+                state.singers.forEach { singer ->
+                    tabLayout.addTab(tabLayout.newTab().setText(singer.name))
+                }
+                tabLayout.getTabAt(state.selectedIndex.coerceIn(0, state.singers.lastIndex))?.select()
+                isBindingSingerTabs = false
+            } else if (tabLayout.selectedTabPosition != state.selectedIndex) {
+                isBindingSingerTabs = true
+                tabLayout.getTabAt(state.selectedIndex)?.select()
+                isBindingSingerTabs = false
+            }
+        } else {
+            tabLayout.visibility = View.GONE
+            spb.tvSingerName.visibility = View.VISIBLE
+            lastSingerTabSongId = state.songId
+        }
+    }
+
+    private fun bindSelectedSinger(spb: ItemMusicSingerPageBinding, singer: Singer) {
+        if (spb.tabSingers.visibility != View.VISIBLE) {
+            spb.tvSingerName.text = singer.name
+        }
+        Glide.with(this)
+            .load(singer.avatarUrl.takeIf { it.isNotBlank() })
+            .error(R.drawable.ic_circle)
+            .placeholder(R.drawable.ic_circle)
+            .into(spb.imgSingerAvatar)
+        spb.tvSingerBio.text = singer.description.takeIf { it.isNotBlank() }
+            ?: getString(R.string.singer_bio_empty)
     }
 
     private fun ensureLineLyricsAdapter(): LineLyricsAdapter {
@@ -397,7 +507,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         lastActiveLineIndex = active
         val adapter = ensureLineLyricsAdapter()
         adapter.setActiveLine(active)
-        if (active >= 0 && binding.playerPager.currentItem == 1) {
+        if (active >= 0 && binding.playerPager.currentItem == PAGE_LYRICS) {
             val anchor = (active - 1).coerceAtLeast(0)
             if (force || anchor != lastLyricsScrollAnchor) {
                 lastLyricsScrollAnchor = anchor
@@ -490,6 +600,11 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
 
     override fun onDestroyView() {
         lineLyricsAdapter?.onLineClickListener = null
+        singerTabListener?.let { listener ->
+            pagerAdapter.singerPageBinding?.tabSingers?.removeOnTabSelectedListener(listener)
+        }
+        singerTabListener = null
+        lastSingerTabSongId = null
         binding.playerPager.unregisterOnPageChangeCallback(playerPagerCallback)
         super.onDestroyView()
     }
