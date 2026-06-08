@@ -15,9 +15,25 @@ class AdvertisementAdapter(
     var advertisements: List<Advertisement> = emptyList()
         private set
 
+    val realItemCount: Int
+        get() = advertisements.size
+
     fun submitAdvertisements(ads: List<Advertisement>) {
         advertisements = ads
         notifyDataSetChanged()
+    }
+
+    fun getInfiniteStartPosition(): Int = getInfiniteMiddleOffset()
+
+    fun getInfiniteMiddleOffset(): Int {
+        if (advertisements.size <= 1) return 0
+        return advertisements.size * (INFINITE_SCROLL_MULTIPLIER / 2)
+    }
+
+    fun toRealIndex(adapterPosition: Int): Int {
+        val count = advertisements.size
+        if (count <= 0) return 0
+        return ((adapterPosition % count) + count) % count
     }
 
     inner class ViewHolder(private val binding: ItemAdvertisementBinding) :
@@ -48,8 +64,16 @@ class AdvertisementAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bindData(advertisements[position])
+        if (advertisements.isEmpty()) return
+        holder.bindData(advertisements[toRealIndex(position)])
     }
 
-    override fun getItemCount(): Int = advertisements.size
+    override fun getItemCount(): Int {
+        if (advertisements.size <= 1) return advertisements.size
+        return advertisements.size * INFINITE_SCROLL_MULTIPLIER
+    }
+
+    companion object {
+        private const val INFINITE_SCROLL_MULTIPLIER = 1_000
+    }
 }

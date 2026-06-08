@@ -147,7 +147,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             lastBoundAdvertisementIds = newIds
             adapter.submitAdvertisements(ads)
             currentBannerIndex = 0
-            binding.advertisementBanner.scrollToPosition(0)
+            binding.advertisementBanner.scrollToPosition(adapter.getInfiniteStartPosition())
             binding.advertisementBanner.post {
                 applyBannerDepthEffect(binding.advertisementBanner)
             }
@@ -156,12 +156,12 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         startBannerAutoScroll()
     }
 
-    private fun updateBannerIndicator(selectedIndex: Int) {
-        val count = advertisementAdapter?.itemCount ?: 0
+    private fun updateBannerIndicator(selectedRealIndex: Int) {
+        val count = advertisementAdapter?.realItemCount ?: 0
         binding.bannerIndicator.isVisible = count > 1
         if (count <= 1) return
         binding.bannerIndicator.setDotCount(count)
-        binding.bannerIndicator.setCurrentPosition(selectedIndex.coerceIn(0, count - 1))
+        binding.bannerIndicator.setCurrentPosition(selectedRealIndex.coerceIn(0, count - 1))
     }
 
     private fun calculateBannerItemWidth(): Int {
@@ -191,11 +191,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         bannerScrollListener = object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 applyBannerDepthEffect(recyclerView)
-                val snapped = findBannerSnapPosition(recyclerView)
-                if (snapped != RecyclerView.NO_POSITION && snapped != currentBannerIndex) {
-                    currentBannerIndex = snapped
-                    updateBannerIndicator(snapped)
-                }
+                updateBannerIndexFromSnap(recyclerView)
             }
 
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
@@ -203,11 +199,8 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                     RecyclerView.SCROLL_STATE_DRAGGING -> stopBannerAutoScroll()
                     RecyclerView.SCROLL_STATE_IDLE -> {
                         applyBannerDepthEffect(recyclerView)
-                        val snapped = findBannerSnapPosition(recyclerView)
-                        if (snapped != RecyclerView.NO_POSITION) {
-                            currentBannerIndex = snapped
-                            updateBannerIndicator(snapped)
-                        }
+                        updateBannerIndexFromSnap(recyclerView)
+                        repositionInfiniteBannerIfNeeded(recyclerView)
                         startBannerAutoScroll()
                     }
                 }
@@ -246,6 +239,36 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
     }
 
+    private fun updateBannerIndexFromSnap(recyclerView: RecyclerView) {
+        val adapter = advertisementAdapter ?: return
+        val snapped = findBannerSnapPosition(recyclerView)
+        if (snapped == RecyclerView.NO_POSITION) return
+        val realIndex = adapter.toRealIndex(snapped)
+        if (realIndex != currentBannerIndex) {
+            currentBannerIndex = realIndex
+            updateBannerIndicator(realIndex)
+        }
+    }
+
+    private fun repositionInfiniteBannerIfNeeded(recyclerView: RecyclerView) {
+        val adapter = advertisementAdapter ?: return
+        val realCount = adapter.realItemCount
+        if (realCount <= 1) return
+
+        val snapped = findBannerSnapPosition(recyclerView)
+        if (snapped == RecyclerView.NO_POSITION) return
+
+        val totalCount = adapter.itemCount
+        val threshold = realCount * 2
+        val middleOffset = adapter.getInfiniteMiddleOffset()
+        val newPosition = when {
+            snapped < threshold -> snapped + middleOffset
+            snapped > totalCount - threshold -> snapped - middleOffset
+            else -> return
+        }
+        recyclerView.scrollToPosition(newPosition)
+    }
+
     private fun findBannerSnapPosition(recyclerView: RecyclerView): Int {
         val layoutManager = recyclerView.layoutManager ?: return RecyclerView.NO_POSITION
         val snapTarget = recyclerView.width / 2
@@ -265,16 +288,20 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
 
     private fun startBannerAutoScroll() {
         stopBannerAutoScroll()
-        val itemCount = advertisementAdapter?.itemCount ?: 0
-        if (itemCount <= 1 || !isResumed) return
+        val realCount = advertisementAdapter?.realItemCount ?: 0
+        if (realCount <= 1 || !isResumed) return
 
         bannerAutoScrollRunnable = object : Runnable {
             override fun run() {
                 if (!isResumed || !isAdded) return
-                val count = advertisementAdapter?.itemCount ?: 0
-                if (count <= 1) return
-                currentBannerIndex = (currentBannerIndex + 1) % count
-                binding.advertisementBanner.smoothScrollToPosition(currentBannerIndex)
+                val adapter = advertisementAdapter ?: return
+                if (adapter.realItemCount <= 1) return
+
+                val recyclerView = binding.advertisementBanner
+                val currentAdapterPosition = findBannerSnapPosition(recyclerView)
+                if (currentAdapterPosition == RecyclerView.NO_POSITION) return
+
+                recyclerView.smoothScrollToPosition(currentAdapterPosition + 1)
                 bannerHandler.postDelayed(this, BANNER_AUTO_SCROLL_MS)
             }
         }
