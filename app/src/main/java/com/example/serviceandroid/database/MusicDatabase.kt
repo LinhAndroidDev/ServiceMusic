@@ -7,12 +7,12 @@ import com.example.serviceandroid.database.dao.FavouriteSongDao
 @Database(
     entities = [SongEntity::class],
     version = MusicDatabase.VERSION,
-    exportSchema = true,
+    exportSchema = false,
 )
 abstract class MusicDatabase : RoomDatabase() {
     abstract fun favouriteSongDao(): FavouriteSongDao
 
     companion object {
-        const val VERSION = 3
+        const val VERSION = 1
     }
 }
