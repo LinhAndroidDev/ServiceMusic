@@ -14,7 +14,7 @@
         android:layout_marginTop="30dp"
         android:elevation="10dp" />
 
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="20dp"
@@ -23,15 +23,15 @@
         <ImageView
             android:layout_width="25dp"
             android:layout_height="25dp"
-            android:layout_centerVertical="true"
             android:importantForAccessibility="no"
             android:src="@drawable/ic_share"
             app:tint="@color/white" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -42,7 +42,10 @@
                 android:textColor="@color/text_white"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                tools:text="Thuỷ Triều" />
+                android:gravity="center_horizontal"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="Hoàng Hôn Nhớ (Hoa Vương Original Sound Track)" />
 
             <TextView
                 android:id="@+id/tvNameSinger"
@@ -62,7 +65,7 @@
             android:importantForAccessibility="no"
             android:src="@drawable/ic_favourite_thin"
             app:tint="@color/white" />
-    </RelativeLayout>
+    </LinearLayout>
 
     <Space
         android:layout_width="match_parent"
