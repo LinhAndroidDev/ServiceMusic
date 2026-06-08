@@ -101,4 +101,7 @@ dependencies {
 
     //MPAndroidChart
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    // Banner dots indicator (RecyclerView support)
+    implementation("ru.tinkoff.scrollingpagerindicator:scrollingpagerindicator:1.2.5")
 }

@@ -12,4 +12,6 @@
 
     <dimen name="item_overlap_width">15dp</dimen>
     <dimen name="item_overlap_no_margin">0dp</dimen>
+    <dimen name="banner_next_peek">40dp</dimen>
+    <dimen name="banner_page_margin">16dp</dimen>
 </resources>

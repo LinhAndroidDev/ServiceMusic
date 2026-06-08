@@ -2,6 +2,8 @@ package com.example.serviceandroid.fragment.home
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.core.view.isVisible
@@ -10,7 +12,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearSnapHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
@@ -24,7 +27,6 @@ import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.DialogConfirm
-import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentHomeBinding
 import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.National
@@ -43,6 +45,8 @@ enum class Title {
     TITLE_NEW_RELEASE,
 }
 
+private const val BANNER_AUTO_SCROLL_MS = 5_000L
+
 @AndroidEntryPoint
 class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var national = National.ALL_NATIONAL
@@ -50,8 +54,13 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var newUpdateAdapter: PagerNewReleaseAdapter? = null
     private var newReleasePagerConfigured = false
     private var advertisementAdapter: AdvertisementAdapter? = null
-    private var advertisementRecyclerConfigured = false
+    private var advertisementBannerConfigured = false
+    private var bannerItemWidthPx = 0
+    private var currentBannerIndex = 0
     private var lastBoundAdvertisementIds: List<String> = emptyList()
+    private val bannerHandler = Handler(Looper.getMainLooper())
+    private var bannerAutoScrollRunnable: Runnable? = null
+    private var bannerScrollListener: RecyclerView.OnScrollListener? = null
     private var stickTile = Title.TITLE_TOPIC
     private val viewModel by viewModels<HomeViewModel>()
 
@@ -113,28 +122,168 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     }
 
     private fun bindAdvertisements(ads: List<Advertisement>, force: Boolean = false) {
-        val adapter = advertisementAdapter ?: AdvertisementAdapter(requireActivity()).also {
-            advertisementAdapter = it
+        if (ads.isEmpty()) {
+            stopBannerAutoScroll()
+            binding.advertisementBanner.adapter = null
+            binding.bannerIndicator.isVisible = false
+            lastBoundAdvertisementIds = emptyList()
+            return
         }
-        if (!advertisementRecyclerConfigured) {
-            binding.advertisement.adapter = adapter
-            LinearSnapHelper().attachToRecyclerView(binding.advertisement)
-            binding.advertisement.addItemDecoration(
-                OverlapItemDecoration(
-                    resources.getDimensionPixelSize(R.dimen.item_overlap_width),
-                    resources.getDimensionPixelSize(R.dimen.item_overlap_width),
-                ),
-            )
-            advertisementRecyclerConfigured = true
-        } else if (binding.advertisement.adapter !== adapter) {
-            binding.advertisement.adapter = adapter
+
+        val itemWidth = calculateBannerItemWidth()
+        setupAdvertisementBanner(itemWidth)
+
+        val adapter = advertisementAdapter?.takeIf { it.itemWidthPx == itemWidth }
+            ?: AdvertisementAdapter(itemWidth).also {
+                advertisementAdapter = it
+                binding.advertisementBanner.adapter = it
+            }
+        if (binding.advertisementBanner.adapter !== adapter) {
+            binding.advertisementBanner.adapter = adapter
         }
+
         val newIds = ads.map { it.id.ifBlank { "${it.image}|${it.update}" } }
         if (force || newIds != lastBoundAdvertisementIds) {
             lastBoundAdvertisementIds = newIds
-            adapter.advertisements = ads.toMutableList()
-            adapter.notifyDataSetChanged()
+            adapter.submitAdvertisements(ads)
+            currentBannerIndex = 0
+            binding.advertisementBanner.scrollToPosition(0)
+            binding.advertisementBanner.post {
+                applyBannerDepthEffect(binding.advertisementBanner)
+            }
         }
+        updateBannerIndicator(currentBannerIndex)
+        startBannerAutoScroll()
+    }
+
+    private fun updateBannerIndicator(selectedIndex: Int) {
+        val count = advertisementAdapter?.itemCount ?: 0
+        binding.bannerIndicator.isVisible = count > 1
+        if (count <= 1) return
+        binding.bannerIndicator.setDotCount(count)
+        binding.bannerIndicator.setCurrentPosition(selectedIndex.coerceIn(0, count - 1))
+    }
+
+    private fun calculateBannerItemWidth(): Int {
+        val screenWidth = resources.displayMetrics.widthPixels
+        return (screenWidth * 0.78f).toInt()
+    }
+
+    private fun applyBannerSidePadding(itemWidth: Int) {
+        val screenWidth = resources.displayMetrics.widthPixels
+        val sidePadding = (screenWidth - itemWidth) / 2
+        binding.advertisementBanner.setPadding(sidePadding, 0, sidePadding, 0)
+    }
+
+    private fun setupAdvertisementBanner(itemWidth: Int) {
+        val recyclerView = binding.advertisementBanner
+        applyBannerSidePadding(itemWidth)
+        bannerItemWidthPx = itemWidth
+
+        if (advertisementBannerConfigured) return
+
+        recyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        PagerSnapHelper().attachToRecyclerView(recyclerView)
+        recyclerView.clipToPadding = false
+        recyclerView.clipChildren = false
+        recyclerView.setHasFixedSize(true)
+
+        bannerScrollListener = object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                applyBannerDepthEffect(recyclerView)
+                val snapped = findBannerSnapPosition(recyclerView)
+                if (snapped != RecyclerView.NO_POSITION && snapped != currentBannerIndex) {
+                    currentBannerIndex = snapped
+                    updateBannerIndicator(snapped)
+                }
+            }
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                when (newState) {
+                    RecyclerView.SCROLL_STATE_DRAGGING -> stopBannerAutoScroll()
+                    RecyclerView.SCROLL_STATE_IDLE -> {
+                        applyBannerDepthEffect(recyclerView)
+                        val snapped = findBannerSnapPosition(recyclerView)
+                        if (snapped != RecyclerView.NO_POSITION) {
+                            currentBannerIndex = snapped
+                            updateBannerIndicator(snapped)
+                        }
+                        startBannerAutoScroll()
+                    }
+                }
+            }
+        }.also { recyclerView.addOnScrollListener(it) }
+
+        advertisementBannerConfigured = true
+    }
+
+    private fun applyBannerDepthEffect(recyclerView: RecyclerView) {
+        val layoutManager = recyclerView.layoutManager ?: return
+        val center = recyclerView.width / 2f
+        var centerChild: android.view.View? = null
+        var minDistance = Float.MAX_VALUE
+
+        for (i in 0 until layoutManager.childCount) {
+            val child = layoutManager.getChildAt(i) ?: continue
+            val childCenter = (child.left + child.right) / 2f
+            val distance = abs(childCenter - center) / center
+            val scale = 1f - (distance * 0.2f).coerceIn(0f, 0.2f)
+            val alpha = 1f - (distance * 0.45f).coerceIn(0f, 0.5f)
+            child.scaleX = scale
+            child.scaleY = scale
+            child.alpha = alpha
+
+            val centerDistance = abs(childCenter - center)
+            if (centerDistance < minDistance) {
+                minDistance = centerDistance
+                centerChild = child
+            }
+        }
+
+        for (i in 0 until layoutManager.childCount) {
+            val child = layoutManager.getChildAt(i) ?: continue
+            child.translationZ = if (child === centerChild) 12f else 0f
+        }
+    }
+
+    private fun findBannerSnapPosition(recyclerView: RecyclerView): Int {
+        val layoutManager = recyclerView.layoutManager ?: return RecyclerView.NO_POSITION
+        val snapTarget = recyclerView.width / 2
+        var minDistance = Int.MAX_VALUE
+        var position = RecyclerView.NO_POSITION
+        for (i in 0 until layoutManager.childCount) {
+            val child = layoutManager.getChildAt(i) ?: continue
+            val childCenter = (child.left + child.right) / 2
+            val distance = abs(childCenter - snapTarget)
+            if (distance < minDistance) {
+                minDistance = distance
+                position = recyclerView.getChildAdapterPosition(child)
+            }
+        }
+        return position
+    }
+
+    private fun startBannerAutoScroll() {
+        stopBannerAutoScroll()
+        val itemCount = advertisementAdapter?.itemCount ?: 0
+        if (itemCount <= 1 || !isResumed) return
+
+        bannerAutoScrollRunnable = object : Runnable {
+            override fun run() {
+                if (!isResumed || !isAdded) return
+                val count = advertisementAdapter?.itemCount ?: 0
+                if (count <= 1) return
+                currentBannerIndex = (currentBannerIndex + 1) % count
+                binding.advertisementBanner.smoothScrollToPosition(currentBannerIndex)
+                bannerHandler.postDelayed(this, BANNER_AUTO_SCROLL_MS)
+            }
+        }
+        bannerHandler.postDelayed(bannerAutoScrollRunnable!!, BANNER_AUTO_SCROLL_MS)
+    }
+
+    private fun stopBannerAutoScroll() {
+        bannerAutoScrollRunnable?.let { bannerHandler.removeCallbacks(it) }
+        bannerAutoScrollRunnable = null
     }
 
     private fun observePlaylist() {
@@ -346,12 +495,26 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        startBannerAutoScroll()
+    }
+
+    override fun onPause() {
+        stopBannerAutoScroll()
+        super.onPause()
+    }
+
     override fun onDestroyView() {
+        stopBannerAutoScroll()
+        bannerScrollListener?.let { binding.advertisementBanner.removeOnScrollListener(it) }
+        bannerScrollListener = null
         binding.pagerNewRelease.adapter = null
         binding.rcvNewupdate.adapter = null
-        binding.advertisement.adapter = null
+        binding.advertisementBanner.adapter = null
         newReleasePagerConfigured = false
-        advertisementRecyclerConfigured = false
+        advertisementBannerConfigured = false
+        currentBannerIndex = 0
         lastBoundAdvertisementIds = emptyList()
         super.onDestroyView()
     }
