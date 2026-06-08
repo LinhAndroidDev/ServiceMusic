@@ -65,6 +65,38 @@
                 app:tint="@color/white" />
         </RelativeLayout>
 
+        <LinearLayout
+            android:id="@+id/pagerIndicator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/indicatorSinger"
+                android:layout_width="12dp"
+                android:layout_height="2dp"
+                android:background="@drawable/bg_pager_indicator_normal"
+                android:alpha="0.45" />
+
+            <View
+                android:id="@+id/indicatorSong"
+                android:layout_width="18dp"
+                android:layout_height="2.5dp"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/bg_pager_indicator_selected"
+                android:alpha="1" />
+
+            <View
+                android:id="@+id/indicatorLyrics"
+                android:layout_width="12dp"
+                android:layout_height="2dp"
+                android:layout_marginStart="3dp"
+                android:background="@drawable/bg_pager_indicator_normal"
+                android:alpha="0.45" />
+        </LinearLayout>
+
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/playerPager"
             android:layout_width="match_parent"

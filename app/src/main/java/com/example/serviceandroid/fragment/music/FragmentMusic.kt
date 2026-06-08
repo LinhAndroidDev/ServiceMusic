@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.graphics.RenderEffect
 import android.graphics.Shader
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
@@ -80,10 +81,15 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private var lastSingerTabSongId: String? = null
 
     private val playerPagerCallback = object : ViewPager2.OnPageChangeCallback() {
+        override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
+            updatePagerIndicatorProgress(position, positionOffset)
+        }
+
         override fun onPageSelected(position: Int) {
             if (position == PAGE_LYRICS) {
                 updateLineLyricsPlayback(playbackViewModel.playbackState.value.positionMs, force = true)
             }
+            updatePagerIndicatorProgress(position, 0f)
         }
     }
 
@@ -91,6 +97,14 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         private const val PAGE_SINGER = 0
         private const val PAGE_SONG = 1
         private const val PAGE_LYRICS = 2
+        private const val INDICATOR_WIDTH_NORMAL_DP = 12f
+        private const val INDICATOR_WIDTH_SELECTED_DP = 18f
+        private const val INDICATOR_HEIGHT_NORMAL_DP = 2f
+        private const val INDICATOR_HEIGHT_SELECTED_DP = 2.5f
+        private const val INDICATOR_RADIUS_NORMAL_DP = 1f
+        private const val INDICATOR_RADIUS_SELECTED_DP = 2f
+        private const val INDICATOR_ALPHA_NORMAL = 0.45f
+        private const val INDICATOR_ALPHA_SELECTED = 1f
         private const val LYRIC_TIME_EPS = 1e-4
         /** Min ms between SeekBar / clock UI updates while playing (lyrics still use full [positionMs]). */
         private const val SEEK_UI_THROTTLE_MS = 220
@@ -129,6 +143,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         binding.playerPager.registerOnPageChangeCallback(playerPagerCallback)
         @Suppress("DEPRECATION")
         binding.playerPager.offscreenPageLimit = 2
+        setupPagerIndicatorDrawables()
+        updatePagerIndicatorProgress(PAGE_SONG, 0f)
 
         binding.playerTransport.imgRepeat.setImageResource(viewModel.getTypeRepeat().value)
         setupTransportControls()
@@ -162,6 +178,49 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             )
         }
     }
+
+    private fun setupPagerIndicatorDrawables() {
+        val color = requireContext().getColor(R.color.white)
+        listOf(binding.indicatorSinger, binding.indicatorSong, binding.indicatorLyrics).forEach { view ->
+            view.background = GradientDrawable().apply { setColor(color) }
+        }
+    }
+
+    private fun updatePagerIndicatorProgress(pagePosition: Int, pageOffset: Float) {
+        applyIndicatorFraction(binding.indicatorSinger, indicatorSelectionFraction(PAGE_SINGER, pagePosition, pageOffset))
+        applyIndicatorFraction(binding.indicatorSong, indicatorSelectionFraction(PAGE_SONG, pagePosition, pageOffset))
+        applyIndicatorFraction(binding.indicatorLyrics, indicatorSelectionFraction(PAGE_LYRICS, pagePosition, pageOffset))
+    }
+
+    private fun indicatorSelectionFraction(
+        indicatorIndex: Int,
+        pagePosition: Int,
+        pageOffset: Float,
+    ): Float {
+        val diff = indicatorIndex - pagePosition
+        return when (diff) {
+            0 -> 1f - pageOffset
+            1 -> pageOffset
+            else -> 0f
+        }.coerceIn(0f, 1f)
+    }
+
+    private fun applyIndicatorFraction(view: View, fraction: Float) {
+        val density = resources.displayMetrics.density
+        val widthPx = lerp(INDICATOR_WIDTH_NORMAL_DP, INDICATOR_WIDTH_SELECTED_DP, fraction, density)
+        val heightPx = lerp(INDICATOR_HEIGHT_NORMAL_DP, INDICATOR_HEIGHT_SELECTED_DP, fraction, density)
+        val radiusPx = lerp(INDICATOR_RADIUS_NORMAL_DP, INDICATOR_RADIUS_SELECTED_DP, fraction, density)
+
+        view.layoutParams = view.layoutParams.apply {
+            width = widthPx.toInt().coerceAtLeast(1)
+            height = heightPx.toInt().coerceAtLeast(1)
+        }
+        view.alpha = INDICATOR_ALPHA_NORMAL + (INDICATOR_ALPHA_SELECTED - INDICATOR_ALPHA_NORMAL) * fraction
+        (view.background as? GradientDrawable)?.cornerRadius = radiusPx
+    }
+
+    private fun lerp(startDp: Float, endDp: Float, fraction: Float, density: Float): Float =
+        (startDp + (endDp - startDp) * fraction) * density
 
     private fun handleRepeat() {
         val transport = binding.playerTransport
