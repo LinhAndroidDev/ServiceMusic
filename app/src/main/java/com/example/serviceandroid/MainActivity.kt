@@ -273,7 +273,8 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun updateNetworkBannerAllowed(destinationId: Int) {
-        val allowed = destinationId != R.id.splashFragment
+        val allowed = destinationId != R.id.splashFragment &&
+            destinationId != R.id.fragmentMusic
         if (networkBannerAllowed == allowed) return
         networkBannerAllowed = allowed
         if (!allowed) {
