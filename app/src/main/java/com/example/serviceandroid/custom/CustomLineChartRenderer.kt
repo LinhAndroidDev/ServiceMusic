@@ -8,66 +8,117 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.view.animation.DecelerateInterpolator
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import com.example.serviceandroid.R
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.renderer.LineChartRenderer
-import androidx.core.graphics.scale
-import androidx.core.graphics.createBitmap
 
 class CustomLineChartRenderer(
     private val context: Context,
     private val chart: LineChart,
-    private val entryIndex: Int,
-    private val indexPoint: Int,
-    private val color: Int,
-    private val bitmap: Bitmap
+    private val avatarState: ChartAvatarState,
+    private val transitionFrom: ChartAvatarState? = null,
+    private val animationProgress: () -> Float = { 1f },
 ) : LineChartRenderer(chart, chart.animator, chart.viewPortHandler) {
+
+    private val interpolator = DecelerateInterpolator()
 
     override fun drawExtras(c: Canvas) {
         super.drawExtras(c)
 
-        val lineData = chart.lineData ?: return
-        if (entryIndex < 0 || entryIndex >= lineData.dataSetCount) return
-        val dataSet = lineData.getDataSetByIndex(entryIndex) ?: return
-        if (indexPoint < 0 || indexPoint >= dataSet.entryCount) return
-        val entry = dataSet.getEntryForIndex(indexPoint)
-
-        if (entry != null) {
-            // Sử dụng Transformer để lấy tọa độ pixel của điểm
-            val transformer = chart.getTransformer(dataSet.axisDependency)
-            val pts = floatArrayOf(entry.x, entry.y)
-            transformer.pointValuesToPixel(pts)
-
-            val bitmapCenterCrop = cropBitmapToSquare(bitmap)
-
-            // Tạo một Bitmap đã được thu nhỏ
-            val newWidth = 80  // Đặt kích thước mong muốn cho chiều rộng
-            val newHeight = 80 // Đặt kích thước mong muốn cho chiều cao
-            val scaledBitmap = bitmapCenterCrop.scale(newWidth, newHeight)
-            val strokeBitmap = createRoundedBitmapWithBorder(scaledBitmap, color)
-
-            // Vẽ ảnh đã thu nhỏ tại vị trí indexPoint
-            c.drawBitmap(strokeBitmap, pts[0] - (strokeBitmap.width / 2), pts[1] - (strokeBitmap.height) - 13, null)
-            drawTextLevel(c, "${entryIndex + 1}", (pts[0] - (strokeBitmap.width / 2)), pts[1] - (strokeBitmap.height) + 67)
+        val progress = animationProgress().coerceIn(0f, 1f)
+        if (transitionFrom != null && progress < 1f) {
+            val eased = interpolator.getInterpolation(progress)
+            drawAvatarTransition(c, transitionFrom, avatarState, eased)
+        } else {
+            drawAvatar(c, avatarState)
         }
     }
 
-    private fun drawTextLevel(c: Canvas, level: String, x: Float, y: Float) {
+    private fun drawAvatarTransition(
+        c: Canvas,
+        from: ChartAvatarState,
+        to: ChartAvatarState,
+        progress: Float,
+    ) {
+        val fromPos = resolveAvatarPosition(from) ?: return
+        val toPos = resolveAvatarPosition(to) ?: return
 
-        // Vẽ viền (stroke)
+        val centerX = fromPos.centerX + (toPos.centerX - fromPos.centerX) * progress
+        val anchorY = fromPos.anchorY + (toPos.anchorY - fromPos.anchorY) * progress
+
+        drawAvatarAt(
+            c,
+            to.bitmap,
+            to.colorRes,
+            centerX,
+            anchorY,
+            "${to.entryIndex + 1}",
+        )
+    }
+
+    private fun drawAvatar(c: Canvas, state: ChartAvatarState) {
+        val pos = resolveAvatarPosition(state) ?: return
+        drawAvatarAt(
+            c,
+            state.bitmap,
+            state.colorRes,
+            pos.centerX,
+            pos.anchorY,
+            "${state.entryIndex + 1}",
+        )
+    }
+
+    private data class AvatarPosition(val centerX: Float, val anchorY: Float)
+
+    private fun resolveAvatarPosition(state: ChartAvatarState): AvatarPosition? {
+        val lineData = chart.lineData ?: return null
+        if (state.entryIndex < 0 || state.entryIndex >= lineData.dataSetCount) return null
+        val dataSet = lineData.getDataSetByIndex(state.entryIndex) ?: return null
+        if (state.indexPoint < 0 || state.indexPoint >= dataSet.entryCount) return null
+        val entry = dataSet.getEntryForIndex(state.indexPoint) ?: return null
+
+        val transformer = chart.getTransformer(dataSet.axisDependency)
+        val pts = floatArrayOf(entry.x, entry.y)
+        transformer.pointValuesToPixel(pts)
+        return AvatarPosition(pts[0], pts[1])
+    }
+
+    private fun drawAvatarAt(
+        c: Canvas,
+        bitmap: Bitmap,
+        colorRes: Int,
+        centerX: Float,
+        anchorY: Float,
+        level: String,
+    ) {
+        val bitmapCenterCrop = cropBitmapToSquare(bitmap)
+        val newWidth = 80
+        val newHeight = 80
+        val scaledBitmap = bitmapCenterCrop.scale(newWidth, newHeight)
+        val strokeBitmap = createRoundedBitmapWithBorder(scaledBitmap, colorRes)
+
+        val left = centerX - strokeBitmap.width / 2f
+        val top = anchorY - strokeBitmap.height - 13f
+        c.drawBitmap(strokeBitmap, left, top, null)
+        drawTextLevel(c, level, left, anchorY - strokeBitmap.height + 67f)
+    }
+
+    private fun drawTextLevel(c: Canvas, level: String, x: Float, y: Float) {
         val paint = Paint()
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 1f // Độ dày của viền
+        paint.strokeWidth = 1f
         paint.typeface = Typeface.DEFAULT_BOLD
         paint.color = Color.WHITE
         paint.textSize = 49f
-        c.drawText(level, x - paint.measureText(level)/4, y + 3, paint)
+        c.drawText(level, x - paint.measureText(level) / 4, y + 3, paint)
 
-        // Vẽ text màu bên trong
         paint.style = Paint.Style.FILL
         paint.color = context.getColor(R.color.black_1)
-        c.drawText(level, x - paint.measureText(level)/4, y + 3, paint)
+        c.drawText(level, x - paint.measureText(level) / 4, y + 3, paint)
     }
 
     private fun cropBitmapToSquare(bitmap: Bitmap): Bitmap {
@@ -76,36 +127,29 @@ class CustomLineChartRenderer(
 
         return when {
             width > height -> {
-                // Cắt từ trung tâm theo chiều rộng
                 val xOffset = (width - height) / 2
                 Bitmap.createBitmap(bitmap, xOffset, 0, height, height)
             }
             width < height -> {
-                // Cắt từ trung tâm theo chiều cao
                 val yOffset = (height - width) / 2
                 Bitmap.createBitmap(bitmap, 0, yOffset, width, width)
             }
-            else -> {
-                // Nếu đã là hình vuông thì giữ nguyên
-                bitmap
-            }
+            else -> bitmap
         }
     }
 
     private fun createRoundedBitmapWithBorder(bitmap: Bitmap, colorStroke: Int): Bitmap {
-        // Đặt kích thước và các thông số
-        val cornerRadius = 8f  // Bo góc với 8dp
-        val borderWidth = 4f  // Viền màu xanh với độ dày 4dp
+        val cornerRadius = 8f
+        val borderWidth = 4f
         val bitmapWidth = bitmap.width
         val bitmapHeight = bitmap.height
 
-        // Tạo Bitmap mới để vẽ lên đó
-        val outputBitmap = createBitmap(bitmapWidth + borderWidth.toInt() * 2, bitmapHeight + borderWidth.toInt() * 2)
-
-        // Tạo Canvas để vẽ lên Bitmap mới
+        val outputBitmap = createBitmap(
+            bitmapWidth + borderWidth.toInt() * 2,
+            bitmapHeight + borderWidth.toInt() * 2,
+        )
         val canvas = Canvas(outputBitmap)
 
-        // Tạo Paint để vẽ viền
         val borderPaint = Paint().apply {
             color = ContextCompat.getColor(context, colorStroke)
             style = Paint.Style.STROKE
@@ -113,30 +157,23 @@ class CustomLineChartRenderer(
             isAntiAlias = true
         }
 
-        // Tạo Paint để vẽ Bitmap
         val bitmapPaint = Paint().apply {
             isAntiAlias = true
         }
 
-        // Vẽ hình chữ nhật với các góc bo tròn
         val rectF = RectF(
             borderWidth,
             borderWidth,
             canvas.width.toFloat() - borderWidth,
-            canvas.height.toFloat() - borderWidth
+            canvas.height.toFloat() - borderWidth,
         )
         canvas.drawRoundRect(rectF, cornerRadius, cornerRadius, bitmapPaint)
 
-        // Tạo path bo góc
         val path = Path().apply {
             addRoundRect(rectF, cornerRadius, cornerRadius, Path.Direction.CCW)
         }
         canvas.clipPath(path)
-
-        // Vẽ Bitmap bên trong các góc bo tròn
         canvas.drawBitmap(bitmap, borderWidth, borderWidth, bitmapPaint)
-
-        // Vẽ viền xung quanh Bitmap
         canvas.drawRoundRect(rectF, cornerRadius, cornerRadius, borderPaint)
 
         return outputBitmap

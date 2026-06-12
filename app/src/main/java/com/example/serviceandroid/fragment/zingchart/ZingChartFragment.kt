@@ -1,11 +1,15 @@
 package com.example.serviceandroid.fragment.zingchart
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Shader
 import android.os.Bundle
+import android.view.animation.DecelerateInterpolator
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -28,6 +32,7 @@ import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
+import com.example.serviceandroid.custom.ChartAvatarState
 import com.example.serviceandroid.custom.CustomLineChartRenderer
 import com.example.serviceandroid.custom.CustomXAxisFormatter
 import com.example.serviceandroid.custom.DialogConfirm
@@ -55,6 +60,10 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     private var suggestedSongId: String? = null
     private var chartInitialized = false
     private var chartData: ChartData? = null
+    private var currentAvatarState: ChartAvatarState? = null
+    private var avatarTransitionFrom: ChartAvatarState? = null
+    private var avatarTransitionAnimator: ValueAnimator? = null
+    private var avatarAnimationProgress = 1f
     private val viewModel by viewModels<ZingChartViewModel>()
 
     private data class ChartData(
@@ -327,9 +336,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             binding.chart.animateX(1000)
         }
 
-        binding.chart.renderer = bitmap?.let {
-            CustomLineChartRenderer(requireActivity(), binding.chart, 0, 4, R.color.blue1, it)
-        }
+        bitmap?.let { installChartRenderer(it, entryIndex = 0, indexPoint = 4, colorRes = R.color.blue1) }
         binding.chart.invalidate()
 
         binding.chart.setOnClickListener {
@@ -401,16 +408,19 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     ) {
         if (!isAdded || view == null || binding.chart.data == null) return
 
+        val previousState = currentAvatarState
+        val shouldAnimate = previousState != null &&
+            (previousState.entryIndex != entryIndex || previousState.indexPoint != indexPoint)
+        if (shouldAnimate) {
+            avatarTransitionFrom = previousState
+            startAvatarTransition()
+        } else {
+            avatarTransitionFrom = null
+            avatarAnimationProgress = 1f
+        }
+
         val placeholder = bitmap ?: defaultChartBitmap()
-        binding.chart.renderer = CustomLineChartRenderer(
-            requireActivity(),
-            binding.chart,
-            entryIndex,
-            indexPoint,
-            colorRes,
-            placeholder,
-        )
-        binding.chart.invalidate()
+        installChartRenderer(placeholder, entryIndex, indexPoint, colorRes)
         if (url.isNullOrBlank()) return
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -418,15 +428,46 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             if (!isAdded || view == null || positionChart.ordinal != entryIndex) return@launch
             if (binding.chart.data == null) return@launch
             bitmap = loaded
-            binding.chart.renderer = CustomLineChartRenderer(
-                requireActivity(),
-                binding.chart,
-                entryIndex,
-                indexPoint,
-                colorRes,
-                loaded,
-            )
-            binding.chart.invalidate()
+            installChartRenderer(loaded, entryIndex, indexPoint, colorRes)
+        }
+    }
+
+    private fun installChartRenderer(
+        avatarBitmap: Bitmap,
+        entryIndex: Int,
+        indexPoint: Int,
+        colorRes: Int,
+    ) {
+        val newState = ChartAvatarState(entryIndex, indexPoint, colorRes, avatarBitmap)
+        currentAvatarState = newState
+        binding.chart.renderer = CustomLineChartRenderer(
+            context = requireActivity(),
+            chart = binding.chart,
+            avatarState = newState,
+            transitionFrom = avatarTransitionFrom?.takeIf { avatarAnimationProgress < 1f },
+            animationProgress = { avatarAnimationProgress },
+        )
+        binding.chart.invalidate()
+    }
+
+    private fun startAvatarTransition() {
+        avatarTransitionAnimator?.cancel()
+        avatarAnimationProgress = 0f
+        avatarTransitionAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 800L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { animator ->
+                avatarAnimationProgress = animator.animatedValue as Float
+                binding.chart.invalidate()
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    avatarAnimationProgress = 1f
+                    avatarTransitionFrom = null
+                    binding.chart.invalidate()
+                }
+            })
+            start()
         }
     }
 
@@ -462,6 +503,11 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     }
 
     override fun onDestroyView() {
+        avatarTransitionAnimator?.cancel()
+        avatarTransitionAnimator = null
+        avatarTransitionFrom = null
+        avatarAnimationProgress = 1f
+        currentAvatarState = null
         runnable?.let { handler.removeCallbacks(it) }
         binding.rcvSongChart.adapter = null
         lastBoundChartIds = emptyList()
