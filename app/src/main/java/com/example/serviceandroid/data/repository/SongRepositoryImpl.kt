@@ -20,6 +20,7 @@ class SongRepositoryImpl @Inject constructor(
         val songs = firestore.getLatestSongs(limit = 100, fromServer = true)
             .map { it.toDomainSong() }
         synchronized(this) {
+            if (songs.isEmpty() && latestCache.isNotEmpty()) return@runCatching
             latestCache.clear()
             latestCache.addAll(songs)
             playbackQueue.clear()
@@ -31,6 +32,7 @@ class SongRepositoryImpl @Inject constructor(
         val songs = firestore.getTopSongs(limit = 100, fromServer = true)
             .map { it.toDomainSong() }
         synchronized(this) {
+            if (songs.isEmpty() && topCache.isNotEmpty()) return@runCatching
             topCache.clear()
             topCache.addAll(songs)
             playbackQueue.clear()

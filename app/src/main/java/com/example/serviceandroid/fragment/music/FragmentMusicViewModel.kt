@@ -72,14 +72,14 @@ class FragmentMusicViewModel @Inject constructor(
     private suspend fun loadSingersFromFirestore(
         songId: String,
         fallbackSingerName: String,
-    ): List<Singer> {
+    ): List<Singer> = runCatching {
         val firestoreSong = firestoreMusicRepository.getSong(songId)
         val singerIds = firestoreSong?.displaySingerIds.orEmpty().filter { it.isNotBlank() }
         if (singerIds.isEmpty()) {
             val name = firestoreSong?.artistText?.takeIf { it.isNotBlank() }
                 ?: fallbackSingerName.takeIf { it.isNotBlank() }
-                ?: return emptyList()
-            return listOf(
+                ?: return@runCatching emptyList()
+            return@runCatching listOf(
                 Singer(
                     id = "",
                     name = name,
@@ -88,13 +88,23 @@ class FragmentMusicViewModel @Inject constructor(
                 ),
             )
         }
-        return coroutineScope {
+        coroutineScope {
             singerIds.map { singerId ->
                 async {
                     firestoreMusicRepository.getSinger(singerId)?.toDomainSinger()
                 }
             }.awaitAll().filterNotNull()
         }
+    }.getOrElse {
+        val name = fallbackSingerName.takeIf { it.isNotBlank() } ?: return@getOrElse emptyList()
+        listOf(
+            Singer(
+                id = "",
+                name = name,
+                avatarUrl = "",
+                description = "",
+            ),
+        )
     }
 
     fun getTypeRepeat() = shared.getTypeRepeat()

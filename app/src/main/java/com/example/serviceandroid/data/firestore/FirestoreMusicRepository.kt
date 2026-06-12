@@ -1,7 +1,9 @@
 package com.example.serviceandroid.data.firestore
 
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
 import kotlinx.coroutines.tasks.await
@@ -38,77 +40,146 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
     private var advertisementCache: List<FirestoreAdvertisement>? = null
 
     override suspend fun getSong(id: String): FirestoreSong? =
-        songs.document(id).get().await().toObject(FirestoreSong::class.java)
+        fetchDocument(id) { songs.document(it) }
 
     override suspend fun getLatestSongs(limit: Long, fromServer: Boolean): List<FirestoreSong> =
-        songs.orderBy("createdAt", Query.Direction.DESCENDING)
-            .limit(limit)
-            .get(if (fromServer) Source.SERVER else Source.DEFAULT)
-            .await()
-            .toObjects(FirestoreSong::class.java)
+        fetchQuery(fromServer) {
+            songs.orderBy("createdAt", Query.Direction.DESCENDING)
+                .limit(limit)
+                .get(it)
+                .await()
+                .toObjects(FirestoreSong::class.java)
+        }
 
     override suspend fun getTopSongs(limit: Long, fromServer: Boolean): List<FirestoreSong> =
-        songs.orderBy("views", Query.Direction.DESCENDING)
-            .limit(limit)
-            .get(if (fromServer) Source.SERVER else Source.DEFAULT)
-            .await()
-            .toObjects(FirestoreSong::class.java)
+        fetchQuery(fromServer) {
+            songs.orderBy("views", Query.Direction.DESCENDING)
+                .limit(limit)
+                .get(it)
+                .await()
+                .toObjects(FirestoreSong::class.java)
+        }
 
     override suspend fun getSinger(id: String): FirestoreSinger? {
         if (id.isBlank()) return null
-        return singers.document(id).get().await().toObject(FirestoreSinger::class.java)
+        return fetchDocument(id) { singers.document(it) }
     }
 
     override suspend fun getSingers(): List<FirestoreSinger> =
-        singers.orderBy("name").get().await().toObjects(FirestoreSinger::class.java)
+        fetchQuery {
+            singers.orderBy("name")
+                .get(it)
+                .await()
+                .toObjects(FirestoreSinger::class.java)
+        }
 
     override suspend fun getCategories(): List<FirestoreCategory> =
-        categories.orderBy("name").get().await().toObjects(FirestoreCategory::class.java)
+        fetchQuery {
+            categories.orderBy("name")
+                .get(it)
+                .await()
+                .toObjects(FirestoreCategory::class.java)
+        }
 
     override suspend fun getSongsByCategory(categoryId: String, limit: Long): List<FirestoreSong> =
-        songs.whereEqualTo("categoryId", categoryId)
-            .limit(limit)
-            .get()
-            .await()
-            .toObjects(FirestoreSong::class.java)
+        fetchQuery {
+            songs.whereEqualTo("categoryId", categoryId)
+                .limit(limit)
+                .get(it)
+                .await()
+                .toObjects(FirestoreSong::class.java)
+        }
 
     override suspend fun getSongsBySinger(singerId: String, limit: Long): List<FirestoreSong> =
-        songs.whereArrayContains("singerIds", singerId)
-            .limit(limit)
-            .get()
-            .await()
-            .toObjects(FirestoreSong::class.java)
+        fetchQuery {
+            songs.whereArrayContains("singerIds", singerId)
+                .limit(limit)
+                .get(it)
+                .await()
+                .toObjects(FirestoreSong::class.java)
+        }
 
     override suspend fun searchSongsByTitle(term: String, limit: Long): List<FirestoreSong> {
         val keyword = term.trim()
         if (keyword.isEmpty()) return emptyList()
-        return songs.orderBy("title")
-            .startAt(keyword)
-            .endAt(keyword + "\uf8ff")
-            .limit(limit)
-            .get()
-            .await()
-            .toObjects(FirestoreSong::class.java)
+        return fetchQuery {
+            songs.orderBy("title")
+                .startAt(keyword)
+                .endAt(keyword + "\uf8ff")
+                .limit(limit)
+                .get(it)
+                .await()
+                .toObjects(FirestoreSong::class.java)
+        }
     }
 
     override suspend fun incrementViews(songId: String) {
-        songs.document(songId)
-            .update("views", FieldValue.increment(1))
-            .await()
+        runCatching {
+            songs.document(songId)
+                .update("views", FieldValue.increment(1))
+                .await()
+        }
     }
 
     override suspend fun getAdvertisements(fromServer: Boolean): List<FirestoreAdvertisement> {
         if (!fromServer) {
             advertisementCache?.let { return it }
         }
-        return advertisements.orderBy("createdAt", Query.Direction.ASCENDING)
-            .get(if (fromServer) Source.SERVER else Source.DEFAULT)
-            .await()
-            .toObjects(FirestoreAdvertisement::class.java)
-            .also { advertisementCache = it }
+        return fetchQuery(fromServer) {
+            advertisements.orderBy("createdAt", Query.Direction.ASCENDING)
+                .get(it)
+                .await()
+                .toObjects(FirestoreAdvertisement::class.java)
+        }.also { fetched ->
+            if (fetched.isNotEmpty()) {
+                advertisementCache = fetched
+            }
+        }
     }
 
     override fun invalidateAdvertisementCache() {
         advertisementCache = null
     }
+
+    private suspend inline fun <reified T> fetchDocument(
+        id: String,
+        crossinline document: (String) -> DocumentReference,
+    ): T? {
+        val primarySource = Source.DEFAULT
+        return try {
+            document(id).get(primarySource).await().toObject(T::class.java)
+        } catch (e: FirebaseFirestoreException) {
+            if (shouldFallbackToCache(e)) {
+                runCatching {
+                    document(id).get(Source.CACHE).await().toObject(T::class.java)
+                }.getOrNull()
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private suspend inline fun <T> fetchQuery(
+        preferServer: Boolean = false,
+        crossinline block: suspend (Source) -> List<T>,
+    ): List<T> {
+        val primarySource = if (preferServer) Source.SERVER else Source.DEFAULT
+        return try {
+            block(primarySource)
+        } catch (e: FirebaseFirestoreException) {
+            if (shouldFallbackToCache(e)) {
+                runCatching { block(Source.CACHE) }.getOrDefault(emptyList())
+            } else {
+                emptyList()
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun shouldFallbackToCache(error: FirebaseFirestoreException): Boolean =
+        error.code == FirebaseFirestoreException.Code.UNAVAILABLE ||
+            error.code == FirebaseFirestoreException.Code.FAILED_PRECONDITION
 }
