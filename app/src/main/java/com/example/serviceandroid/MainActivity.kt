@@ -5,10 +5,14 @@ import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -26,6 +30,8 @@ import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.data.repository.SongRepository
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
+import com.example.serviceandroid.utils.NetworkMonitor
+import com.example.serviceandroid.utils.NetworkUiState
 import com.example.serviceandroid.utils.getCurrentFragment
 import com.example.serviceandroid.utils.moveTo
 import dagger.hilt.android.AndroidEntryPoint
@@ -44,14 +50,21 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     @Inject
     lateinit var songRepository: SongRepository
 
+    @Inject
+    lateinit var networkMonitor: NetworkMonitor
+
     /** Avoid mini-player work every playback tick (reduces layout jank in FragmentMusic). */
     private var lastMiniPlayerSongId: String? = null
     private var lastMiniPlayerSeekSyncedMs: Int = Int.MIN_VALUE
     private var lastMiniPlayerSeekSequence: Long = -1L
     private lateinit var miniPlayerSongAdapter: InformationSongAdapter
+    private var lastNetworkBannerVisible = false
+    private var bannerHideAnimation: Animation? = null
+    private var networkBannerAllowed = false
 
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
+        private const val TAG = "NetworkBanner"
         private const val MINI_SEEK_UI_THROTTLE_MS = 200
     }
 
@@ -72,6 +85,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     override fun initView() {
+        updateNetworkBannerPosition()
+        observeNetworkState()
+
         lifecycleScope.launch(Dispatchers.IO) {
             if (songRepository.getTopPlaylist().isEmpty()) {
                 songRepository.refreshTopPlaylist()
@@ -110,29 +126,142 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         })
     }
 
+    private fun updateNetworkBannerPosition() {
+        val bannerRoot = binding.networkBanner.root
+        val lp = bannerRoot.layoutParams as ConstraintLayout.LayoutParams
+        val gap = resources.getDimensionPixelSize(R.dimen.network_banner_bottom_gap)
+        lp.bottomToBottom = ConstraintLayout.LayoutParams.UNSET
+        lp.bottomToTop = if (binding.bottomPlay.visibility == View.VISIBLE) {
+            R.id.bottomPlay
+        } else {
+            R.id.bottomBar
+        }
+        lp.bottomMargin = gap
+        bannerRoot.layoutParams = lp
+    }
+
+    private fun observeNetworkState() {
+        Log.d(TAG, "observeNetworkState: start collecting")
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                Log.d(TAG, "observeNetworkState: lifecycle STARTED, collect active")
+                networkMonitor.state.collect { uiState ->
+                    applyNetworkBanner(uiState)
+                }
+            }
+        }
+    }
+
+    private fun applyNetworkBanner(uiState: NetworkUiState) {
+        if (!networkBannerAllowed) {
+            hideNetworkBannerImmediately()
+            return
+        }
+
+        val banner = binding.networkBanner
+        val root = banner.root
+        val content = banner.bannerContent
+
+        if (uiState.showBanner) {
+            bannerHideAnimation?.cancel()
+            root.clearAnimation()
+
+            val isOnline = uiState.isOnline
+            content.setBackgroundResource(
+                if (isOnline) R.drawable.bg_network_banner_online else R.drawable.bg_network_banner_offline,
+            )
+            content.invalidateOutline()
+            banner.iconContainer.setBackgroundResource(
+                if (isOnline) R.drawable.bg_network_icon_online else R.drawable.bg_network_icon_offline,
+            )
+            banner.imgIcon.setImageResource(
+                if (isOnline) R.drawable.ic_wifi_connected else R.drawable.ic_wifi_off,
+            )
+            banner.tvMessage.text = uiState.message
+            banner.tvSubtitle.text = getString(
+                if (isOnline) R.string.network_online_subtitle else R.string.network_offline_subtitle,
+            )
+            updateNetworkBannerPosition()
+
+            if (!lastNetworkBannerVisible) {
+                root.isVisible = true
+                root.startAnimation(AnimationUtils.loadAnimation(this, R.anim.network_banner_slide_in))
+            }
+        } else if (lastNetworkBannerVisible) {
+            val slideOut = AnimationUtils.loadAnimation(this, R.anim.network_banner_slide_out)
+            bannerHideAnimation = slideOut
+            slideOut.setAnimationListener(object : Animation.AnimationListener {
+                override fun onAnimationStart(animation: Animation?) = Unit
+
+                override fun onAnimationEnd(animation: Animation?) {
+                    if (!networkMonitor.state.value.showBanner) {
+                        root.isVisible = false
+                    }
+                    bannerHideAnimation = null
+                }
+
+                override fun onAnimationRepeat(animation: Animation?) = Unit
+            })
+            root.startAnimation(slideOut)
+        } else {
+            root.isVisible = false
+        }
+
+        lastNetworkBannerVisible = uiState.showBanner
+        Log.d(
+            TAG,
+            "applyNetworkBanner: isOnline=${uiState.isOnline} showBanner=${uiState.showBanner} " +
+                "viewVisible=${root.isVisible} viewHeight=${root.height}",
+        )
+    }
+
+    private fun hideNetworkBannerImmediately() {
+        bannerHideAnimation?.cancel()
+        binding.networkBanner.root.clearAnimation()
+        binding.networkBanner.root.isVisible = false
+        lastNetworkBannerVisible = false
+    }
+
+    private fun updateNetworkBannerAllowed(destinationId: Int) {
+        val allowed = destinationId != R.id.splashFragment
+        if (networkBannerAllowed == allowed) return
+        networkBannerAllowed = allowed
+        if (!allowed) {
+            hideNetworkBannerImmediately()
+        } else {
+            applyNetworkBanner(networkMonitor.state.value)
+        }
+    }
+
     override fun onClickView() {
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            updateNetworkBannerAllowed(destination.id)
             when (destination.id) {
                 R.id.fragmentMusic -> {
                     binding.bottomBar.isVisible = false
-                    binding.bottomPlay.visibility = View.INVISIBLE
+                    binding.bottomPlay.visibility = View.GONE
+                    updateNetworkBannerPosition()
                 }
 
                 R.id.splashFragment -> {
                     binding.bottomBar.isVisible = false
-                    binding.bottomPlay.visibility = View.INVISIBLE
+                    binding.bottomPlay.visibility = View.GONE
+                    updateNetworkBannerPosition()
                 }
 
                 else -> {
                     applyBottomPlayVisibilityForDestination(destination.id)
                     binding.bottomBar.isVisible = true
+                    updateNetworkBannerPosition()
                 }
             }
         }
+
+        updateNetworkBannerAllowed(navController.currentDestination?.id ?: R.id.splashFragment)
 
         binding.bottomBar.selectedItem = { action ->
             when (action) {
@@ -340,8 +469,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             if (destinationId != R.id.fragmentMusic && st.hasActivePlayer) {
                 View.VISIBLE
             } else {
-                View.INVISIBLE
+                View.GONE
             }
+        updateNetworkBannerPosition()
     }
 
     override fun onDestroy() {

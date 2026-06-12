@@ -6,4 +6,8 @@
     <string name="lyrics_empty">Chưa có lyrics cho bài hát</string>
     <string name="singer_info_empty">Chưa có thông tin ca sĩ</string>
     <string name="singer_bio_empty">Chưa có tiểu sử cho ca sĩ này</string>
+    <string name="network_offline">Không có kết nối mạng</string>
+    <string name="network_offline_subtitle">Một số tính năng có thể tạm thời không khả dụng</string>
+    <string name="network_online">Đã kết nối lại</string>
+    <string name="network_online_subtitle">Kết nối internet đã được khôi phục</string>
 </resources>

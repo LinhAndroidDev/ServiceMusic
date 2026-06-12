@@ -39,4 +39,13 @@
     <color name="grey_blur">#488E8E8E</color>
     <color name="brown">#D08068</color>
     <color name="red">#FF1100</color>
+
+    <!-- Network status banner -->
+    <color name="network_banner_offline_bg">#2A2438</color>
+    <color name="network_banner_offline_accent">#FF5722</color>
+    <color name="network_banner_offline_icon_bg">#33FF5722</color>
+    <color name="network_banner_online_bg">#1A2E32</color>
+    <color name="network_banner_online_accent">#05CDBB</color>
+    <color name="network_banner_online_icon_bg">#3305CDBB</color>
+    <color name="network_banner_subtitle">#B3FFFFFF</color>
 </resources>
