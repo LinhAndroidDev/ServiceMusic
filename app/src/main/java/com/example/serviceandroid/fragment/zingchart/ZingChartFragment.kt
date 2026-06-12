@@ -1,7 +1,7 @@
 package com.example.serviceandroid.fragment.zingchart
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Shader
@@ -11,6 +11,8 @@ import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -108,12 +110,19 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     }
 
     private fun prepareChartDeferred() {
-        if (!isAdded) return
-        if (bitmap == null) {
-            bitmap = BitmapFactory.decodeResource(resources, R.drawable.la_lung)
-        }
+        if (!isAdded || view == null) return
         setupChart(animate = !chartInitialized)
         chartInitialized = true
+        if (bitmap == null) {
+            positionChart = PositionChart.LineChart1
+            val pl0 = viewModel.getPlaylist()
+            applyChartRendererAsync(
+                url = pl0.firstOrNull()?.thumbnailUrl,
+                entryIndex = positionChart.ordinal,
+                indexPoint = 4,
+                colorRes = R.color.blue1,
+            )
+        }
     }
 
     private fun observePlaylist() {
@@ -163,8 +172,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             ?: playlist[Random.nextInt(playlist.size)].also { suggestedSongId = it.id }
         Glide.with(requireActivity())
             .load(song.thumbnailUrl)
-            .placeholder(R.drawable.la_lung)
-            .error(R.drawable.la_lung)
+            .placeholder(R.mipmap.ic_launcher)
+            .error(R.mipmap.ic_launcher)
             .into(binding.imgSong)
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
@@ -390,7 +399,9 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         indexPoint: Int,
         colorRes: Int,
     ) {
-        val placeholder = bitmap ?: BitmapFactory.decodeResource(resources, R.drawable.la_lung)
+        if (!isAdded || view == null || binding.chart.data == null) return
+
+        val placeholder = bitmap ?: defaultChartBitmap()
         binding.chart.renderer = CustomLineChartRenderer(
             requireActivity(),
             binding.chart,
@@ -399,11 +410,13 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             colorRes,
             placeholder,
         )
+        binding.chart.invalidate()
         if (url.isNullOrBlank()) return
 
         viewLifecycleOwner.lifecycleScope.launch {
             val loaded = withContext(Dispatchers.IO) { loadChartAvatarBlocking(url) }
-            if (!isAdded || positionChart.ordinal != entryIndex) return@launch
+            if (!isAdded || view == null || positionChart.ordinal != entryIndex) return@launch
+            if (binding.chart.data == null) return@launch
             bitmap = loaded
             binding.chart.renderer = CustomLineChartRenderer(
                 requireActivity(),
@@ -415,6 +428,20 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             )
             binding.chart.invalidate()
         }
+    }
+
+    private fun defaultChartBitmap(): Bitmap {
+        val drawable = ContextCompat.getDrawable(requireContext(), R.drawable.ic_circle)
+        if (drawable != null) {
+            val width = drawable.intrinsicWidth.coerceAtLeast(1)
+            val height = drawable.intrinsicHeight.coerceAtLeast(1)
+            return createBitmap(width, height).also { bmp ->
+                val canvas = Canvas(bmp)
+                drawable.setBounds(0, 0, width, height)
+                drawable.draw(canvas)
+            }
+        }
+        return createBitmap(90, 90)
     }
 
     private fun resetHandlerUpdateIndexLineChart() {
@@ -454,7 +481,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
                 .submit()
                 .get()
         } catch (_: Exception) {
-            BitmapFactory.decodeResource(resources, R.drawable.la_lung)
+            createBitmap(90, 90)
         }
     }
 

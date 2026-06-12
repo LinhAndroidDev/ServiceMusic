@@ -12,6 +12,8 @@ import androidx.core.content.ContextCompat
 import com.example.serviceandroid.R
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.renderer.LineChartRenderer
+import androidx.core.graphics.scale
+import androidx.core.graphics.createBitmap
 
 class CustomLineChartRenderer(
     private val context: Context,
@@ -25,9 +27,11 @@ class CustomLineChartRenderer(
     override fun drawExtras(c: Canvas) {
         super.drawExtras(c)
 
-        // Tìm vị trí của Entry thứ indexPoint (nếu có)
-        val dataSet = chart.lineData.getDataSetByIndex(entryIndex)
-        val entry = dataSet.getEntryForIndex(indexPoint) // Điểm thứ indexPoint
+        val lineData = chart.lineData ?: return
+        if (entryIndex < 0 || entryIndex >= lineData.dataSetCount) return
+        val dataSet = lineData.getDataSetByIndex(entryIndex) ?: return
+        if (indexPoint < 0 || indexPoint >= dataSet.entryCount) return
+        val entry = dataSet.getEntryForIndex(indexPoint)
 
         if (entry != null) {
             // Sử dụng Transformer để lấy tọa độ pixel của điểm
@@ -40,7 +44,7 @@ class CustomLineChartRenderer(
             // Tạo một Bitmap đã được thu nhỏ
             val newWidth = 80  // Đặt kích thước mong muốn cho chiều rộng
             val newHeight = 80 // Đặt kích thước mong muốn cho chiều cao
-            val scaledBitmap = Bitmap.createScaledBitmap(bitmapCenterCrop, newWidth, newHeight, true)
+            val scaledBitmap = bitmapCenterCrop.scale(newWidth, newHeight)
             val strokeBitmap = createRoundedBitmapWithBorder(scaledBitmap, color)
 
             // Vẽ ảnh đã thu nhỏ tại vị trí indexPoint
@@ -55,7 +59,7 @@ class CustomLineChartRenderer(
         val paint = Paint()
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 1f // Độ dày của viền
-        paint.setTypeface(Typeface.DEFAULT_BOLD)
+        paint.typeface = Typeface.DEFAULT_BOLD
         paint.color = Color.WHITE
         paint.textSize = 49f
         c.drawText(level, x - paint.measureText(level)/4, y + 3, paint)
@@ -96,11 +100,7 @@ class CustomLineChartRenderer(
         val bitmapHeight = bitmap.height
 
         // Tạo Bitmap mới để vẽ lên đó
-        val outputBitmap = Bitmap.createBitmap(
-            bitmapWidth + borderWidth.toInt() * 2,
-            bitmapHeight + borderWidth.toInt() * 2,
-            Bitmap.Config.ARGB_8888
-        )
+        val outputBitmap = createBitmap(bitmapWidth + borderWidth.toInt() * 2, bitmapHeight + borderWidth.toInt() * 2)
 
         // Tạo Canvas để vẽ lên Bitmap mới
         val canvas = Canvas(outputBitmap)
