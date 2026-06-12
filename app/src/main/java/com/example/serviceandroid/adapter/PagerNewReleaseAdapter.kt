@@ -19,7 +19,7 @@ enum class TypeList {
 class PagerNationalAdapter(private val context: Context, private val type: TypeList) :
     BaseAdapter<HashMap<Int, ArrayList<Song>>, PagerNewReleaseBinding>() {
     var pagerSong = HashMap<Int, ArrayList<Song>>()
-    var onClickItem: ((Int) -> Unit)? = null
+    var onClickItem: ((String) -> Unit)? = null
     var onClickMoreOption: ((Song) -> Unit)? = null
     private val adapterSong by lazy { PagerNewReleaseAdapter(context, type) }
 
@@ -52,7 +52,7 @@ class PagerNationalAdapter(private val context: Context, private val type: TypeL
 
 class PagerNewReleaseAdapter(private val context: Context, private val type: TypeList) :
     BaseAdapter<Song, ItemPagerNewReleaseBinding>() {
-    var onClickItem: ((Int) -> Unit)? = null
+    var onClickItem: ((String) -> Unit)? = null
     var onClickUnFavourite: ((Int) -> Unit)? = null
     var isFavourite = false
     var onClickMoreOption: ((Song) -> Unit)? = null
@@ -66,14 +66,14 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
     ) {
         with(holder.v) {
             items[position].let { item ->
-                imgSong.load(item.avatar) {
+                imgSong.load(item.thumbnailUrl) {
                     crossfade(true)
                     placeholder(R.drawable.bg_grey_corner_5)
                 }
                 tvNameSong.text = item.title
                 tvNameSinger.text = item.nameSinger
                 holder.itemView.setOnClickListener {
-                    onClickItem?.invoke(item.idSong)
+                    onClickItem?.invoke(item.id)
                 }
                 holder.v.imgFavourite.setOnClickListener {
                     onClickUnFavourite?.invoke(position)

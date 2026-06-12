@@ -6,6 +6,15 @@
     android:layout_height="match_parent"
     tools:context=".fragment.home.HomeFragment">
 
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollHome"
         android:layout_width="match_parent"
@@ -27,15 +36,32 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/advertisement"
+                android:id="@+id/advertisementBanner"
                 android:layout_width="match_parent"
                 android:layout_height="330dp"
                 android:layout_marginTop="20dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:orientation="horizontal"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/header" />
+
+            <ru.tinkoff.scrollingpagerindicator.ScrollingPagerIndicator
+                android:id="@+id/bannerIndicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/advertisementBanner"
+                app:spi_dotColor="@color/grey_1"
+                app:spi_dotSelectedColor="@color/blue"
+                app:spi_dotSelectedSize="7dp"
+                app:spi_dotSize="7dp"
+                app:spi_visibleDotThreshold="2"
+                tools:visibility="visible" />
 
             <LinearLayout
                 android:id="@+id/titleTopic"
@@ -46,7 +72,7 @@
                 android:paddingTop="20dp"
                 android:paddingBottom="10dp"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/advertisement">
+                app:layout_constraintTop_toBottomOf="@+id/bannerIndicator">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -247,6 +273,8 @@
                 app:layout_constraintTop_toBottomOf="@id/cvNewUpdate" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <LinearLayout
         android:id="@+id/titleCover"

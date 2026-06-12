@@ -5,8 +5,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
         android:name=".helper.MyApplication"
@@ -20,12 +19,10 @@
         android:theme="@style/Theme.ServiceAndroid"
         tools:targetApi="31">
         <activity
-            android:name=".MusicActivity"
-            android:exported="false" />
-        <activity
             android:name=".MainActivity"
-            android:windowSoftInputMode="adjustResize|adjustPan"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize|adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -33,13 +30,10 @@
             </intent-filter>
         </activity>
 
-        <service android:name=".service.MusicService" />
-
-        <receiver android:name=".broadcast.MyReceiver" />
-
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_maps_key" />
+        <service
+            android:name=".service.MusicService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
     </application>
 
 </manifest>

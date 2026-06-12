@@ -15,7 +15,7 @@
     <color name="bg_blue">#1EB3F6</color>
     <color name="blue">#076bf7</color>
     <color name="blue_light">#C9EEFF</color>
-    <color name="blue1">#4554b5</color>
+    <color name="blue1">#6270E8</color>
     <color name="blue_dark">#382c74</color>
     <color name="bg_purple">#835fbf</color>
     <color name="purple_dark">#402254</color>
@@ -28,12 +28,15 @@
     <color name="pink_light">#FFCCDD</color>
     <color name="bg_green1">#05CDBB</color>
     <color name="bg_green2">#68B16A</color>
-    <color name="green3">#3e979f</color>
+    <color name="green3">#52B8C8</color>
     <color name="purple_1">#673AB7</color>
     <color name="yellow_dark">#FFC107</color>
+    <color name="lyric_line_active">#FFEB3B</color>
+    <!-- Light gray, slightly translucent pill behind active lyric line -->
+    <color name="lyric_highlight_scrim">#6AE5E5E5</color>
     <color name="grey_light">#EFEFEF</color>
     <color name="grey_1">#8E8E8E</color>
     <color name="grey_blur">#488E8E8E</color>
-    <color name="brown">#aa614f</color>
+    <color name="brown">#D08068</color>
     <color name="red">#FF1100</color>
 </resources>

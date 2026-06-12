@@ -10,7 +10,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class BottomSheetOptionMusicViewModel @Inject constructor(private val repository: FavouriteSongRepository) : ViewModel() {
+class BottomSheetOptionMusicViewModel @Inject constructor(
+    private val repository: FavouriteSongRepository,
+) : ViewModel() {
     private val _isFavourite: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val isFavourite get() = _isFavourite
 
@@ -20,12 +22,12 @@ class BottomSheetOptionMusicViewModel @Inject constructor(private val repository
             onCallBackInsertSong.invoke()
         }
 
-    fun deleteSongById(id: Int, onCallBackDeleteSong: () -> Unit) = viewModelScope.launch {
+    fun deleteSongById(id: String, onCallBackDeleteSong: () -> Unit) = viewModelScope.launch {
         repository.deleteSongById(id)
         onCallBackDeleteSong.invoke()
     }
 
-    fun checkSongById(id: Int) = viewModelScope.launch {
+    fun checkSongById(id: String) = viewModelScope.launch {
         _isFavourite.value = repository.checkSongById(id)
     }
 }

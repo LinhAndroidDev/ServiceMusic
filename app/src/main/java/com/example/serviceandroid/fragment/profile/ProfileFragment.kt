@@ -4,14 +4,17 @@ import android.view.LayoutInflater
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearSnapHelper
 import com.example.serviceandroid.R
+import androidx.fragment.app.viewModels
 import com.example.serviceandroid.adapter.UpdateAccountAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentProfileBinding
-import com.example.serviceandroid.model.UpdateAccount
+import dagger.hilt.android.AndroidEntryPoint
 
-
+@AndroidEntryPoint
 class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
+
+    private val viewModel by viewModels<ProfileViewModel>()
 
     override fun initView() {
         binding.header.title.text = "Cá nhân"
@@ -22,34 +25,7 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
     }
 
     private fun initUpdateAccount() {
-        val updateAccounts = mutableListOf(
-            UpdateAccount(
-                "Plus",
-                "19,000đ",
-                "Nghe nhạc với chất lượng cao nhất, không \nquảng cáo",
-                "Loại bỏ quảng cáo",
-                R.drawable.ic_advertisement,
-                "Lưu trữ nhạc không giới hạn",
-                R.drawable.ic_download_thin,
-                "Tuỳ chỉnh chế độ phát nhạc",
-                R.drawable.ic_custom,
-                R.drawable.bg_purple_corner_10_stroke_1,
-                R.color.purple_1
-            ),
-            UpdateAccount(
-                "Premium",
-                "49,000đ",
-                "Toàn bộ đăc quyền Plus cùng kho nhạc Premium",
-                "Nghe và tải tất cả",
-                R.drawable.ic_diamond,
-                "Loại bỏ quảng cáo",
-                R.drawable.ic_advertisement,
-                "Lưu trữ nhạc không giới hạn",
-                R.drawable.ic_download_thin,
-                R.drawable.bg_orange_corner_1,
-                R.color.bg_orange
-            )
-        )
+        val updateAccounts = viewModel.getUpdateAccounts()
         val updateAccountAdapter = UpdateAccountAdapter(requireActivity())
         updateAccountAdapter.items = updateAccounts
         binding.rcvUpdateAccount.adapter = updateAccountAdapter

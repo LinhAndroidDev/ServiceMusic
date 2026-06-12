@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:layout_marginHorizontal="@dimen/banner_page_margin">
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_marginVertical="15dp"
         app:cardCornerRadius="10dp"
         app:cardElevation="0dp">
@@ -17,32 +18,31 @@
 
             <ImageView
                 android:id="@+id/img"
-                android:src="@drawable/la_lung"
-                android:scaleType="centerCrop"
                 android:layout_width="match_parent"
                 android:layout_height="330dp"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/la_lung"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
                 android:id="@+id/update"
-                android:text="Hay nhất của V-Pop"
-                android:textSize="10sp"
-                android:textColor="@color/txt_grey_blur"
-                android:textStyle="bold|italic"
-                android:textAllCaps="true"
-                android:background="@drawable/bg_tv_highlight"
-                android:paddingVertical="5dp"
-                android:paddingHorizontal="10dp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
                 android:layout_marginStart="15dp"
-                android:layout_marginTop="15dp"/>
-
+                android:layout_marginTop="15dp"
+                android:background="@drawable/bg_tv_highlight"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="5dp"
+                android:text="Hay nhất của V-Pop"
+                android:textAllCaps="true"
+                android:textColor="@color/txt_grey_blur"
+                android:textSize="10sp"
+                android:textStyle="bold|italic"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -52,47 +52,47 @@
 
                 <TextView
                     android:id="@+id/style"
-                    android:text="TOP BXH"
-                    android:textSize="30sp"
-                    android:textColor="@color/text_white"
-                    android:layout_marginStart="15dp"
-                    android:layout_marginBottom="5dp"
-                    android:textStyle="bold"
-                    android:fontFamily="@font/rainy_days"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="15dp"
                     android:layout_marginTop="30dp"
-                    app:layout_constraintTop_toTopOf="parent"
+                    android:layout_marginBottom="5dp"
+                    android:fontFamily="@font/rainy_days"
+                    android:text="TOP BXH"
+                    android:textColor="@color/text_white"
+                    android:textSize="30sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toTopOf="@+id/type"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintBottom_toTopOf="@+id/type"/>
+                    app:layout_constraintTop_toTopOf="parent" />
 
                 <TextView
                     android:id="@+id/type"
-                    android:text="trending"
-                    android:textSize="25sp"
-                    android:textColor="@color/text_white"
-                    android:layout_marginStart="15dp"
-                    android:layout_marginBottom="10dp"
-                    android:textAllCaps="true"
-                    android:textStyle="bold"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintBottom_toTopOf="@+id/detail"/>
+                    android:layout_marginStart="15dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="trending"
+                    android:textAllCaps="true"
+                    android:textColor="@color/text_white"
+                    android:textSize="25sp"
+                    android:textStyle="bold"
+                    app:layout_constraintBottom_toTopOf="@+id/detail"
+                    app:layout_constraintStart_toStartOf="parent" />
 
                 <TextView
                     android:id="@+id/detail"
-                    android:paddingHorizontal="15dp"
-                    android:layout_marginBottom="10dp"
-                    android:text="Thiên Lý Ơi đưa Jack -J97 trở lại với Top Trending"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_white"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent" />
+                    android:layout_marginBottom="10dp"
+                    android:paddingHorizontal="15dp"
+                    android:text="Thiên Lý Ơi đưa Jack -J97 trở lại với Top Trending"
+                    android:textColor="@color/text_white"
+                    android:textSize="12sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>
 
-</LinearLayout>
+</FrameLayout>

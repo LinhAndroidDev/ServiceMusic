@@ -85,13 +85,15 @@ object ExtensionFunctions {
 
     fun SongEntity.toSong(): Song {
         return Song(
-            this.idSong,
-            this.title,
-            this.nameSinger,
-            this.avatar,
-            this.sing,
-            this.time,
-            this.type
+            id = this.id,
+            title = this.title,
+            nameSinger = this.nameSinger,
+            thumbnailUrl = this.thumbnailUrl,
+            audioUrl = this.audioUrl,
+            lyricUrl = this.lyricUrl,
+            durationSec = this.durationSec,
+            categoryId = this.categoryId,
+            categoryName = this.categoryName,
         )
     }
 

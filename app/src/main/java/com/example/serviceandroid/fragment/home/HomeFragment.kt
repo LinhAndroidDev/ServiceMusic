@@ -1,22 +1,23 @@
 package com.example.serviceandroid.fragment.home
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.core.view.isVisible
-import androidx.core.view.postDelayed
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearSnapHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
-import com.example.serviceandroid.MainActivity
-import com.example.serviceandroid.MusicActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.AdvertisementAdapter
 import com.example.serviceandroid.adapter.PagerNationalAdapter
@@ -26,9 +27,7 @@ import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.DialogConfirm
-import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentHomeBinding
-import com.example.serviceandroid.helper.Data
 import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
@@ -46,10 +45,22 @@ enum class Title {
     TITLE_NEW_RELEASE,
 }
 
+private const val BANNER_AUTO_SCROLL_MS = 5_000L
+
 @AndroidEntryPoint
 class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var national = National.ALL_NATIONAL
-    private lateinit var adapterNational: PagerNationalAdapter
+    private var adapterNational: PagerNationalAdapter? = null
+    private var newUpdateAdapter: PagerNewReleaseAdapter? = null
+    private var newReleasePagerConfigured = false
+    private var advertisementAdapter: AdvertisementAdapter? = null
+    private var advertisementBannerConfigured = false
+    private var bannerItemWidthPx = 0
+    private var currentBannerIndex = 0
+    private var lastBoundAdvertisementIds: List<String> = emptyList()
+    private val bannerHandler = Handler(Looper.getMainLooper())
+    private var bannerAutoScrollRunnable: Runnable? = null
+    private var bannerScrollListener: RecyclerView.OnScrollListener? = null
     private var stickTile = Title.TITLE_TOPIC
     private val viewModel by viewModels<HomeViewModel>()
 
@@ -62,20 +73,309 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
          */
         ExtensionFunctions.gradientTextColor(binding.tvZingChat)
 
-        binding.root.postDelayed(500) {
-            initializeViews()
+        initTopic()
+        setupSwipeRefresh()
+        observeAdvertisements()
+        observePlaylist()
+    }
+
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setColorSchemeResources(
+            R.color.blue,
+            R.color.bg_purple,
+            R.color.orange,
+        )
+        binding.swipeRefresh.setOnRefreshListener {
+            viewModel.refreshAll()
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                var wasRefreshing = false
+                viewModel.isRefreshing.collect { refreshing ->
+                    binding.swipeRefresh.isRefreshing = refreshing
+                    if (wasRefreshing && !refreshing) {
+                        rebindAfterRefresh()
+                    }
+                    wasRefreshing = refreshing
+                }
+            }
         }
     }
 
-    private fun initializeViews() {
-        initAdvertisement()
-        initTopic()
-        binding.root.postDelayed(1000) {
-            initNewRelease()
-            binding.root.postDelayed(1500) {
-                initNewUpdate()
+    private fun rebindAfterRefresh() {
+        val songs = viewModel.getPlaylist()
+        if (songs.isNotEmpty()) {
+            applyPlaylistToUi(songs)
+        }
+        bindAdvertisements(viewModel.getAdvertisements(), force = true)
+    }
+
+    private fun observeAdvertisements() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.loadAdvertisements()
+                viewModel.advertisements.collect { ads ->
+                    bindAdvertisements(ads)
+                }
             }
         }
+    }
+
+    private fun bindAdvertisements(ads: List<Advertisement>, force: Boolean = false) {
+        if (ads.isEmpty()) {
+            stopBannerAutoScroll()
+            binding.advertisementBanner.adapter = null
+            binding.bannerIndicator.isVisible = false
+            lastBoundAdvertisementIds = emptyList()
+            return
+        }
+
+        val itemWidth = calculateBannerItemWidth()
+        setupAdvertisementBanner(itemWidth)
+
+        val adapter = advertisementAdapter?.takeIf { it.itemWidthPx == itemWidth }
+            ?: AdvertisementAdapter(itemWidth).also {
+                advertisementAdapter = it
+                binding.advertisementBanner.adapter = it
+            }
+        if (binding.advertisementBanner.adapter !== adapter) {
+            binding.advertisementBanner.adapter = adapter
+        }
+
+        val newIds = ads.map { it.id.ifBlank { "${it.image}|${it.update}" } }
+        if (force || newIds != lastBoundAdvertisementIds) {
+            lastBoundAdvertisementIds = newIds
+            adapter.submitAdvertisements(ads)
+            currentBannerIndex = 0
+            binding.advertisementBanner.scrollToPosition(adapter.getInfiniteStartPosition())
+            binding.advertisementBanner.post {
+                applyBannerDepthEffect(binding.advertisementBanner)
+            }
+        }
+        updateBannerIndicator(currentBannerIndex)
+        startBannerAutoScroll()
+    }
+
+    private fun updateBannerIndicator(selectedRealIndex: Int) {
+        val count = advertisementAdapter?.realItemCount ?: 0
+        binding.bannerIndicator.isVisible = count > 1
+        if (count <= 1) return
+        binding.bannerIndicator.setDotCount(count)
+        binding.bannerIndicator.setCurrentPosition(selectedRealIndex.coerceIn(0, count - 1))
+    }
+
+    private fun calculateBannerItemWidth(): Int {
+        val screenWidth = resources.displayMetrics.widthPixels
+        return (screenWidth * 0.78f).toInt()
+    }
+
+    private fun applyBannerSidePadding(itemWidth: Int) {
+        val screenWidth = resources.displayMetrics.widthPixels
+        val sidePadding = (screenWidth - itemWidth) / 2
+        binding.advertisementBanner.setPadding(sidePadding, 0, sidePadding, 0)
+    }
+
+    private fun setupAdvertisementBanner(itemWidth: Int) {
+        val recyclerView = binding.advertisementBanner
+        applyBannerSidePadding(itemWidth)
+        bannerItemWidthPx = itemWidth
+
+        if (advertisementBannerConfigured) return
+
+        recyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        PagerSnapHelper().attachToRecyclerView(recyclerView)
+        recyclerView.clipToPadding = false
+        recyclerView.clipChildren = false
+        recyclerView.setHasFixedSize(true)
+
+        bannerScrollListener = object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                applyBannerDepthEffect(recyclerView)
+                updateBannerIndexFromSnap(recyclerView)
+            }
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                when (newState) {
+                    RecyclerView.SCROLL_STATE_DRAGGING -> stopBannerAutoScroll()
+                    RecyclerView.SCROLL_STATE_IDLE -> {
+                        applyBannerDepthEffect(recyclerView)
+                        updateBannerIndexFromSnap(recyclerView)
+                        repositionInfiniteBannerIfNeeded(recyclerView)
+                        startBannerAutoScroll()
+                    }
+                }
+            }
+        }.also { recyclerView.addOnScrollListener(it) }
+
+        advertisementBannerConfigured = true
+    }
+
+    private fun applyBannerDepthEffect(recyclerView: RecyclerView) {
+        val layoutManager = recyclerView.layoutManager ?: return
+        val center = recyclerView.width / 2f
+        var centerChild: android.view.View? = null
+        var minDistance = Float.MAX_VALUE
+
+        for (i in 0 until layoutManager.childCount) {
+            val child = layoutManager.getChildAt(i) ?: continue
+            val childCenter = (child.left + child.right) / 2f
+            val distance = abs(childCenter - center) / center
+            val scale = 1f - (distance * 0.2f).coerceIn(0f, 0.2f)
+            val alpha = 1f - (distance * 0.45f).coerceIn(0f, 0.5f)
+            child.scaleX = scale
+            child.scaleY = scale
+            child.alpha = alpha
+
+            val centerDistance = abs(childCenter - center)
+            if (centerDistance < minDistance) {
+                minDistance = centerDistance
+                centerChild = child
+            }
+        }
+
+        for (i in 0 until layoutManager.childCount) {
+            val child = layoutManager.getChildAt(i) ?: continue
+            child.translationZ = if (child === centerChild) 12f else 0f
+        }
+    }
+
+    private fun updateBannerIndexFromSnap(recyclerView: RecyclerView) {
+        val adapter = advertisementAdapter ?: return
+        val snapped = findBannerSnapPosition(recyclerView)
+        if (snapped == RecyclerView.NO_POSITION) return
+        val realIndex = adapter.toRealIndex(snapped)
+        if (realIndex != currentBannerIndex) {
+            currentBannerIndex = realIndex
+            updateBannerIndicator(realIndex)
+        }
+    }
+
+    private fun repositionInfiniteBannerIfNeeded(recyclerView: RecyclerView) {
+        val adapter = advertisementAdapter ?: return
+        val realCount = adapter.realItemCount
+        if (realCount <= 1) return
+
+        val snapped = findBannerSnapPosition(recyclerView)
+        if (snapped == RecyclerView.NO_POSITION) return
+
+        val totalCount = adapter.itemCount
+        val threshold = realCount * 2
+        val middleOffset = adapter.getInfiniteMiddleOffset()
+        val newPosition = when {
+            snapped < threshold -> snapped + middleOffset
+            snapped > totalCount - threshold -> snapped - middleOffset
+            else -> return
+        }
+        recyclerView.scrollToPosition(newPosition)
+    }
+
+    private fun findBannerSnapPosition(recyclerView: RecyclerView): Int {
+        val layoutManager = recyclerView.layoutManager ?: return RecyclerView.NO_POSITION
+        val snapTarget = recyclerView.width / 2
+        var minDistance = Int.MAX_VALUE
+        var position = RecyclerView.NO_POSITION
+        for (i in 0 until layoutManager.childCount) {
+            val child = layoutManager.getChildAt(i) ?: continue
+            val childCenter = (child.left + child.right) / 2
+            val distance = abs(childCenter - snapTarget)
+            if (distance < minDistance) {
+                minDistance = distance
+                position = recyclerView.getChildAdapterPosition(child)
+            }
+        }
+        return position
+    }
+
+    private fun startBannerAutoScroll() {
+        stopBannerAutoScroll()
+        val realCount = advertisementAdapter?.realItemCount ?: 0
+        if (realCount <= 1 || !isResumed) return
+
+        bannerAutoScrollRunnable = object : Runnable {
+            override fun run() {
+                if (!isResumed || !isAdded) return
+                val adapter = advertisementAdapter ?: return
+                if (adapter.realItemCount <= 1) return
+
+                val recyclerView = binding.advertisementBanner
+                val currentAdapterPosition = findBannerSnapPosition(recyclerView)
+                if (currentAdapterPosition == RecyclerView.NO_POSITION) return
+
+                recyclerView.smoothScrollToPosition(currentAdapterPosition + 1)
+                bannerHandler.postDelayed(this, BANNER_AUTO_SCROLL_MS)
+            }
+        }
+        bannerHandler.postDelayed(bannerAutoScrollRunnable!!, BANNER_AUTO_SCROLL_MS)
+    }
+
+    private fun stopBannerAutoScroll() {
+        bannerAutoScrollRunnable?.let { bannerHandler.removeCallbacks(it) }
+        bannerAutoScrollRunnable = null
+    }
+
+    private fun observePlaylist() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.ensureLoaded()
+                viewModel.playlist.collect { songs ->
+                    if (songs.isEmpty()) return@collect
+                    applyPlaylistToUi(songs)
+                }
+            }
+        }
+    }
+
+    /**
+     * Re-binds adapters every time playlist updates. Required after [onDestroyView] recreates
+     * the layout but the fragment instance (and adapter fields) may still exist.
+     */
+    @SuppressLint("NotifyDataSetChanged")
+    private fun applyPlaylistToUi(songs: List<Song>) {
+        val nationalAdapter = adapterNational ?: PagerNationalAdapter(
+            requireActivity(),
+            type = TypeList.TYPE_NATIONAL,
+        ).also { adapter ->
+            adapter.onClickItem = { songId ->
+                val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = songId)
+                findNavController().navigate(action)
+            }
+            adapter.onClickMoreOption = { song -> showMoreOptions(song) }
+            adapterNational = adapter
+        }
+
+        val filtered = songs.filter { it.checkMusicNational(national) }
+        nationalAdapter.resetList(songsToHashMap(ArrayList(filtered)))
+        binding.pagerNewRelease.adapter = nationalAdapter
+        if (!newReleasePagerConfigured) {
+            setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)
+            newReleasePagerConfigured = true
+        }
+
+        val chartAdapter = newUpdateAdapter ?: PagerNewReleaseAdapter(
+            requireActivity(),
+            type = TypeList.TYPE_NEW_UPDATE,
+        ).also { adapter ->
+            adapter.onClickItem = { songId ->
+                val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = songId)
+                findNavController().navigate(action)
+            }
+            adapter.onClickMoreOption = { song -> showMoreOptions(song) }
+            newUpdateAdapter = adapter
+        }
+        chartAdapter.items = ArrayList(songs.take(5))
+        binding.rcvNewupdate.adapter = chartAdapter
+        chartAdapter.notifyDataSetChanged()
+    }
+
+    private fun showMoreOptions(song: Song) {
+        val dialog = BottomSheetOptionMusic()
+        dialog.removeFavourite = {
+            showDialogConfirmRemoveFavourite(song)
+        }
+        val bundle = Bundle()
+        bundle.putParcelable(Constant.KEY_SONG, song)
+        dialog.arguments = bundle
+        dialog.show(parentFragmentManager, "")
     }
 
     /**
@@ -147,63 +447,15 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     }
 
     private fun resetMusicInterNational() {
-        adapterNational.resetList(
-            songsToHashMap(Data.listMusic().filter {
-                it.checkMusicNational(national)
-            } as ArrayList<Song>)
-        )
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    private fun initNewUpdate() {
-        val adapter = PagerNewReleaseAdapter(requireActivity(), type = TypeList.TYPE_NEW_UPDATE)
-        adapter.items = Data.listMusic().take(5) as ArrayList<Song>
-        binding.rcvNewupdate.adapter = adapter
-        adapter.onClickItem = {
-            val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.ID_MUSIC, it)
-            startActivity(intent)
-        }
-        adapter.onClickMoreOption = { song ->
-            val dialog = BottomSheetOptionMusic()
-            dialog.removeFavourite = {
-                showDialogConfirmRemoveFavourite(song)
-            }
-            val bundle = Bundle()
-            bundle.putParcelable(Constant.KEY_SONG, song)
-            dialog.arguments = bundle
-            dialog.show(parentFragmentManager, "")
-
-        }
-    }
-
-    private fun initNewRelease() {
-        adapterNational = PagerNationalAdapter(requireActivity(), type = TypeList.TYPE_NATIONAL)
-        adapterNational.pagerSong = songsToHashMap(Data.listMusic())
-        binding.pagerNewRelease.adapter = adapterNational
-        adapterNational.onClickItem = {
-            val intent = Intent(requireActivity(), MusicActivity::class.java)
-            intent.putExtra(MainActivity.ID_MUSIC, it)
-            startActivity(intent)
-        }
-        adapterNational.onClickMoreOption = { song ->
-            val dialog = BottomSheetOptionMusic()
-            dialog.removeFavourite = {
-                showDialogConfirmRemoveFavourite(song)
-            }
-            val bundle = Bundle()
-            bundle.putParcelable(Constant.KEY_SONG, song)
-            dialog.arguments = bundle
-            dialog.show(parentFragmentManager, "")
-        }
-        setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)
+        val songs = viewModel.getPlaylist().filter { it.checkMusicNational(national) }
+        adapterNational?.resetList(songsToHashMap(ArrayList(songs)))
     }
 
     private fun showDialogConfirmRemoveFavourite(song: Song) {
         DialogConfirm().apply {
             title = song.title
             onClickRemove = {
-                viewModel.deleteSongById(song.idSong) {
+                viewModel.deleteSongById(song.id) {
                     Toast.makeText(
                         requireActivity(),
                         "Đã xoá khỏi bài hát yêu thích",
@@ -270,41 +522,28 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         }
     }
 
-    private fun initAdvertisement() {
-        val advertisements = arrayListOf<Advertisement>()
-        advertisements.add(
-            Advertisement(
-                "https://photo-resize-zmp3.zmdcdn.me/w600_r1x1_jpeg/banner/2/7/b/d/27bdc67fef29c7928298c5759de08534.jpg",
-                "Hay nhất của V-POP",
-                "Thiên  Lý Ơi đưa  Jack - J97 trở lại với Top Trending"
-            )
-        )
-        advertisements.add(
-            Advertisement(
-                "https://source.boomplaymusic.com/group10/M00/02/06/f9d04bde573f4737a9859f386331d68b_320_320.jpg",
-                "Mới Cập Nhật",
-                "Có Lẽ Bên Nhau Là Sai và những bản Hit tiềm năng"
-            )
-        )
-        advertisements.add(
-            Advertisement(
-                "https://i.ytimg.com/vi/yF1rUhDRzG0/maxresdefault.jpg",
-                "Mới Cập Nhật",
-                "Bản Hit Đánh Mất Em mới lạ qua giọng hát của các ca sĩ trẻ"
-            )
-        )
-        val adapter = AdvertisementAdapter(requireActivity())
-        adapter.advertisements = advertisements
-        binding.advertisement.adapter = adapter
-        LinearSnapHelper().attachToRecyclerView(binding.advertisement)
+    override fun onResume() {
+        super.onResume()
+        startBannerAutoScroll()
+    }
 
-        // Set ItemDecoration to add overlap/margin between items
-        binding.advertisement.addItemDecoration(
-            OverlapItemDecoration(
-                resources.getDimensionPixelSize(R.dimen.item_overlap_width),
-                resources.getDimensionPixelSize(R.dimen.item_overlap_width)
-            )
-        )
+    override fun onPause() {
+        stopBannerAutoScroll()
+        super.onPause()
+    }
+
+    override fun onDestroyView() {
+        stopBannerAutoScroll()
+        bannerScrollListener?.let { binding.advertisementBanner.removeOnScrollListener(it) }
+        bannerScrollListener = null
+        binding.pagerNewRelease.adapter = null
+        binding.rcvNewupdate.adapter = null
+        binding.advertisementBanner.adapter = null
+        newReleasePagerConfigured = false
+        advertisementBannerConfigured = false
+        currentBannerIndex = 0
+        lastBoundAdvertisementIds = emptyList()
+        super.onDestroyView()
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =
