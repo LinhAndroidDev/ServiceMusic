@@ -82,6 +82,7 @@ class MusicService : Service() {
     private var pendingSong: Song? = null
     private var pendingGeneration: Int = 0
     private var viewsIncrementedForSongId: String? = null
+    private var playbackNeedsReprepare = false
 
     /** Frequent position updates for UI (lyrics); notification refreshed at [NOTIFICATION_REFRESH_MS]. */
     private val tickIntervalMs = 80L
@@ -104,8 +105,24 @@ class MusicService : Service() {
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            Log.e(TAG, "ExoPlayer error", error)
-            playbackStateHolder.update { it.copy(isPlaying = false) }
+            Log.e(
+                TAG,
+                "ExoPlayer error code=${error.errorCode} message=${error.message}",
+                error,
+            )
+            playbackNeedsReprepare = true
+            stopProgressTicker()
+            val player = exoPlayer
+            val pos = player?.currentPosition?.toInt()?.coerceAtLeast(0)
+                ?: playbackStateHolder.state.value.positionMs
+            playbackStateHolder.update { st ->
+                st.copy(
+                    isPlaying = false,
+                    positionMs = pos.coerceAtLeast(st.positionMs),
+                )
+            }
+            updateMediaSessionPlaybackState()
+            refreshNotification()
         }
     }
 
@@ -290,6 +307,7 @@ class MusicService : Service() {
     fun playSongInternal(song: Song) {
         ensureMediaSession()
         stopProgressTicker()
+        playbackNeedsReprepare = false
 
         index = songRepository.indexOf(song).let { if (it < 0) 0 else it }
         val resolved = songRepository.getSong(index)
@@ -315,6 +333,7 @@ class MusicService : Service() {
             Log.e(TAG, "Missing audioUrl for song ${resolved.id}")
             return
         }
+        playbackNeedsReprepare = false
         val generation = ++prepareGeneration
         pendingGeneration = generation
         pendingSong = resolved
@@ -328,6 +347,7 @@ class MusicService : Service() {
             player.prepare()
         } catch (e: Exception) {
             Log.e(TAG, "ExoPlayer prepare failed url=${resolved.audioUrl}", e)
+            playbackNeedsReprepare = true
             playbackStateHolder.update { it.copy(isPlaying = false) }
         }
     }
@@ -337,6 +357,7 @@ class MusicService : Service() {
         if (pendingGeneration != prepareGeneration) return
 
         val resolved = pendingSong ?: playbackStateHolder.state.value.currentSong ?: return
+        playbackNeedsReprepare = false
         applyRepeatMode()
 
         val dur = playerDurationMs(player)
@@ -444,14 +465,54 @@ class MusicService : Service() {
             return
         }
         val player = exoPlayer ?: return
+        val song = currentSongOrNull() ?: return
+
+        if (needsPlayerReprepare(player)) {
+            val playerPos = player.currentPosition.toInt()
+            val pos = if (playerPos > 0) {
+                playerPos
+            } else {
+                playbackStateHolder.state.value.positionMs
+            }
+            reprepareAndPlay(song, pos, autoStart = true)
+            return
+        }
+
         if (!player.isPlaying) {
             player.play()
         }
-        playbackStateHolder.update { it.copy(isPlaying = true) }
-        updateMediaSessionPlaybackState()
-        refreshNotification()
-        persistPlaybackSnapshot()
-        startProgressTicker()
+        if (player.isPlaying) {
+            playbackStateHolder.update { it.copy(isPlaying = true) }
+            updateMediaSessionPlaybackState()
+            refreshNotification()
+            persistPlaybackSnapshot()
+            startProgressTicker()
+        }
+    }
+
+    private fun hasActivePlaybackSession(): Boolean {
+        return index >= 0 || playbackStateHolder.state.value.hasActivePlayer
+    }
+
+    private fun needsPlayerReprepare(player: ExoPlayer): Boolean {
+        if (!hasActivePlaybackSession()) return false
+        return playbackNeedsReprepare ||
+            player.playerError != null ||
+            player.playbackState == Player.STATE_IDLE
+    }
+
+    private fun currentSongOrNull(): Song? {
+        playbackStateHolder.state.value.currentSong?.let { return it }
+        if (index < 0 || !songRepository.isLoaded()) return null
+        return runCatching { songRepository.getSong(index) }.getOrNull()
+    }
+
+    private fun reprepareAndPlay(resolved: Song, startPositionMs: Int, autoStart: Boolean) {
+        Log.d(
+            TAG,
+            "reprepareAndPlay: song=${resolved.id} pos=$startPositionMs autoStart=$autoStart",
+        )
+        startStreaming(resolved, startPositionMs, autoStart)
     }
 
     private fun nextInternal() {
@@ -493,6 +554,7 @@ class MusicService : Service() {
 
     private fun seekToInternal(positionMs: Int) {
         val player = exoPlayer ?: return
+        val song = currentSongOrNull() ?: return
         val dur = playerDurationMs(player)
         val safe = if (dur > 0) positionMs.coerceIn(0, dur) else positionMs.coerceAtLeast(0)
         val now = SystemClock.elapsedRealtime()
@@ -501,6 +563,20 @@ class MusicService : Service() {
         }
         lastSeekPositionMs = safe
         lastSeekElapsedMs = now
+
+        if (needsPlayerReprepare(player)) {
+            reprepareAndPlay(song, safe, autoStart = false)
+            playbackStateHolder.update {
+                it.copy(
+                    positionMs = safe,
+                    seekSequence = it.seekSequence + 1L,
+                )
+            }
+            updateMediaSessionPlaybackState()
+            persistPlaybackSnapshot()
+            return
+        }
+
         player.seekTo(safe.toLong())
         playbackStateHolder.update {
             it.copy(
@@ -519,6 +595,7 @@ class MusicService : Service() {
 
     private fun tearDownServicePlayback() {
         stopProgressTicker()
+        playbackNeedsReprepare = false
         prepareGeneration++
         exoPlayer?.run {
             stop()
