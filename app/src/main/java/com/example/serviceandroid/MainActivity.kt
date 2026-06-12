@@ -61,11 +61,16 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     private var lastNetworkBannerVisible = false
     private var bannerHideAnimation: Animation? = null
     private var networkBannerAllowed = false
+    private var hasCompletedStartupOfflineDelay = false
+    private var isStartupOfflineDelayScheduled = false
+    private val offlineBannerStartupHandler = Handler(Looper.getMainLooper())
+    private var offlineBannerStartupRunnable: Runnable? = null
 
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
         private const val TAG = "NetworkBanner"
         private const val MINI_SEEK_UI_THROTTLE_MS = 200
+        private const val OFFLINE_BANNER_STARTUP_DELAY_MS = 2000L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -154,10 +159,50 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     private fun applyNetworkBanner(uiState: NetworkUiState) {
         if (!networkBannerAllowed) {
+            cancelOfflineBannerStartupDelay()
             hideNetworkBannerImmediately()
             return
         }
 
+        if (shouldDelayInitialOfflineBanner(uiState)) {
+            if (!isStartupOfflineDelayScheduled) {
+                isStartupOfflineDelayScheduled = true
+                hideNetworkBannerViewOnly()
+                offlineBannerStartupRunnable = Runnable {
+                    offlineBannerStartupRunnable = null
+                    isStartupOfflineDelayScheduled = false
+                    hasCompletedStartupOfflineDelay = true
+                    if (networkBannerAllowed) {
+                        applyNetworkBannerImmediate(networkMonitor.state.value)
+                    }
+                }.also { runnable ->
+                    offlineBannerStartupHandler.postDelayed(runnable, OFFLINE_BANNER_STARTUP_DELAY_MS)
+                }
+            }
+            return
+        }
+
+        if (isStartupOfflineDelayScheduled && uiState.isOnline) {
+            cancelOfflineBannerStartupDelay()
+            hasCompletedStartupOfflineDelay = true
+        }
+
+        applyNetworkBannerImmediate(uiState)
+    }
+
+    private fun shouldDelayInitialOfflineBanner(uiState: NetworkUiState): Boolean {
+        return !hasCompletedStartupOfflineDelay &&
+            !uiState.isOnline &&
+            uiState.showBanner
+    }
+
+    private fun cancelOfflineBannerStartupDelay() {
+        offlineBannerStartupRunnable?.let { offlineBannerStartupHandler.removeCallbacks(it) }
+        offlineBannerStartupRunnable = null
+        isStartupOfflineDelayScheduled = false
+    }
+
+    private fun applyNetworkBannerImmediate(uiState: NetworkUiState) {
         val banner = binding.networkBanner
         val root = banner.root
         val content = banner.bannerContent
@@ -216,6 +261,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun hideNetworkBannerImmediately() {
+        cancelOfflineBannerStartupDelay()
+        hideNetworkBannerViewOnly()
+    }
+
+    private fun hideNetworkBannerViewOnly() {
         bannerHideAnimation?.cancel()
         binding.networkBanner.root.clearAnimation()
         binding.networkBanner.root.isVisible = false
@@ -475,6 +525,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     override fun onDestroy() {
+        cancelOfflineBannerStartupDelay()
         if (isFinishing && !isChangingConfigurations) {
             playbackViewModel.unbind(this)
             val intent = android.content.Intent(this, com.example.serviceandroid.service.MusicService::class.java)
