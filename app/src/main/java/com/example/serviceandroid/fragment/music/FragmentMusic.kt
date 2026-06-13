@@ -54,7 +54,6 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private val viewModel by viewModels<FragmentMusicViewModel>()
     private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private val fadeIn by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.anim_fade_in) }
-    private val rotate45 by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.rotation_45) }
     private var isFavourite: Boolean = false
     private var lastRenderedSongId: String? = null
 
@@ -252,14 +251,18 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         val transport = binding.playerTransport
 
         transport.imgNext.setOnClickListener {
-            playbackViewModel.next(requireContext())
+            CustomAnimator.animateTransportButton(transport.imgNext) {
+                playbackViewModel.next(requireContext())
+            }
         }
         transport.imgPrevious.setOnClickListener {
-            playbackViewModel.previous(requireContext())
+            CustomAnimator.animateTransportButton(transport.imgPrevious) {
+                playbackViewModel.previous(requireContext())
+            }
         }
 
         transport.imgPlay.setOnClickListener {
-            CustomAnimator.endAnimation(rotate45) {
+            CustomAnimator.animateTransportButton(transport.imgPlay) {
                 val st = playbackViewModel.playbackState.value
                 if (!st.isPlaying) {
                     playbackViewModel.resume(requireContext())
@@ -267,7 +270,6 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                     playbackViewModel.pause(requireContext())
                 }
             }
-            transport.imgPlay.startAnimation(rotate45)
         }
 
         transport.imgRepeat.setOnClickListener {
