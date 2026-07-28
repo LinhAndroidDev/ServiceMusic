@@ -559,6 +559,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 }, 2000)
             }
 
+            R.id.fragmentMusic -> {
+                navController.popBackStack()
+            }
+
             R.id.splashFragment -> {}
             else -> super.onBackPressed()
         }

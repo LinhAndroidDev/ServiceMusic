@@ -11,11 +11,13 @@ import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.core.view.isInvisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
@@ -40,6 +42,7 @@ import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.CustomAnimator
 import com.example.serviceandroid.utils.DateUtils
+import com.example.serviceandroid.utils.SwipeDownDismissHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -78,6 +81,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private var singerTabListener: TabLayout.OnTabSelectedListener? = null
     private var isBindingSingerTabs: Boolean = false
     private var lastSingerTabSongId: String? = null
+    private var swipeDownDismissHelper: SwipeDownDismissHelper? = null
 
     private val playerPagerCallback = object : ViewPager2.OnPageChangeCallback() {
         override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
@@ -147,6 +151,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
 
         binding.playerTransport.imgRepeat.setImageResource(viewModel.getTypeRepeat().value)
         setupTransportControls()
+        setupSwipeDownDismiss()
 
         observeSingerUiState()
 
@@ -243,8 +248,21 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
 
     override fun onClickView() {
         binding.backMusic.setOnClickListener {
-            activity?.onBackPressed()
+            findNavController().popBackStack()
         }
+    }
+
+    private fun setupSwipeDownDismiss() {
+        swipeDownDismissHelper = SwipeDownDismissHelper(
+            handleView = binding.swipeDismissHandle,
+            contentView = binding.root,
+            onDismiss = {
+                if (isAdded) {
+                    binding.root.isInvisible = true
+                    findNavController().popBackStack()
+                }
+            },
+        )
     }
 
     private fun setupTransportControls() {
@@ -660,6 +678,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     override fun onDestroyView() {
+        swipeDownDismissHelper?.detach()
+        swipeDownDismissHelper = null
         lineLyricsAdapter?.onLineClickListener = null
         singerTabListener?.let { listener ->
             pagerAdapter.singerPageBinding?.tabSingers?.removeOnTabSelectedListener(listener)

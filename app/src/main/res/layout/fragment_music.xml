@@ -5,6 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
+    android:clickable="true"
+    android:focusable="true"
     tools:context=".fragment.music.FragmentMusic">
 
     <ImageView
@@ -19,83 +21,91 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <RelativeLayout
+        <com.example.serviceandroid.utils.SwipeDownHandleLayout
+            android:id="@+id/swipeDismissHandle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="15dp"
-            android:layout_marginTop="40dp">
+            android:orientation="vertical">
 
-            <ImageView
-                android:id="@+id/backMusic"
-                android:layout_width="35dp"
-                android:layout_height="35dp"
-                android:src="@drawable/ic_back"
-                app:tint="@color/white"
-                tools:ignore="ContentDescription" />
+            <RelativeLayout
+                android:id="@+id/playerTopChrome"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="15dp"
+                android:layout_marginTop="40dp">
+
+                <ImageView
+                    android:id="@+id/backMusic"
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    android:src="@drawable/ic_back"
+                    app:tint="@color/white"
+                    tools:ignore="ContentDescription" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerHorizontal="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PHÁT TỪ"
+                        android:textColor="@color/white"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="#zingchart"
+                        android:textColor="@color/text_white"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="25dp"
+                    android:layout_height="25dp"
+                    android:layout_alignParentEnd="true"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_menu"
+                    app:tint="@color/white" />
+            </RelativeLayout>
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:id="@+id/pagerIndicator"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_centerHorizontal="true"
+                android:layout_marginTop="12dp"
                 android:gravity="center"
-                android:orientation="vertical">
+                android:orientation="horizontal">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="PHÁT TỪ"
-                    android:textColor="@color/white"
-                    android:textSize="12sp" />
+                <View
+                    android:id="@+id/indicatorSinger"
+                    android:layout_width="12dp"
+                    android:layout_height="2dp"
+                    android:alpha="0.45"
+                    android:background="@drawable/bg_pager_indicator_normal" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="#zingchart"
-                    android:textColor="@color/text_white"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
+                <View
+                    android:id="@+id/indicatorSong"
+                    android:layout_width="18dp"
+                    android:layout_height="2.5dp"
+                    android:layout_marginStart="3dp"
+                    android:alpha="1"
+                    android:background="@drawable/bg_pager_indicator_selected" />
+
+                <View
+                    android:id="@+id/indicatorLyrics"
+                    android:layout_width="12dp"
+                    android:layout_height="2dp"
+                    android:layout_marginStart="3dp"
+                    android:alpha="0.45"
+                    android:background="@drawable/bg_pager_indicator_normal" />
             </LinearLayout>
-
-            <ImageView
-                android:layout_width="25dp"
-                android:layout_height="25dp"
-                android:layout_alignParentEnd="true"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_menu"
-                app:tint="@color/white" />
-        </RelativeLayout>
-
-        <LinearLayout
-            android:id="@+id/pagerIndicator"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <View
-                android:id="@+id/indicatorSinger"
-                android:layout_width="12dp"
-                android:layout_height="2dp"
-                android:background="@drawable/bg_pager_indicator_normal"
-                android:alpha="0.45" />
-
-            <View
-                android:id="@+id/indicatorSong"
-                android:layout_width="18dp"
-                android:layout_height="2.5dp"
-                android:layout_marginStart="3dp"
-                android:background="@drawable/bg_pager_indicator_selected"
-                android:alpha="1" />
-
-            <View
-                android:id="@+id/indicatorLyrics"
-                android:layout_width="12dp"
-                android:layout_height="2dp"
-                android:layout_marginStart="3dp"
-                android:background="@drawable/bg_pager_indicator_normal"
-                android:alpha="0.45" />
-        </LinearLayout>
+        </com.example.serviceandroid.utils.SwipeDownHandleLayout>
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/playerPager"
