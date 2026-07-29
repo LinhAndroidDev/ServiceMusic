@@ -57,6 +57,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
+import androidx.core.graphics.drawable.toDrawable
 
 @AndroidEntryPoint
 class FragmentMusic : BottomSheetDialogFragment() {
@@ -177,7 +178,7 @@ class FragmentMusic : BottomSheetDialogFragment() {
         bottomSheet.setBackgroundColor(Color.BLACK)
 
         dialog.window?.apply {
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
             setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             setDimAmount(0f)
@@ -198,7 +199,7 @@ class FragmentMusic : BottomSheetDialogFragment() {
         behavior.state = BottomSheetBehavior.STATE_EXPANDED
 
         contentDragHelper?.detach()
-        val dragRoot = binding.root as? BottomSheetDragLayout ?: return
+        val dragRoot = binding.root
         contentDragHelper = BottomSheetContentDragHelper(
             sheetView = bottomSheet,
             contentRoot = dragRoot,
@@ -656,12 +657,12 @@ class FragmentMusic : BottomSheetDialogFragment() {
             if (lastRenderedSongId != targetSongId) return@launch
             if (lines.isNullOrEmpty()) {
                 lyricLines = null
-                rv.visibility = android.view.View.GONE
-                empty.visibility = android.view.View.VISIBLE
+                rv.visibility = View.GONE
+                empty.visibility = View.VISIBLE
             } else {
                 lyricLines = lines
-                empty.visibility = android.view.View.GONE
-                rv.visibility = android.view.View.VISIBLE
+                empty.visibility = View.GONE
+                rv.visibility = View.VISIBLE
                 val adapter = ensureLineLyricsAdapter()
                 rv.adapter = adapter
                 adapter.submitLines(lines)

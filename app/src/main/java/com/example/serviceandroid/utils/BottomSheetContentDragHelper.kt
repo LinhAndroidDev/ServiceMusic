@@ -217,7 +217,7 @@ class BottomSheetContentDragHelper(
                         if (orientation == RecyclerView.VERTICAL) return true
                     }
                 }
-                if (current !== root && isActionControl(current)) {
+                if (isActionControl(current)) {
                     return true
                 }
                 current = current.parent as? View

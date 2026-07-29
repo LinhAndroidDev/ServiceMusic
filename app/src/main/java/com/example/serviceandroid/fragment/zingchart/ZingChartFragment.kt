@@ -3,6 +3,7 @@ package com.example.serviceandroid.fragment.zingchart
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -22,7 +23,6 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.fragment.findNavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -194,6 +194,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
 
     private var lastBoundChartIds: List<String> = emptyList()
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun bindSongChartList(playlist: List<Song>, force: Boolean = false) {
         val adapter = songChartAdapter ?: PagerNewReleaseAdapter(
             requireActivity(),

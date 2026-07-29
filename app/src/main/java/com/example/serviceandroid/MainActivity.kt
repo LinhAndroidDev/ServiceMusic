@@ -1,5 +1,6 @@
 package com.example.serviceandroid
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -138,7 +139,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         val lp = bannerRoot.layoutParams as ConstraintLayout.LayoutParams
         val gap = resources.getDimensionPixelSize(R.dimen.network_banner_bottom_gap)
         lp.bottomToBottom = ConstraintLayout.LayoutParams.UNSET
-        lp.bottomToTop = if (binding.bottomPlay.visibility == View.VISIBLE) {
+        lp.bottomToTop = if (binding.bottomPlay.isVisible) {
             R.id.bottomPlay
         } else {
             R.id.bottomBar
@@ -524,6 +525,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
      * When Home vs ZingChart refresh different playlists into [SongRepository],
      * the adapter must be re-synced or text at [queueIndex] no longer matches the playing track.
      */
+    @SuppressLint("NotifyDataSetChanged")
     private fun syncMiniPlayerSongInfo(state: PlaybackUiState) {
         val song = state.currentSong ?: return
         val playlist = playbackViewModel.getPlaylist()

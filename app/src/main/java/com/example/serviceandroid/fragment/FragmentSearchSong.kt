@@ -1,5 +1,6 @@
 package com.example.serviceandroid.fragment
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.core.view.ViewCompat
@@ -9,7 +10,6 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
@@ -33,6 +33,7 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
     override fun getFragmentBinding(inflater: LayoutInflater) =
         FragmentSearchSongBinding.inflate(inflater)
 
+    @SuppressLint("NotifyDataSetChanged")
     override fun initView() {
         binding.searchSong.showActionSearch()
 
