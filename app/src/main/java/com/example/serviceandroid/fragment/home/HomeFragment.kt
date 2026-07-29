@@ -28,6 +28,7 @@ import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentHomeBinding
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
@@ -336,8 +337,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             type = TypeList.TYPE_NATIONAL,
         ).also { adapter ->
             adapter.onClickItem = { songId ->
-                val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = songId)
-                findNavController().navigate(action)
+                MusicPlayerLauncher.open(this, songId)
             }
             adapter.onClickMoreOption = { song -> showMoreOptions(song) }
             adapterNational = adapter
@@ -356,8 +356,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             type = TypeList.TYPE_NEW_UPDATE,
         ).also { adapter ->
             adapter.onClickItem = { songId ->
-                val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = songId)
-                findNavController().navigate(action)
+                MusicPlayerLauncher.open(this, songId)
             }
             adapter.onClickMoreOption = { song -> showMoreOptions(song) }
             newUpdateAdapter = adapter

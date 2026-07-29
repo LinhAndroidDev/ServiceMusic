@@ -9,13 +9,13 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.fragment.findNavController
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.databinding.FragmentSearchSongBinding
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.utils.Constant
 import dagger.hilt.android.AndroidEntryPoint
@@ -82,8 +82,7 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
         searchAdapter?.let { return it }
         val adapter = PagerNewReleaseAdapter(requireActivity(), TypeList.TYPE_NATIONAL)
         adapter.onClickItem = { songId ->
-            val action = FragmentSearchSongDirections.actionFragmentSearchSongToFragmentMusic(songId = songId)
-            findNavController().navigate(action)
+            MusicPlayerLauncher.open(this, songId)
         }
         adapter.onClickMoreOption = { song -> showMoreOptions(song) }
         searchAdapter = adapter

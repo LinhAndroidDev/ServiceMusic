@@ -37,6 +37,7 @@ import com.example.serviceandroid.custom.CustomLineChartRenderer
 import com.example.serviceandroid.custom.CustomXAxisFormatter
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentZingChartBinding
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.PositionChart
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.utils.Constant
@@ -187,8 +188,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
         binding.songSuggestView.setOnClickListener {
-            val action = ZingChartFragmentDirections.actionZingchartFragmentToFragmentMusic(songId = song.id)
-            findNavController().navigate(action)
+            MusicPlayerLauncher.open(this, song.id)
         }
     }
 
@@ -200,8 +200,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             type = TypeList.TYPE_NEW_UPDATE,
         ).also { created ->
             created.onClickItem = { songId ->
-                val action = ZingChartFragmentDirections.actionZingchartFragmentToFragmentMusic(songId = songId)
-                findNavController().navigate(action)
+                MusicPlayerLauncher.open(this, songId)
             }
             created.onClickMoreOption = { song -> showMoreOptions(song) }
             songChartAdapter = created

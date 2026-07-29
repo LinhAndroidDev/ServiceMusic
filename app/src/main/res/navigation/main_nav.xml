@@ -26,13 +26,6 @@
         <action
             android:id="@+id/action_homeFragment_to_zingchartFragment"
             app:destination="@id/zingchartFragment" />
-        <action
-            android:id="@+id/action_homeFragment_to_fragmentMusic"
-            app:destination="@id/fragmentMusic"
-            app:enterAnim="@anim/slide_up"
-            app:exitAnim="@anim/anim_normal"
-            app:popEnterAnim="@anim/anim_normal"
-            app:popExitAnim="@anim/slide_down"/>
     </fragment>
 
     <fragment
@@ -56,13 +49,6 @@
         <action
             android:id="@+id/action_zingchartFragment_to_fragmentSearchSong"
             app:destination="@id/fragmentSearchSong" />
-        <action
-            android:id="@+id/action_zingchartFragment_to_fragmentMusic"
-            app:destination="@id/fragmentMusic"
-            app:enterAnim="@anim/slide_up"
-            app:exitAnim="@anim/anim_normal"
-            app:popEnterAnim="@anim/anim_normal"
-            app:popExitAnim="@anim/slide_down"/>
     </fragment>
 
     <fragment
@@ -94,24 +80,5 @@
         android:id="@+id/fragmentSearchSong"
         android:name="com.example.serviceandroid.fragment.FragmentSearchSong"
         android:label="fragment_search_song"
-        tools:layout="@layout/fragment_search_song">
-        <action
-            android:id="@+id/action_fragmentSearchSong_to_fragmentMusic"
-            app:destination="@id/fragmentMusic"
-            app:enterAnim="@anim/slide_up"
-            app:exitAnim="@anim/anim_normal"
-            app:popEnterAnim="@anim/anim_normal"
-            app:popExitAnim="@anim/slide_down" />
-    </fragment>
-    <overlay
-        android:id="@+id/fragmentMusic"
-        android:name="com.example.serviceandroid.fragment.music.FragmentMusic"
-        android:label="fragment_music"
-        tools:layout="@layout/fragment_music">
-
-        <argument
-            android:name="song_id"
-            app:argType="string"
-            android:defaultValue="" />
-    </overlay>
+        tools:layout="@layout/fragment_search_song" />
 </navigation>

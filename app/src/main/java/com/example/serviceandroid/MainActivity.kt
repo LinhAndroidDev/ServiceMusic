@@ -17,7 +17,6 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.viewpager2.widget.ViewPager2
 import com.example.serviceandroid.adapter.InformationSongAdapter
@@ -26,19 +25,21 @@ import com.example.serviceandroid.custom.ActionBottomBar
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.fragment.music.FragmentMusic
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.data.repository.SongRepository
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.NetworkMonitor
 import com.example.serviceandroid.utils.NetworkUiState
-import com.example.serviceandroid.utils.getCurrentFragment
 import com.example.serviceandroid.utils.moveTo
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 
 @AndroidEntryPoint
 @Suppress("DEPRECATION")
@@ -92,6 +93,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     override fun initView() {
         updateNetworkBannerPosition()
         observeNetworkState()
+        registerMusicPlayerSheetCallbacks()
 
         lifecycleScope.launch(Dispatchers.IO) {
             if (songRepository.getTopPlaylist().isEmpty()) {
@@ -272,9 +274,65 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         lastNetworkBannerVisible = false
     }
 
+    private fun registerMusicPlayerSheetCallbacks() {
+        supportFragmentManager.registerFragmentLifecycleCallbacks(
+            object : FragmentManager.FragmentLifecycleCallbacks() {
+                override fun onFragmentStarted(fm: FragmentManager, f: Fragment) {
+                    if (f is FragmentMusic) {
+                        applyMusicPlayerChrome(playerOpen = true)
+                    }
+                }
+
+                override fun onFragmentStopped(fm: FragmentManager, f: Fragment) {
+                    if (f is FragmentMusic) {
+                        applyMusicPlayerChrome(playerOpen = false)
+                    }
+                }
+            },
+            false,
+        )
+    }
+
+    private fun isMusicPlayerOpen(): Boolean =
+        MusicPlayerLauncher.find(supportFragmentManager)?.dialog?.isShowing == true
+
+    private fun applyMusicPlayerChrome(playerOpen: Boolean) {
+        updateNetworkBannerAllowedForChrome(playerOpen)
+        if (playerOpen) {
+            binding.bottomBar.isVisible = false
+            binding.bottomPlay.visibility = View.GONE
+            updateNetworkBannerPosition()
+            return
+        }
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.navHostFragment) as? NavHostFragment
+                ?: return
+        val destinationId = navHostFragment.navController.currentDestination?.id ?: return
+        updateNetworkBannerAllowed(destinationId)
+        when (destinationId) {
+            R.id.splashFragment -> {
+                binding.bottomBar.isVisible = false
+                binding.bottomPlay.visibility = View.GONE
+            }
+            else -> {
+                binding.bottomBar.isVisible = true
+                applyBottomPlayVisibilityForDestination(destinationId)
+            }
+        }
+        updateNetworkBannerPosition()
+    }
+
+    private fun updateNetworkBannerAllowedForChrome(playerOpen: Boolean) {
+        if (playerOpen) {
+            if (networkBannerAllowed) {
+                networkBannerAllowed = false
+                hideNetworkBannerImmediately()
+            }
+        }
+    }
+
     private fun updateNetworkBannerAllowed(destinationId: Int) {
-        val allowed = destinationId != R.id.splashFragment &&
-            destinationId != R.id.fragmentMusic
+        val allowed = destinationId != R.id.splashFragment && !isMusicPlayerOpen()
         if (networkBannerAllowed == allowed) return
         networkBannerAllowed = allowed
         if (!allowed) {
@@ -290,14 +348,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         val navController = navHostFragment.navController
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            if (isMusicPlayerOpen()) {
+                applyMusicPlayerChrome(playerOpen = true)
+                return@addOnDestinationChangedListener
+            }
             updateNetworkBannerAllowed(destination.id)
             when (destination.id) {
-                R.id.fragmentMusic -> {
-                    binding.bottomBar.isVisible = false
-                    binding.bottomPlay.visibility = View.GONE
-                    updateNetworkBannerPosition()
-                }
-
                 R.id.splashFragment -> {
                     binding.bottomBar.isVisible = false
                     binding.bottomPlay.visibility = View.GONE
@@ -386,14 +442,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             ?: playbackViewModel.playbackState.value.currentSong?.id
             ?: return
         binding.root.post {
-            val navHost =
-                supportFragmentManager.findFragmentById(R.id.navHostFragment) as? NavHostFragment
-                    ?: return@post
-            val navController = navHost.navController
-            if (navController.currentDestination?.id == R.id.fragmentMusic) {
-                // Đã ở màn player — chỉ mở lại app (task đã lên foreground); không navigate để tránh chồng FragmentMusic.
-                return@post
-            }
+            if (isMusicPlayerOpen()) return@post
             navigateToFragmentMusic(resolvedId, preservePlaybackWhenOpening = true)
         }
     }
@@ -405,19 +454,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         if (preservePlaybackWhenOpening) {
             playbackViewModel.setPendingOpenFromMiniPlayer()
         }
-        val options = NavOptions.Builder()
-            .setEnterAnim(R.anim.slide_up)
-            .setExitAnim(R.anim.anim_normal)
-            .setPopEnterAnim(R.anim.anim_normal)
-            .setPopExitAnim(R.anim.slide_down)
-            .build()
-        val bundle = Bundle().apply {
-            putString("song_id", song.id)
-        }
-        val navHostFragment =
-            supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
-        val navController = navHostFragment.navController
-        navController.navigate(R.id.fragmentMusic, bundle, options)
+        MusicPlayerLauncher.open(
+            this,
+            song.id,
+            preservePlayback = preservePlaybackWhenOpening,
+        )
     }
 
     private fun openMusicFromBottomPlay() {
@@ -430,8 +471,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
         val destId = navController.currentDestination?.id
+        val playerOpen = isMusicPlayerOpen()
 
-        if (destId != R.id.fragmentMusic && destId != R.id.splashFragment) {
+        if (!playerOpen && destId != R.id.splashFragment) {
             applyBottomPlayVisibilityForDestination(destId ?: 0)
         }
 
@@ -473,7 +515,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             if (state.isPlaying) R.drawable.pause else R.drawable.play
         )
 
-        (getCurrentFragment() as? FragmentMusic)?.onPlaybackStateChanged(state)
+        MusicPlayerLauncher.find(supportFragmentManager)?.onPlaybackStateChanged(state)
     }
 
     /**
@@ -515,9 +557,14 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun applyBottomPlayVisibilityForDestination(destinationId: Int) {
+        if (isMusicPlayerOpen()) {
+            binding.bottomPlay.visibility = View.GONE
+            updateNetworkBannerPosition()
+            return
+        }
         val st = playbackViewModel.playbackState.value
         binding.bottomPlay.visibility =
-            if (destinationId != R.id.fragmentMusic && st.hasActivePlayer) {
+            if (destinationId != R.id.splashFragment && st.hasActivePlayer) {
                 View.VISIBLE
             } else {
                 View.GONE
@@ -540,6 +587,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        if (isMusicPlayerOpen()) {
+            MusicPlayerLauncher.find(supportFragmentManager)?.dismiss()
+            return
+        }
+
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
@@ -557,10 +609,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 Handler(Looper.getMainLooper()).postDelayed({
                     doubleBackToExitPressedOnce = false
                 }, 2000)
-            }
-
-            R.id.fragmentMusic -> {
-                navController.popBackStack()
             }
 
             R.id.splashFragment -> {}

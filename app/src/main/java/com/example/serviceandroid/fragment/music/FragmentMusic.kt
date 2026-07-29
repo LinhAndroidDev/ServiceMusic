@@ -1,48 +1,56 @@
 package com.example.serviceandroid.fragment.music
 
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.RenderEffect
 import android.graphics.Shader
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.animation.AnimationUtils
+import android.widget.FrameLayout
 import android.widget.SeekBar
 import android.widget.Toast
-import androidx.core.view.isInvisible
+import androidx.core.os.bundleOf
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
-import androidx.navigation.fragment.findNavController
-import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.example.serviceandroid.R
-import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentMusicBinding
 import com.example.serviceandroid.databinding.ItemMusicPlayerPageBinding
 import com.example.serviceandroid.databinding.ItemMusicSingerPageBinding
 import com.example.serviceandroid.helper.Constants
-import com.example.serviceandroid.model.Singer
-import com.google.android.material.tabs.TabLayout
 import com.example.serviceandroid.lyrics.LineLyricsAdapter
 import com.example.serviceandroid.lyrics.SongLyricsLoader
 import com.example.serviceandroid.lyrics.TimedLyricLine
 import com.example.serviceandroid.model.Repeat
+import com.example.serviceandroid.model.Singer
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
+import com.example.serviceandroid.utils.BottomSheetContentDragHelper
+import com.example.serviceandroid.utils.BottomSheetDragLayout
 import com.example.serviceandroid.utils.CustomAnimator
 import com.example.serviceandroid.utils.DateUtils
-import com.example.serviceandroid.utils.SwipeDownDismissHelper
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -51,9 +59,11 @@ import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
 
 @AndroidEntryPoint
-class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
+class FragmentMusic : BottomSheetDialogFragment() {
 
-    private val args: FragmentMusicArgs by navArgs()
+    private var _binding: FragmentMusicBinding? = null
+    private val binding get() = _binding!!
+
     private val viewModel by viewModels<FragmentMusicViewModel>()
     private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private val fadeIn by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.anim_fade_in) }
@@ -81,7 +91,6 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     private var singerTabListener: TabLayout.OnTabSelectedListener? = null
     private var isBindingSingerTabs: Boolean = false
     private var lastSingerTabSongId: String? = null
-    private var swipeDownDismissHelper: SwipeDownDismissHelper? = null
 
     private val playerPagerCallback = object : ViewPager2.OnPageChangeCallback() {
         override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
@@ -96,7 +105,11 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
     }
 
-    private companion object {
+    companion object {
+        const val TAG = "FragmentMusic"
+        const val ARG_SONG_ID = "song_id"
+        const val ARG_PRESERVE_PLAYBACK = "preserve_playback"
+
         private const val PAGE_SINGER = 0
         private const val PAGE_SONG = 1
         private const val PAGE_LYRICS = 2
@@ -111,16 +124,93 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         private const val LYRIC_TIME_EPS = 1e-4
         /** Min ms between SeekBar / clock UI updates while playing (lyrics still use full [positionMs]). */
         private const val SEEK_UI_THROTTLE_MS = 220
-    }
+        /** Drag past this fraction of screen height → dismiss on release. */
+        private const val DISMISS_DRAG_FRACTION = 0.10f
 
-    override fun getFragmentBinding(inflater: LayoutInflater): FragmentMusicBinding {
-        return FragmentMusicBinding.inflate(inflater)
-    }
-
-    override fun initView() {
-        val songId = args.songId.ifBlank {
-            arguments?.getString("song_id").orEmpty()
+        fun newInstance(songId: String, preservePlayback: Boolean = false): FragmentMusic {
+            return FragmentMusic().apply {
+                arguments = bundleOf(
+                    ARG_SONG_ID to songId,
+                    ARG_PRESERVE_PLAYBACK to preservePlayback,
+                )
+            }
         }
+    }
+
+    override fun getTheme(): Int = R.style.Theme_MusicPlayer_BottomSheet
+
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        return BottomSheetDialog(requireContext(), theme)
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
+        _binding = FragmentMusicBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initView()
+        onClickView()
+    }
+
+    private var contentDragHelper: BottomSheetContentDragHelper? = null
+
+    override fun onStart() {
+        super.onStart()
+        configureFullScreenBottomSheet()
+    }
+
+    private fun configureFullScreenBottomSheet() {
+        val dialog = dialog as? BottomSheetDialog ?: return
+        val bottomSheet = dialog.findViewById<FrameLayout>(
+            com.google.android.material.R.id.design_bottom_sheet
+        ) ?: return
+
+        bottomSheet.layoutParams = bottomSheet.layoutParams.apply {
+            height = ViewGroup.LayoutParams.MATCH_PARENT
+        }
+        bottomSheet.setBackgroundColor(Color.BLACK)
+
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            setDimAmount(0f)
+            addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+            statusBarColor = Color.BLACK
+            navigationBarColor = Color.BLACK
+        }
+
+        dialog.findViewById<View>(com.google.android.material.R.id.touch_outside)
+            ?.setBackgroundColor(Color.TRANSPARENT)
+
+        val behavior = BottomSheetBehavior.from(bottomSheet)
+        // Custom full-sheet drag owns dismiss; keep Material from fighting touch targets.
+        behavior.isFitToContents = true
+        behavior.skipCollapsed = true
+        behavior.isHideable = true
+        behavior.isDraggable = false
+        behavior.state = BottomSheetBehavior.STATE_EXPANDED
+
+        contentDragHelper?.detach()
+        val dragRoot = binding.root as? BottomSheetDragLayout ?: return
+        contentDragHelper = BottomSheetContentDragHelper(
+            sheetView = bottomSheet,
+            contentRoot = dragRoot,
+            dismissFraction = DISMISS_DRAG_FRACTION,
+            onDismiss = {
+                if (isAdded) dismissAllowingStateLoss()
+            },
+        )
+    }
+
+    private fun initView() {
+        val songId = arguments?.getString(ARG_SONG_ID).orEmpty()
         pendingInitSongId = songId.takeIf { it.isNotBlank() }
 
         pagerAdapter = MusicNowPlayingPagerAdapter(
@@ -151,7 +241,6 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
 
         binding.playerTransport.imgRepeat.setImageResource(viewModel.getTypeRepeat().value)
         setupTransportControls()
-        setupSwipeDownDismiss()
 
         observeSingerUiState()
 
@@ -246,23 +335,26 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         playbackViewModel.syncRepeatMode(requireContext())
     }
 
-    override fun onClickView() {
+    private fun onClickView() {
         binding.backMusic.setOnClickListener {
-            findNavController().popBackStack()
+            dismiss()
         }
     }
 
-    private fun setupSwipeDownDismiss() {
-        swipeDownDismissHelper = SwipeDownDismissHelper(
-            handleView = binding.swipeDismissHandle,
-            contentView = binding.root,
-            onDismiss = {
-                if (isAdded) {
-                    binding.root.isInvisible = true
-                    findNavController().popBackStack()
-                }
-            },
-        )
+    /** Re-bind / play when the sheet is already showing (e.g. open another song). */
+    fun playSongIfNeeded(songId: String, preservePlayback: Boolean = false) {
+        arguments = (arguments ?: Bundle()).apply {
+            putString(ARG_SONG_ID, songId)
+            putBoolean(ARG_PRESERVE_PLAYBACK, preservePlayback)
+        }
+        if (preservePlayback) {
+            playbackViewModel.setPendingOpenFromMiniPlayer()
+        }
+        if (playerControlsAttached) {
+            initMusic(songId)
+        } else {
+            pendingInitSongId = songId
+        }
     }
 
     private fun setupTransportControls() {
@@ -354,16 +446,21 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         val song = playbackViewModel.getPlaylist()[resolvedIndex]
         val fromMini = playbackViewModel.consumePendingOpenFromMiniPlayer()
         val st = playbackViewModel.playbackState.value
-        val keepPlaying = fromMini &&
-            st.queueIndex == resolvedIndex &&
-            st.hasActivePlayer
+        val sameActiveSong = st.hasActivePlayer && st.currentSong?.id == song.id
 
-        if (!keepPlaying) {
-            playbackViewModel.playSongAtIndex(requireContext(), resolvedIndex)
+        when {
+            !sameActiveSong -> {
+                playbackViewModel.playSongAtIndex(requireContext(), resolvedIndex)
+            }
+            // Opened from mini player while paused → resume.
+            fromMini && !st.isPlaying -> {
+                playbackViewModel.resume(requireContext())
+            }
         }
 
         bindSongMetadata(song)
         viewModel.checkSongById(song.id)
+        onPlaybackStateChanged(playbackViewModel.playbackState.value)
     }
 
     private fun bindSongMetadata(song: Song) {
@@ -678,8 +775,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     override fun onDestroyView() {
-        swipeDownDismissHelper?.detach()
-        swipeDownDismissHelper = null
+        contentDragHelper?.detach()
+        contentDragHelper = null
         lineLyricsAdapter?.onLineClickListener = null
         singerTabListener?.let { listener ->
             pagerAdapter.singerPageBinding?.tabSingers?.removeOnTabSelectedListener(listener)
@@ -687,6 +784,20 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         singerTabListener = null
         lastSingerTabSongId = null
         binding.playerPager.unregisterOnPageChangeCallback(playerPagerCallback)
+        binding.playerPager.adapter = null
+        playerPageBinding = null
+        playerControlsAttached = false
+        pendingInitSongId = null
+        lyricLines = null
+        lineLyricsAdapter = null
+        lastActiveLineIndex = Int.MIN_VALUE
+        lastSeekUiSyncedMs = Int.MIN_VALUE
+        lastDurationLabelMs = -1
+        lastLyricsScrollAnchor = Int.MIN_VALUE
+        lastPlaybackSeekSequence = -1L
+        isUserSeeking = false
+        lastRenderedSongId = null
+        _binding = null
         super.onDestroyView()
     }
 }
