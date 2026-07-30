@@ -17,6 +17,7 @@ data class DownloadedSongEntity(
     val categoryId: String,
     val categoryName: String,
     val localAudioPath: String = "",
+    val localLyricPath: String = "",
     val status: DownloadStatus = DownloadStatus.QUEUED,
     val downloadedAt: Long = 0L,
 ) {

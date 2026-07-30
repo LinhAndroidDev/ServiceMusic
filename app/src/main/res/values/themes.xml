@@ -20,7 +20,7 @@
         <item name="backgroundTint">@color/black</item>
         <item name="shapeAppearance">@null</item>
         <item name="shapeAppearanceOverlay">@null</item>
-        <item name="paddingTopSystemWindowInsets">true</item>
-        <item name="paddingBottomSystemWindowInsets">true</item>
+        <item name="paddingTopSystemWindowInsets">false</item>
+        <item name="paddingBottomSystemWindowInsets">false</item>
     </style>
 </resources>

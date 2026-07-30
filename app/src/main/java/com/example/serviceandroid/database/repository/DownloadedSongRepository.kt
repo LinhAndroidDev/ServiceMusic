@@ -45,11 +45,16 @@ class DownloadedSongRepository @Inject constructor(
         dao.updateStatus(songId, DownloadStatus.DOWNLOADING)
     }
 
-    suspend fun markCompleted(songId: String, localPath: String) {
+    suspend fun markCompleted(
+        songId: String,
+        localAudioPath: String,
+        localLyricPath: String = "",
+    ) {
         dao.updateDownloadResult(
             songId = songId,
             status = DownloadStatus.COMPLETED,
-            localAudioPath = localPath,
+            localAudioPath = localAudioPath,
+            localLyricPath = localLyricPath,
             downloadedAt = System.currentTimeMillis(),
         )
     }
@@ -63,7 +68,13 @@ class DownloadedSongRepository @Inject constructor(
         entity?.localAudioPath?.takeIf { it.isNotBlank() }?.let { path ->
             runCatching { File(path).delete() }
         }
+        entity?.localLyricPath?.takeIf { it.isNotBlank() }?.let { path ->
+            runCatching { File(path).delete() }
+        }
         audioDir().listFiles()
+            ?.filter { it.name.startsWith(songId) }
+            ?.forEach { runCatching { it.delete() } }
+        lyricsDir().listFiles()
             ?.filter { it.name.startsWith(songId) }
             ?.forEach { runCatching { it.delete() } }
         dao.deleteById(songId)
@@ -80,8 +91,22 @@ class DownloadedSongRepository @Inject constructor(
         return file.toURI().toString()
     }
 
+    /** Absolute path to local lyric file if it exists; otherwise null. */
+    suspend fun resolveLocalLyricPath(songId: String): String? {
+        val entity = dao.getById(songId) ?: return null
+        val path = entity.localLyricPath
+        if (path.isBlank()) return null
+        val file = File(path)
+        if (!file.exists() || file.length() <= 0L) return null
+        return file.absolutePath
+    }
+
     fun audioDir(): File {
         return File(context.filesDir, "downloads/audio").also { it.mkdirs() }
+    }
+
+    fun lyricsDir(): File {
+        return File(context.filesDir, "downloads/lyrics").also { it.mkdirs() }
     }
 
     fun tempFileFor(songId: String): File = File(audioDir(), "$songId.part")
@@ -93,4 +118,8 @@ class DownloadedSongRepository @Inject constructor(
             .take(5)
         return File(audioDir(), "$songId.$ext")
     }
+
+    fun finalLyricFileFor(songId: String): File = File(lyricsDir(), "$songId.txt")
+
+    fun tempLyricFileFor(songId: String): File = File(lyricsDir(), "$songId.part")
 }

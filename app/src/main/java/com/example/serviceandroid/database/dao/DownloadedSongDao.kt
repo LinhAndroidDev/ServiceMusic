@@ -28,7 +28,10 @@ interface DownloadedSongDao {
     @Query(
         """
         UPDATE downloaded_song
-        SET status = :status, localAudioPath = :localAudioPath, downloadedAt = :downloadedAt
+        SET status = :status,
+            localAudioPath = :localAudioPath,
+            localLyricPath = :localLyricPath,
+            downloadedAt = :downloadedAt
         WHERE songId = :songId
         """
     )
@@ -36,6 +39,7 @@ interface DownloadedSongDao {
         songId: String,
         status: DownloadStatus,
         localAudioPath: String,
+        localLyricPath: String,
         downloadedAt: Long,
     )
 

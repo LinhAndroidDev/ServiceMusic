@@ -49,7 +49,14 @@ class SongDownloadWorker @AssistedInject constructor(
                 tempFile.copyTo(finalFile, overwrite = true)
                 tempFile.delete()
             }
-            downloadedSongRepository.markCompleted(songId, finalFile.absolutePath)
+
+            val localLyricPath = downloadLyricBestEffort(songId, entity.lyricUrl)
+
+            downloadedSongRepository.markCompleted(
+                songId = songId,
+                localAudioPath = finalFile.absolutePath,
+                localLyricPath = localLyricPath,
+            )
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Download failed songId=$songId", e)
@@ -60,6 +67,35 @@ class SongDownloadWorker @AssistedInject constructor(
             } else {
                 Result.failure()
             }
+        }
+    }
+
+    /**
+     * Lyric is optional: audio download still succeeds if lyric fetch fails.
+     * @return absolute path when saved, otherwise empty string.
+     */
+    private fun downloadLyricBestEffort(songId: String, lyricUrl: String): String {
+        val url = lyricUrl.trim()
+        if (url.isBlank()) return ""
+        val tempLyric = downloadedSongRepository.tempLyricFileFor(songId)
+        val finalLyric = downloadedSongRepository.finalLyricFileFor(songId)
+        return try {
+            runCatching { if (tempLyric.exists()) tempLyric.delete() }
+            downloadToFile(url, tempLyric)
+            if (tempLyric.length() <= 0L) {
+                tempLyric.delete()
+                return ""
+            }
+            if (finalLyric.exists()) finalLyric.delete()
+            if (!tempLyric.renameTo(finalLyric)) {
+                tempLyric.copyTo(finalLyric, overwrite = true)
+                tempLyric.delete()
+            }
+            finalLyric.absolutePath
+        } catch (e: Exception) {
+            Log.w(TAG, "Lyric download skipped songId=$songId", e)
+            runCatching { tempLyric.delete() }
+            ""
         }
     }
 

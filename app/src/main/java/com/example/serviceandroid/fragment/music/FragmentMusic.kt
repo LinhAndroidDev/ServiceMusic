@@ -53,6 +53,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -61,6 +62,9 @@ import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class FragmentMusic : BottomSheetDialogFragment() {
+
+    @Inject
+    lateinit var songLyricsLoader: SongLyricsLoader
 
     private var _binding: FragmentMusicBinding? = null
     private val binding get() = _binding!!
@@ -658,7 +662,7 @@ class FragmentMusic : BottomSheetDialogFragment() {
         val targetSongId = song.id
         viewLifecycleOwner.lifecycleScope.launch {
             val lines = withContext(Dispatchers.IO) {
-                SongLyricsLoader.loadTimedLines(song)
+                songLyricsLoader.loadTimedLines(song)
             }
             if (!isAdded) return@launch
             if (lastRenderedSongId != targetSongId) return@launch
