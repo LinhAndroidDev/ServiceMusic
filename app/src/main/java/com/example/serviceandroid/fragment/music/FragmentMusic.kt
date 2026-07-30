@@ -6,19 +6,21 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.RenderEffect
 import android.graphics.Shader
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
-import android.widget.FrameLayout
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.os.bundleOf
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -44,7 +46,6 @@ import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.BottomSheetContentDragHelper
-import com.example.serviceandroid.utils.BottomSheetDragLayout
 import com.example.serviceandroid.utils.CustomAnimator
 import com.example.serviceandroid.utils.DateUtils
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -57,7 +58,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
-import androidx.core.graphics.drawable.toDrawable
 
 @AndroidEntryPoint
 class FragmentMusic : BottomSheetDialogFragment() {
@@ -141,7 +141,14 @@ class FragmentMusic : BottomSheetDialogFragment() {
     override fun getTheme(): Int = R.style.Theme_MusicPlayer_BottomSheet
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return BottomSheetDialog(requireContext(), theme)
+        val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
+        dialog.setOnShowListener {
+            val bottomSheet = dialog.findViewById<View>(
+                com.google.android.material.R.id.design_bottom_sheet
+            ) ?: return@setOnShowListener
+            configureExpandedBottomSheet(dialog, bottomSheet)
+        }
+        return dialog
     }
 
     override fun onCreateView(
@@ -161,53 +168,47 @@ class FragmentMusic : BottomSheetDialogFragment() {
 
     private var contentDragHelper: BottomSheetContentDragHelper? = null
 
-    override fun onStart() {
-        super.onStart()
-        configureFullScreenBottomSheet()
-    }
-
-    private fun configureFullScreenBottomSheet() {
-        val dialog = dialog as? BottomSheetDialog ?: return
-        val bottomSheet = dialog.findViewById<FrameLayout>(
-            com.google.android.material.R.id.design_bottom_sheet
-        ) ?: return
-
+    private fun configureExpandedBottomSheet(dialog: BottomSheetDialog, bottomSheet: View) {
         bottomSheet.layoutParams = bottomSheet.layoutParams.apply {
             height = ViewGroup.LayoutParams.MATCH_PARENT
         }
         bottomSheet.setBackgroundColor(Color.BLACK)
+        bottomSheet.requestLayout()
 
         dialog.window?.apply {
             setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             setDimAmount(0f)
             addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+            // Keep content below system bars (not edge-to-edge / fullscreen).
+            WindowCompat.setDecorFitsSystemWindows(this, true)
             statusBarColor = Color.BLACK
             navigationBarColor = Color.BLACK
+            WindowInsetsControllerCompat(this, decorView).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
         }
-
         dialog.findViewById<View>(com.google.android.material.R.id.touch_outside)
             ?.setBackgroundColor(Color.TRANSPARENT)
 
         val behavior = BottomSheetBehavior.from(bottomSheet)
-        // Custom full-sheet drag owns dismiss; keep Material from fighting touch targets.
-        behavior.isFitToContents = true
+        behavior.state = BottomSheetBehavior.STATE_EXPANDED
         behavior.skipCollapsed = true
         behavior.isHideable = true
         behavior.isDraggable = false
-        behavior.state = BottomSheetBehavior.STATE_EXPANDED
 
-        contentDragHelper?.detach()
-        val dragRoot = binding.root
-        contentDragHelper = BottomSheetContentDragHelper(
-            sheetView = bottomSheet,
-            contentRoot = dragRoot,
-            dismissFraction = DISMISS_DRAG_FRACTION,
-            onDismiss = {
-                if (isAdded) dismissAllowingStateLoss()
-            },
-        )
+        if (_binding != null) {
+            contentDragHelper?.detach()
+            contentDragHelper = BottomSheetContentDragHelper(
+                sheetView = bottomSheet,
+                contentRoot = binding.root,
+                dismissFraction = DISMISS_DRAG_FRACTION,
+                onDismiss = {
+                    if (isAdded) dismissAllowingStateLoss()
+                },
+            )
+        }
     }
 
     private fun initView() {
@@ -444,7 +445,13 @@ class FragmentMusic : BottomSheetDialogFragment() {
         if (playerPageBinding == null) return
         resetFavourite()
         val resolvedIndex = playbackViewModel.resolveQueueIndexForSongId(songId)
-        val song = playbackViewModel.getPlaylist()[resolvedIndex]
+        if (resolvedIndex < 0) {
+            Log.e(TAG, "initMusic: songId=$songId not found in any playlist cache")
+            return
+        }
+        val playlist = playbackViewModel.getPlaylist()
+        if (resolvedIndex > playlist.lastIndex) return
+        val song = playlist[resolvedIndex]
         val fromMini = playbackViewModel.consumePendingOpenFromMiniPlayer()
         val st = playbackViewModel.playbackState.value
         val sameActiveSong = st.hasActivePlayer && st.currentSong?.id == song.id

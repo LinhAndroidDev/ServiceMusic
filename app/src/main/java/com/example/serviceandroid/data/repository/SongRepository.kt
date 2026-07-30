@@ -13,6 +13,14 @@ interface SongRepository {
     fun getPlaylist(): List<Song>
     fun getLatestPlaylist(): List<Song>
     fun getTopPlaylist(): List<Song>
+    /** Replace the active playback queue (e.g. downloaded / favourites offline list). */
+    fun setPlaybackQueue(songs: List<Song>)
+    /**
+     * Ensures [songId] is in the active playback queue.
+     * If missing from the current queue but present in latest/top cache, restores that cache as queue.
+     * @return index in the active queue, or -1 if not found in any known list.
+     */
+    fun ensureQueueForSongId(songId: String): Int
     fun getSong(index: Int): Song
     fun getSongById(id: String): Song?
     fun indexOf(song: Song): Int

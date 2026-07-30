@@ -66,10 +66,11 @@ class PlaybackViewModel @Inject constructor(
 
     fun getPlaylist(): List<Song> = songRepository.getPlaylist()
 
+    fun setPlaybackQueue(songs: List<Song>) = songRepository.setPlaybackQueue(songs)
+
     fun resolveQueueIndexForSongId(songId: String): Int {
-        if (songId.isBlank()) return 0
-        val idx = songRepository.getPlaylist().indexOfFirst { it.id == songId }
-        return if (idx < 0) 0 else idx
+        if (songId.isBlank()) return -1
+        return songRepository.ensureQueueForSongId(songId)
     }
 
     fun playSong(context: Context, song: Song) = connector.playSong(context, song)

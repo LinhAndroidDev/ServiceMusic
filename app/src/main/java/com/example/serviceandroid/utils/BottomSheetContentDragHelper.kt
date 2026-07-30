@@ -46,6 +46,7 @@ class BottomSheetContentDragHelper(
     private var dragging = false
     private var dismissed = false
     private var allowDragFromDown = false
+    private var peakTranslationY = 0f
 
     init {
         contentRoot.dragHelper = this
@@ -71,6 +72,7 @@ class BottomSheetContentDragHelper(
                 downXInRoot = ev.x
                 downYInRoot = ev.y
                 dragging = false
+                peakTranslationY = 0f
                 allowDragFromDown = !isInteractiveTarget(contentRoot, downXInRoot, downYInRoot)
                 obtainVelocityTracker().apply {
                     clear()
@@ -92,6 +94,7 @@ class BottomSheetContentDragHelper(
                 recycleVelocityTracker()
                 dragging = false
                 allowDragFromDown = false
+                peakTranslationY = 0f
             }
         }
         return false
@@ -107,6 +110,7 @@ class BottomSheetContentDragHelper(
                 downXInRoot = ev.x
                 downYInRoot = ev.y
                 dragging = false
+                peakTranslationY = 0f
                 allowDragFromDown = !isInteractiveTarget(contentRoot, downXInRoot, downYInRoot)
                 return allowDragFromDown
             }
@@ -132,6 +136,7 @@ class BottomSheetContentDragHelper(
                 if (wasDragging) {
                     finishDrag()
                 }
+                peakTranslationY = 0f
                 recycleVelocityTracker()
                 return wasDragging
             }
@@ -142,6 +147,7 @@ class BottomSheetContentDragHelper(
     private fun applyDrag(dy: Float) {
         val height = sheetView.height.coerceAtLeast(1)
         val progress = (dy / height).coerceIn(0f, 1f)
+        peakTranslationY = maxOf(peakTranslationY, dy)
         sheetView.translationY = dy
         sheetView.alpha = 1f - ALPHA_FADE_AMOUNT * progress
     }
@@ -151,10 +157,15 @@ class BottomSheetContentDragHelper(
         val translationY = sheetView.translationY
         velocityTracker?.computeCurrentVelocity(1000)
         val velocityY = velocityTracker?.yVelocity ?: 0f
+        val flingThreshold = minFlingVelocity * FLING_MULTIPLIER
+        val movedBackUp = translationY < peakTranslationY - touchSlop
 
-        val shouldDismiss =
-            translationY > height * dismissFraction ||
-                velocityY > minFlingVelocity * FLING_MULTIPLIER
+        // Any upward intent (velocity or finger moving back up) settles to full.
+        val shouldDismiss = when {
+            velocityY < 0f || movedBackUp -> false
+            velocityY > flingThreshold -> true
+            else -> translationY > height * dismissFraction
+        }
 
         if (shouldDismiss) {
             animateDismiss(height.toFloat())
@@ -247,7 +258,7 @@ class BottomSheetContentDragHelper(
                 val top = child.top - child.translationY
                 val right = left + child.width
                 val bottom = top + child.height
-                if (x < left || x >= right || y < top || y >= bottom) continue
+                if (x !in left..<right || y < top || y >= bottom) continue
                 val childX = x - left + child.scrollX
                 val childY = y - top + child.scrollY
                 if (child is ViewGroup) {

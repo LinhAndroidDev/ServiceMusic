@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.serviceandroid.database.MusicDatabase
+import com.example.serviceandroid.database.dao.DownloadedSongDao
 import com.example.serviceandroid.database.dao.FavouriteSongDao
 import com.example.serviceandroid.utils.SharePreferenceRepository
 import com.example.serviceandroid.utils.SharePreferenceRepositoryImpl
@@ -33,6 +34,11 @@ object DatabaseModule {
     @Provides
     fun provideFavouriteSong(musicDatabase: MusicDatabase): FavouriteSongDao {
         return musicDatabase.favouriteSongDao()
+    }
+
+    @Provides
+    fun provideDownloadedSongDao(musicDatabase: MusicDatabase): DownloadedSongDao {
+        return musicDatabase.downloadedSongDao()
     }
 
     @Provides

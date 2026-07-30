@@ -46,6 +46,36 @@ class SongRepositoryImpl @Inject constructor(
 
     override fun getTopPlaylist(): List<Song> = synchronized(this) { topCache.toList() }
 
+    override fun setPlaybackQueue(songs: List<Song>) {
+        synchronized(this) {
+            playbackQueue.clear()
+            playbackQueue.addAll(songs)
+        }
+    }
+
+    override fun ensureQueueForSongId(songId: String): Int {
+        if (songId.isBlank()) return -1
+        synchronized(this) {
+            val inQueue = playbackQueue.indexOfFirst { it.id == songId }
+            if (inQueue >= 0) return inQueue
+
+            val inLatest = latestCache.indexOfFirst { it.id == songId }
+            if (inLatest >= 0) {
+                playbackQueue.clear()
+                playbackQueue.addAll(latestCache)
+                return inLatest
+            }
+
+            val inTop = topCache.indexOfFirst { it.id == songId }
+            if (inTop >= 0) {
+                playbackQueue.clear()
+                playbackQueue.addAll(topCache)
+                return inTop
+            }
+            return -1
+        }
+    }
+
     override fun getSong(index: Int): Song {
         val list = getPlaylist()
         if (list.isEmpty()) throw IllegalStateException("Playlist not loaded")
@@ -53,7 +83,11 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getSongById(id: String): Song? =
-        getPlaylist().find { it.id == id }
+        synchronized(this) {
+            playbackQueue.find { it.id == id }
+                ?: latestCache.find { it.id == id }
+                ?: topCache.find { it.id == id }
+        }
 
     override fun indexOf(song: Song): Int =
         getPlaylist().indexOfFirst { it.id == song.id }

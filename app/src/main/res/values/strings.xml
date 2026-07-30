@@ -10,4 +10,15 @@
     <string name="network_offline_subtitle">Một số tính năng có thể tạm thời không khả dụng</string>
     <string name="network_online">Đã kết nối lại</string>
     <string name="network_online_subtitle">Kết nối internet đã được khôi phục</string>
+    <string name="network_offline_cta_downloads">Nhạc đã tải</string>
+    <string name="download_remove_action">Xóa khỏi Đã tải</string>
+    <string name="download_action">Tải về</string>
+    <string name="download_status_downloading">Đang tải…</string>
+    <string name="download_status_completed">Đã tải</string>
+    <string name="download_started">Đã bắt đầu tải bài hát</string>
+    <string name="download_already_done">Bài hát đã được tải</string>
+    <string name="downloaded_songs_title">Đã tải</string>
+    <string name="downloaded_songs_count">%d bài hát . Đã lưu trên máy</string>
+    <string name="downloaded_songs_empty">Chưa có bài hát đã tải</string>
+    <string name="toast_removed_download">Đã xoá bài hát khỏi Đã tải</string>
 </resources>

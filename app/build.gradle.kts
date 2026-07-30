@@ -83,6 +83,11 @@ dependencies {
     // optional - Test helpers
     testImplementation("androidx.room:room-testing:$room_version")
 
+    // WorkManager + Hilt
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    kapt("androidx.hilt:hilt-compiler:1.2.0")
+
     implementation ("de.hdodenhof:circleimageview:3.1.0")
     implementation("androidx.media:media:1.7.0")
     implementation("androidx.media3:media3-exoplayer:1.4.1")

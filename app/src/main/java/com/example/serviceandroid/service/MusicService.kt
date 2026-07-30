@@ -30,6 +30,7 @@ import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.data.firestore.FirestoreMusicRepository
 import com.example.serviceandroid.data.repository.SongRepository
+import com.example.serviceandroid.database.repository.DownloadedSongRepository
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.MyApplication
 import com.example.serviceandroid.model.Action
@@ -62,6 +63,9 @@ class MusicService : Service() {
 
     @Inject
     lateinit var firestoreMusicRepository: FirestoreMusicRepository
+
+    @Inject
+    lateinit var downloadedSongRepository: DownloadedSongRepository
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var prepareGeneration = 0
@@ -309,8 +313,19 @@ class MusicService : Service() {
         stopProgressTicker()
         playbackNeedsReprepare = false
 
-        index = songRepository.indexOf(song).let { if (it < 0) 0 else it }
-        val resolved = songRepository.getSong(index)
+        var resolvedIndex = songRepository.indexOf(song)
+        if (resolvedIndex < 0) {
+            resolvedIndex = songRepository.ensureQueueForSongId(song.id)
+        }
+        val resolved = if (resolvedIndex >= 0) {
+            index = resolvedIndex
+            songRepository.getSong(resolvedIndex)
+        } else {
+            // Song not in any known playlist — play the requested item as a one-song queue.
+            songRepository.setPlaybackQueue(listOf(song))
+            index = 0
+            song
+        }
         val estimatedDurationMs = (resolved.durationSec * 1000L).toInt().coerceAtLeast(0)
 
         playbackStateHolder.update {
@@ -329,8 +344,9 @@ class MusicService : Service() {
     }
 
     private fun startStreaming(resolved: Song, startPositionMs: Int, autoStart: Boolean) {
-        if (resolved.audioUrl.isBlank()) {
-            Log.e(TAG, "Missing audioUrl for song ${resolved.id}")
+        val playableUri = resolvePlayableUri(resolved)
+        if (playableUri.isNullOrBlank()) {
+            Log.e(TAG, "Missing audio for song ${resolved.id}")
             return
         }
         playbackNeedsReprepare = false
@@ -343,12 +359,21 @@ class MusicService : Service() {
         val player = ensureExoPlayer()
         try {
             player.stop()
-            player.setMediaItem(MediaItem.fromUri(resolved.audioUrl))
+            player.setMediaItem(MediaItem.fromUri(playableUri))
             player.prepare()
         } catch (e: Exception) {
-            Log.e(TAG, "ExoPlayer prepare failed url=${resolved.audioUrl}", e)
+            Log.e(TAG, "ExoPlayer prepare failed url=$playableUri", e)
             playbackNeedsReprepare = true
             playbackStateHolder.update { it.copy(isPlaying = false) }
+        }
+    }
+
+    private fun resolvePlayableUri(song: Song): String? {
+        return runBlocking {
+            withContext(Dispatchers.IO) {
+                downloadedSongRepository.resolveLocalPlayableUri(song.id)
+                    ?: song.audioUrl.takeIf { it.isNotBlank() }
+            }
         }
     }
 

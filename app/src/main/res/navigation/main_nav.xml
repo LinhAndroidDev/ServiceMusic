@@ -37,6 +37,9 @@
             android:id="@+id/action_libraryFragment_to_favouriteSongFragment"
             app:destination="@+id/favouriteSongFragment" />
         <action
+            android:id="@+id/action_libraryFragment_to_downloadedSongsFragment"
+            app:destination="@id/downloadedSongsFragment" />
+        <action
             android:id="@+id/action_libraryFragment_to_fragmentSearchSong"
             app:destination="@id/fragmentSearchSong" />
     </fragment>
@@ -76,6 +79,11 @@
         android:name="com.example.serviceandroid.fragment.favourite_song.FavouriteSongFragment"
         android:label="favourite_song_fragment"
         tools:layout="@layout/fragment_favourite_song" />
+    <fragment
+        android:id="@+id/downloadedSongsFragment"
+        android:name="com.example.serviceandroid.fragment.downloaded.DownloadedSongsFragment"
+        android:label="downloaded_songs_fragment"
+        tools:layout="@layout/fragment_downloaded_songs" />
     <fragment
         android:id="@+id/fragmentSearchSong"
         android:name="com.example.serviceandroid.fragment.FragmentSearchSong"

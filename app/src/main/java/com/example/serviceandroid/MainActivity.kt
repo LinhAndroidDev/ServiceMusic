@@ -229,6 +229,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             banner.tvSubtitle.text = getString(
                 if (isOnline) R.string.network_online_subtitle else R.string.network_offline_subtitle,
             )
+            banner.btnOfflineDownloads.isVisible = !isOnline
+            banner.btnOfflineDownloads.setOnClickListener {
+                if (!isOnline) {
+                    navigateToDownloadedSongs()
+                }
+            }
             updateNetworkBannerPosition()
 
             if (!lastNetworkBannerVisible) {
@@ -273,6 +279,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         binding.networkBanner.root.clearAnimation()
         binding.networkBanner.root.isVisible = false
         lastNetworkBannerVisible = false
+    }
+
+    private fun navigateToDownloadedSongs() {
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.navHostFragment) as? NavHostFragment
+                ?: return
+        val navController = navHostFragment.navController
+        if (navController.currentDestination?.id == R.id.downloadedSongsFragment) return
+        runCatching {
+            navController.navigate(R.id.downloadedSongsFragment)
+        }
     }
 
     private fun registerMusicPlayerSheetCallbacks() {
