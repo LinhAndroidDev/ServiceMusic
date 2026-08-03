@@ -21,4 +21,10 @@
     <string name="downloaded_songs_count">%d bài hát . Đã lưu trên máy</string>
     <string name="downloaded_songs_empty">Chưa có bài hát đã tải</string>
     <string name="toast_removed_download">Đã xoá bài hát khỏi Đã tải</string>
+    <string name="search_section_songs">Bài hát</string>
+    <string name="search_section_artists">Ca sĩ</string>
+    <string name="search_empty_title">Không tìm thấy kết quả</string>
+    <string name="search_empty_subtitle">Thử từ khóa khác cho bài hát hoặc ca sĩ</string>
+    <string name="singer_detail_songs_count">%d bài hát</string>
+    <string name="singer_detail_songs_empty">Chưa có bài hát của ca sĩ này</string>
 </resources>

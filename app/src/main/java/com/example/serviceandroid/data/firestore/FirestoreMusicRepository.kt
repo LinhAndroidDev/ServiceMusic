@@ -20,6 +20,7 @@ interface FirestoreMusicRepository {
     suspend fun getSongsByCategory(categoryId: String, limit: Long = 50): List<FirestoreSong>
     suspend fun getSongsBySinger(singerId: String, limit: Long = 50): List<FirestoreSong>
     suspend fun searchSongsByTitle(term: String, limit: Long = 20): List<FirestoreSong>
+    suspend fun searchSingersByName(term: String, limit: Long = 20): List<FirestoreSinger>
     suspend fun incrementViews(songId: String)
     /** Banners — oldest first ([Query.Direction.ASCENDING] on `createdAt`). */
     suspend fun getAdvertisements(fromServer: Boolean = false): List<FirestoreAdvertisement>
@@ -102,15 +103,26 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
     override suspend fun searchSongsByTitle(term: String, limit: Long): List<FirestoreSong> {
         val keyword = term.trim()
         if (keyword.isEmpty()) return emptyList()
-        return fetchQuery {
-            songs.orderBy("title")
-                .startAt(keyword)
-                .endAt(keyword + "\uf8ff")
-                .limit(limit)
-                .get(it)
-                .await()
-                .toObjects(FirestoreSong::class.java)
-        }
+        // Case-insensitive contains: Firestore startAt/endAt is case-sensitive and
+        // misses typical user input (e.g. "son" vs "Sơn Tùng").
+        return getLatestSongs(limit = 100)
+            .asSequence()
+            .filter { song ->
+                song.title.contains(keyword, ignoreCase = true) ||
+                    song.artistText.contains(keyword, ignoreCase = true)
+            }
+            .take(limit.toInt().coerceAtLeast(1))
+            .toList()
+    }
+
+    override suspend fun searchSingersByName(term: String, limit: Long): List<FirestoreSinger> {
+        val keyword = term.trim()
+        if (keyword.isEmpty()) return emptyList()
+        return getSingers()
+            .asSequence()
+            .filter { it.name.contains(keyword, ignoreCase = true) }
+            .take(limit.toInt().coerceAtLeast(1))
+            .toList()
     }
 
     override suspend fun incrementViews(songId: String) {

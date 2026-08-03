@@ -16,6 +16,7 @@ class CustomSearchView @JvmOverloads constructor(
 ) : RelativeLayout(context, attrs, defStyleAttr) {
     private var binding: CustomSearchViewBinding? = null
     var onQueryChanged: ((String) -> Unit)? = null
+    private var suppressQueryCallback: Boolean = false
 
     init {
         binding = CustomSearchViewBinding.inflate(LayoutInflater.from(context))
@@ -26,11 +27,30 @@ class CustomSearchView @JvmOverloads constructor(
     private fun initView() {
         binding?.search?.doOnTextChanged { text, _, _, _ ->
             binding?.removeText?.isVisible = text?.isNotEmpty() == true
-            onQueryChanged?.invoke(text?.toString().orEmpty())
+            if (!suppressQueryCallback) {
+                onQueryChanged?.invoke(text?.toString().orEmpty())
+            }
         }
 
         binding?.removeText?.setOnClickListener {
             binding?.search?.setText("")
+        }
+    }
+
+    fun queryText(): String = binding?.search?.text?.toString().orEmpty()
+
+    /** Restores text without notifying [onQueryChanged] (used when returning from another screen). */
+    fun setQuery(text: String, notify: Boolean = true) {
+        val edit = binding?.search ?: return
+        if (!notify) suppressQueryCallback = true
+        if (edit.text?.toString() != text) {
+            edit.setText(text)
+            edit.setSelection(text.length.coerceAtMost(edit.text?.length ?: 0))
+        }
+        binding?.removeText?.isVisible = text.isNotEmpty()
+        suppressQueryCallback = false
+        if (notify) {
+            onQueryChanged?.invoke(text)
         }
     }
 

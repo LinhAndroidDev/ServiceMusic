@@ -41,7 +41,48 @@
         android:layout_height="match_parent"
         android:layout_below="@id/header"
         android:clipToPadding="false"
+        android:paddingStart="15dp"
+        android:paddingEnd="15dp"
         android:paddingTop="8dp"
+        android:paddingBottom="80dp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/searchEmptyState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/header"
+        android:layout_marginTop="48dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/search_empty_title"
+            android:textColor="@color/text_black"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="@string/search_empty_subtitle"
+            android:textColor="@color/txt_hint"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/searchProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/header"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="48dp"
         android:visibility="gone" />
 
     <RelativeLayout

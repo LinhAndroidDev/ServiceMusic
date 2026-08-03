@@ -88,5 +88,19 @@
         android:id="@+id/fragmentSearchSong"
         android:name="com.example.serviceandroid.fragment.FragmentSearchSong"
         android:label="fragment_search_song"
-        tools:layout="@layout/fragment_search_song" />
+        tools:layout="@layout/fragment_search_song">
+        <action
+            android:id="@+id/action_fragmentSearchSong_to_singerDetailFragment"
+            app:destination="@id/singerDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/singerDetailFragment"
+        android:name="com.example.serviceandroid.fragment.singer.SingerDetailFragment"
+        android:label="singer_detail_fragment"
+        tools:layout="@layout/fragment_singer_detail">
+        <argument
+            android:name="singerId"
+            app:argType="string" />
+    </fragment>
 </navigation>
