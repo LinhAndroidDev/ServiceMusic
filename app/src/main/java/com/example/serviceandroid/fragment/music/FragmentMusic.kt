@@ -9,6 +9,7 @@ import android.graphics.Shader
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -131,6 +132,15 @@ class FragmentMusic : BottomSheetDialogFragment() {
         private const val SEEK_UI_THROTTLE_MS = 220
         /** Drag past this fraction of screen height → dismiss on release. */
         private const val DISMISS_DRAG_FRACTION = 0.10f
+        /**
+         * Lyric auto-scroll speed (ms per inch). Default [LinearSmoothScroller] is ~25;
+         * higher = slower, softer line-to-line motion.
+         */
+        private const val LYRICS_SCROLL_MS_PER_INCH = 130f
+        /** Cap scroll duration on long jumps (e.g. seek). */
+        private const val LYRICS_SCROLL_MAX_DURATION_MS = 700
+        /** Soft landing after lyric auto-scroll. */
+        private const val LYRICS_SCROLL_DECELERATION_MS = 280
 
         fun newInstance(songId: String, preservePlayback: Boolean = false): FragmentMusic {
             return FragmentMusic().apply {
@@ -699,7 +709,8 @@ class FragmentMusic : BottomSheetDialogFragment() {
             val anchor = (active - 1).coerceAtLeast(0)
             if (force || anchor != lastLyricsScrollAnchor) {
                 lastLyricsScrollAnchor = anchor
-                smoothScrollLyricsAnchorToTop(rv, anchor)
+                // Post one frame so highlight transition starts before scroll motion.
+                rv.post { smoothScrollLyricsAnchorToTop(rv, anchor) }
             }
         }
     }
@@ -709,9 +720,25 @@ class FragmentMusic : BottomSheetDialogFragment() {
      * as the second row from the top (one context line above), when it exists.
      */
     private fun smoothScrollLyricsAnchorToTop(rv: RecyclerView, anchorPosition: Int) {
+        if (!isAdded || _binding == null) return
         val lm = rv.layoutManager as? LinearLayoutManager ?: return
+        // Avoid stacking competing smooth scrolls (causes hitching on line changes).
+        rv.stopScroll()
         val scroller = object : LinearSmoothScroller(rv.context) {
             override fun getVerticalSnapPreference(): Int = SNAP_TO_START
+
+            override fun calculateSpeedPerPixel(displayMetrics: DisplayMetrics): Float {
+                return LYRICS_SCROLL_MS_PER_INCH / displayMetrics.densityDpi
+            }
+
+            override fun calculateTimeForScrolling(dx: Int): Int {
+                return super.calculateTimeForScrolling(dx)
+                    .coerceAtMost(LYRICS_SCROLL_MAX_DURATION_MS)
+            }
+
+            override fun calculateTimeForDeceleration(dx: Int): Int {
+                return LYRICS_SCROLL_DECELERATION_MS
+            }
         }
         scroller.targetPosition = anchorPosition
         lm.startSmoothScroll(scroller)
