@@ -15,6 +15,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
+import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
@@ -180,6 +181,13 @@ class MusicService : Service() {
 
         override fun onSkipToPrevious() {
             handler.post { previousInternal() }
+        }
+
+        override fun onSeekTo(pos: Long) {
+            val positionMs = pos
+                .coerceIn(0L, Int.MAX_VALUE.toLong())
+                .toInt()
+            handler.post { seekToInternal(positionMs) }
         }
     }
 
@@ -598,6 +606,7 @@ class MusicService : Service() {
                 )
             }
             updateMediaSessionPlaybackState()
+            refreshNotification()
             persistPlaybackSnapshot()
             return
         }
@@ -610,6 +619,7 @@ class MusicService : Service() {
             )
         }
         updateMediaSessionPlaybackState()
+        refreshNotification()
         persistPlaybackSnapshot()
     }
 
@@ -665,26 +675,35 @@ class MusicService : Service() {
         )
     }
 
+    private fun updateMediaSessionMetadata(
+        song: Song,
+        durationMs: Int,
+        artwork: Bitmap?,
+    ) {
+        val metadata = MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, song.id)
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.nameSinger)
+            .putLong(
+                MediaMetadataCompat.METADATA_KEY_DURATION,
+                durationMs.coerceAtLeast(0).toLong(),
+            )
+            .apply {
+                artwork?.let {
+                    putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, it)
+                    putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, it)
+                }
+            }
+            .build()
+        ensureMediaSession().setMetadata(metadata)
+    }
+
     @SuppressLint("ForegroundServiceType")
     private fun buildNotification(song: Song, bitmap: Bitmap?): NotificationCompat.Builder {
         val largeIcon = bitmap ?: BitmapFactory.decodeResource(resources, R.drawable.ic_circle)
         val session = ensureMediaSession()
         val openPlayer = openPlayerContentPendingIntent(song)
         session.setSessionActivity(openPlayer)
-
-        val builder = NotificationCompat.Builder(this, MyApplication.CHANNEL_ID)
-            .setSmallIcon(R.drawable.music)
-            .setSubText("Linh Nguyen")
-            .setContentTitle(song.title)
-            .setContentText("Ca sĩ: ${song.nameSinger}")
-            .setLargeIcon(largeIcon)
-            .setContentIntent(openPlayer)
-            .setOnlyAlertOnce(true)
-            .setStyle(
-                androidx.media.app.NotificationCompat.MediaStyle()
-                    .setShowActionsInCompactView(0, 1, 2)
-                    .setMediaSession(session.sessionToken)
-            )
 
         val player = exoPlayer
         val duration = playerDurationMs(player)
@@ -693,19 +712,38 @@ class MusicService : Service() {
         } else {
             0
         }
+        updateMediaSessionMetadata(song, duration, largeIcon)
+
+        val builder = NotificationCompat.Builder(this, MyApplication.CHANNEL_ID)
+            .setSmallIcon(R.drawable.music)
+            .setSubText("Linh Nguyen")
+            .setContentTitle(song.title)
+            .setContentText("Ca sĩ: ${song.nameSinger}")
+            .setLargeIcon(largeIcon)
+            .setContentIntent(openPlayer)
+            .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setShowWhen(false)
+            .setOnlyAlertOnce(true)
+            .setStyle(
+                androidx.media.app.NotificationCompat.MediaStyle()
+                    .setShowActionsInCompactView(0, 1, 2)
+                    .setMediaSession(session.sessionToken)
+            )
 
         if (player != null && player.isPlaying) {
             builder
                 .addAction(R.drawable.skip_previous, "Previous", pending(Action.ACTION_PREVIOUS))
                 .addAction(R.drawable.pause, "Pause", pending(Action.ACTION_PAUSE))
                 .addAction(R.drawable.skip_next, "Next", pending(Action.ACTION_NEXT))
-                .setProgress(duration, position, false)
         } else {
             builder
                 .addAction(R.drawable.skip_previous, "Previous", pending(Action.ACTION_PREVIOUS))
                 .addAction(R.drawable.play, "Play", pending(Action.ACTION_RESUME))
                 .addAction(R.drawable.skip_next, "Next", pending(Action.ACTION_NEXT))
-                .setProgress(duration, position, false)
+        }
+        if (duration > 0) {
+            builder.setProgress(duration, position, false)
         }
         return builder
     }
