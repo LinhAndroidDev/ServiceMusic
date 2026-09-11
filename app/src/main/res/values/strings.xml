@@ -27,4 +27,12 @@
     <string name="search_empty_subtitle">Thử từ khóa khác cho bài hát hoặc ca sĩ</string>
     <string name="singer_detail_songs_count">%d bài hát</string>
     <string name="singer_detail_songs_empty">Chưa có bài hát của ca sĩ này</string>
+    <string name="profile_signed_out_title">Đăng nhập tài khoản</string>
+    <string name="profile_signed_out_subtitle">Lưu và đồng bộ trải nghiệm nghe nhạc</string>
+    <string name="profile_sign_in_google">Đăng nhập bằng Google</string>
+    <string name="profile_sign_out">Đăng xuất</string>
+    <string name="profile_user_fallback">Người dùng Music App</string>
+    <string name="auth_config_missing">Thiếu OAuth Web Client ID. Hãy cập nhật google-services.json sau khi thêm SHA-1 và SHA-256 trên Firebase.</string>
+    <string name="auth_google_unavailable">Không thể mở danh sách tài khoản Google</string>
+    <string name="auth_invalid_credential">Thông tin đăng nhập Google không hợp lệ</string>
 </resources>
