@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.serviceandroid.R
 import com.example.serviceandroid.data.auth.AuthRepository
 import com.example.serviceandroid.data.auth.AuthUser
+import com.example.serviceandroid.data.user.UserRepository
 import com.example.serviceandroid.model.UpdateAccount
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -23,21 +25,35 @@ class ProfileViewModel @Inject constructor(
     )
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
+    init {
+        _uiState.value.user?.let(::ensureExistingProfile)
+    }
+
     fun signInWithGoogle(idToken: String) {
         if (_uiState.value.isLoading) return
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
-            runCatching {
+            val signInResult = runCatching {
                 authRepository.signInWithGoogle(idToken)
-            }.onSuccess { user ->
-                _uiState.value = ProfileUiState(user = user)
-            }.onFailure {
+            }
+            val user = signInResult.getOrElse {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = it.message ?: "Không thể đăng nhập bằng Google",
                 )
+                return@launch
             }
+
+            val syncError = runCatching {
+                userRepository.upsertAfterLogin(user)
+            }.exceptionOrNull()
+            _uiState.value = ProfileUiState(
+                user = user,
+                errorMessage = syncError?.let {
+                    "Đăng nhập thành công nhưng chưa thể đồng bộ hồ sơ lên Firestore"
+                },
+            )
         }
     }
 
@@ -48,6 +64,18 @@ class ProfileViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    private fun ensureExistingProfile(user: AuthUser) {
+        viewModelScope.launch {
+            runCatching {
+                userRepository.ensureProfile(user)
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Chưa thể đồng bộ hồ sơ người dùng lên Firestore",
+                )
+            }
+        }
     }
 
     fun getUpdateAccounts(): MutableList<UpdateAccount> = mutableListOf(

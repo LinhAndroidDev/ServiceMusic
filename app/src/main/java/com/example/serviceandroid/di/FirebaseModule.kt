@@ -4,6 +4,8 @@ import com.example.serviceandroid.data.auth.AuthRepository
 import com.example.serviceandroid.data.auth.FirebaseAuthRepository
 import com.example.serviceandroid.data.firestore.FirestoreMusicRepository
 import com.example.serviceandroid.data.firestore.FirestoreMusicRepositoryImpl
+import com.example.serviceandroid.data.user.FirestoreUserRepository
+import com.example.serviceandroid.data.user.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Binds
@@ -41,4 +43,10 @@ abstract class FirestoreRepositoryModule {
     abstract fun bindAuthRepository(
         impl: FirebaseAuthRepository,
     ): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepository(
+        impl: FirestoreUserRepository,
+    ): UserRepository
 }
