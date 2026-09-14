@@ -10,7 +10,10 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import com.bumptech.glide.Glide
 import com.example.serviceandroid.R
+import com.example.serviceandroid.data.auth.AuthUser
 import com.example.serviceandroid.databinding.CustomBottomBarBinding
 
 enum class ActionBottomBar {
@@ -93,5 +96,21 @@ class CustomBottomBar @JvmOverloads constructor(
         tv.setTextColor(ContextCompat.getColor(context, R.color.txt_hint))
         tv.typeface = Typeface.DEFAULT
         img.setColorFilter(ContextCompat.getColor(context, R.color.txt_hint))
+    }
+
+    fun showProfileAvatar(user: AuthUser?) {
+        if (user != null) {
+            binding.avatarMail.isVisible = true
+            binding.imgProfile.isVisible = false
+            Glide.with(this)
+                .load(user.photoUrl)
+                .placeholder(R.drawable.img_avatar)
+                .error(R.drawable.img_avatar)
+                .into(binding.avatarMail)
+        } else {
+            Glide.with(this).clear(binding.avatarMail)
+            binding.avatarMail.isVisible = false
+            binding.imgProfile.isVisible = true
+        }
     }
 }

@@ -41,6 +41,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import com.example.serviceandroid.data.auth.AuthRepository
+import com.example.serviceandroid.data.auth.AuthUser
 
 @AndroidEntryPoint
 @Suppress("DEPRECATION")
@@ -54,6 +56,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     @Inject
     lateinit var networkMonitor: NetworkMonitor
+
+    @Inject
+    lateinit var authRepository: AuthRepository
 
     /** Avoid mini-player work every playback tick (reduces layout jank in FragmentMusic). */
     private var lastMiniPlayerSongId: String? = null
@@ -92,6 +97,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     override fun initView() {
+        binding.bottomBar.showProfileAvatar(authRepository.currentUser())
         updateNetworkBannerPosition()
         observeNetworkState()
         registerMusicPlayerSheetCallbacks()
@@ -589,6 +595,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 View.GONE
             }
         updateNetworkBannerPosition()
+    }
+
+    internal fun updateProfileTabAvatar(user: AuthUser?) {
+        binding.bottomBar.showProfileAvatar(user)
     }
 
     override fun onDestroy() {

@@ -14,6 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.bumptech.glide.Glide
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.UpdateAccountAdapter
 import com.example.serviceandroid.base.BaseFragment
@@ -89,6 +90,8 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
     }
 
     private fun renderUser(user: AuthUser?) {
+        (activity as? MainActivity)?.updateProfileTabAvatar(user)
+
         if (user == null) {
             binding.profileName.setText(R.string.profile_signed_out_title)
             binding.profileEmail.setText(R.string.profile_signed_out_subtitle)
