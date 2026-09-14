@@ -1,6 +1,7 @@
 package com.example.serviceandroid.fragment.library
 
 import android.view.LayoutInflater
+import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -9,11 +10,14 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.NavHostFragment
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.LibraryAdapter
+import com.example.serviceandroid.adapter.ListenRecentAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.databinding.FragmentLibraryBinding
 import com.example.serviceandroid.fragment.downloaded.DownloadedSongsViewModel
 import com.example.serviceandroid.fragment.favourite_song.FragmentFavouriteSongViewModel
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.Library
+import com.example.serviceandroid.playback.PlaybackViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -22,13 +26,44 @@ import kotlinx.coroutines.launch
 class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
     private val favouriteViewModel by activityViewModels<FragmentFavouriteSongViewModel>()
     private val downloadedViewModel by viewModels<DownloadedSongsViewModel>()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
+    private val recentHistoryViewModel by viewModels<RecentHistoryViewModel>()
+    private lateinit var recentAdapter: ListenRecentAdapter
 
     override fun initView() {
         binding.header.title.text = "Thư viện"
         initLibrary()
+        initRecentHistory()
     }
 
     override fun onClickView() {
+    }
+
+    private fun initRecentHistory() {
+        recentAdapter = ListenRecentAdapter().apply {
+            onClickItem = { song ->
+                val songs = recentHistoryViewModel.uiState.value.songs
+                playbackViewModel.setPlaybackQueue(songs)
+                playbackViewModel.playSong(requireContext(), song)
+                MusicPlayerLauncher.open(
+                    fragment = this@LibraryFragment,
+                    songId = song.id,
+                    preservePlayback = true,
+                )
+            }
+        }
+        binding.rcvListenRecent.adapter = recentAdapter
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                recentHistoryViewModel.uiState.collect { state ->
+                    binding.recentHistoryProgress.isVisible = state.isLoading
+                    binding.rcvListenRecent.isVisible = !state.isLoading && state.songs.isNotEmpty()
+                    binding.recentHistoryEmpty.isVisible = !state.isLoading && state.songs.isEmpty()
+                    recentAdapter.resetList(ArrayList(state.songs))
+                }
+            }
+        }
     }
 
     private fun initLibrary() {

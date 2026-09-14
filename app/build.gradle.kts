@@ -86,6 +86,7 @@ dependencies {
 
     // optional - Test helpers
     testImplementation("androidx.room:room-testing:$room_version")
+    androidTestImplementation("androidx.room:room-testing:$room_version")
 
     // WorkManager + Hilt
     implementation("androidx.work:work-runtime-ktx:2.9.0")

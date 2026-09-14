@@ -30,6 +30,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.data.firestore.FirestoreMusicRepository
+import com.example.serviceandroid.data.recent.RecentHistoryRepository
 import com.example.serviceandroid.data.repository.SongRepository
 import com.example.serviceandroid.database.repository.DownloadedSongRepository
 import com.example.serviceandroid.helper.Constants
@@ -67,6 +68,9 @@ class MusicService : Service() {
 
     @Inject
     lateinit var downloadedSongRepository: DownloadedSongRepository
+
+    @Inject
+    lateinit var recentHistoryRepository: RecentHistoryRepository
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var prepareGeneration = 0
@@ -428,6 +432,7 @@ class MusicService : Service() {
             viewsIncrementedForSongId = resolved.id
             serviceScope.launch {
                 runCatching { firestoreMusicRepository.incrementViews(resolved.id) }
+                runCatching { recentHistoryRepository.recordSong(resolved) }
             }
             startProgressTicker()
         }

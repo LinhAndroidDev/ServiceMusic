@@ -5,10 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.serviceandroid.R
 import com.example.serviceandroid.data.auth.AuthRepository
 import com.example.serviceandroid.data.auth.AuthUser
+import com.example.serviceandroid.data.recent.RecentHistoryRepository
 import com.example.serviceandroid.data.user.UserRepository
 import com.example.serviceandroid.model.UpdateAccount
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -18,12 +21,15 @@ import javax.inject.Inject
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
+    private val recentHistoryRepository: RecentHistoryRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
         ProfileUiState(user = authRepository.currentUser())
     )
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+    private val _events = Channel<ProfileEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
 
     init {
         _uiState.value.user?.let(::ensureExistingProfile)
@@ -54,6 +60,9 @@ class ProfileViewModel @Inject constructor(
                     "Đăng nhập thành công nhưng chưa thể đồng bộ hồ sơ lên Firestore"
                 },
             )
+            if (runCatching { recentHistoryRepository.hasLocalHistory() }.getOrDefault(false)) {
+                _events.send(ProfileEvent.AskToSyncLocalHistory)
+            }
         }
     }
 
@@ -64,6 +73,38 @@ class ProfileViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    fun syncLocalHistory() {
+        val userId = authRepository.currentUser()?.uid ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            runCatching {
+                recentHistoryRepository.syncLocalHistory(userId)
+            }.onSuccess {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+                _events.send(ProfileEvent.LocalHistorySynced)
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Không thể đồng bộ lịch sử. Dữ liệu local vẫn được giữ lại.",
+                )
+            }
+        }
+    }
+
+    fun discardLocalHistory() {
+        viewModelScope.launch {
+            runCatching {
+                recentHistoryRepository.discardLocalHistory()
+            }.onSuccess {
+                _events.send(ProfileEvent.LocalHistoryDiscarded)
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Không thể xóa lịch sử nghe local",
+                )
+            }
+        }
     }
 
     private fun ensureExistingProfile(user: AuthUser) {
@@ -113,3 +154,9 @@ data class ProfileUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 )
+
+sealed interface ProfileEvent {
+    data object AskToSyncLocalHistory : ProfileEvent
+    data object LocalHistorySynced : ProfileEvent
+    data object LocalHistoryDiscarded : ProfileEvent
+}

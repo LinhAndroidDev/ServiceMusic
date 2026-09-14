@@ -21,6 +21,7 @@ import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.data.auth.AuthUser
 import com.example.serviceandroid.databinding.FragmentProfileBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import dagger.hilt.android.AndroidEntryPoint
@@ -39,6 +40,7 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
 
         initUpdateAccount()
         observeAuthState()
+        observeProfileEvents()
     }
 
     private fun initUpdateAccount() {
@@ -87,6 +89,36 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
                 }
             }
         }
+    }
+
+    private fun observeProfileEvents() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        ProfileEvent.AskToSyncLocalHistory -> showHistorySyncDialog()
+                        ProfileEvent.LocalHistorySynced ->
+                            showToast(R.string.recent_history_sync_success)
+                        ProfileEvent.LocalHistoryDiscarded ->
+                            showToast(R.string.recent_history_discarded)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showHistorySyncDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.recent_history_sync_title)
+            .setMessage(R.string.recent_history_sync_message)
+            .setPositiveButton(R.string.recent_history_sync_action) { _, _ ->
+                viewModel.syncLocalHistory()
+            }
+            .setNegativeButton(R.string.recent_history_discard_action) { _, _ ->
+                viewModel.discardLocalHistory()
+            }
+            .setCancelable(false)
+            .show()
     }
 
     private fun renderUser(user: AuthUser?) {
