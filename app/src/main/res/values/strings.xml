@@ -37,6 +37,7 @@
     <string name="auth_invalid_credential">Thông tin đăng nhập Google không hợp lệ</string>
     <string name="recent_history_title">Nghe gần đây</string>
     <string name="recent_history_empty">Chưa có bài hát đã nghe gần đây</string>
+    <string name="recent_history_count">%d bài hát</string>
     <string name="recent_history_sync_title">Đồng bộ lịch sử nghe?</string>
     <string name="recent_history_sync_message">Bạn có lịch sử nghe trên thiết bị. Bạn muốn đồng bộ lịch sử này với tài khoản Google vừa đăng nhập không?</string>
     <string name="recent_history_sync_action">Đồng bộ</string>

@@ -51,6 +51,13 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
                     preservePlayback = true,
                 )
             }
+            onClickSeeAll = {
+                val navHostFragment =
+                    requireActivity().supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
+                navHostFragment.navController.navigate(
+                    R.id.action_libraryFragment_to_recentHistoryFragment
+                )
+            }
         }
         binding.rcvListenRecent.adapter = recentAdapter
 
@@ -58,9 +65,9 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 recentHistoryViewModel.uiState.collect { state ->
                     binding.recentHistoryProgress.isVisible = state.isLoading
-                    binding.rcvListenRecent.isVisible = !state.isLoading && state.songs.isNotEmpty()
-                    binding.recentHistoryEmpty.isVisible = !state.isLoading && state.songs.isEmpty()
-                    recentAdapter.resetList(ArrayList(state.songs))
+                    binding.rcvListenRecent.isVisible = !state.isLoading && state.previewSongs.isNotEmpty()
+                    binding.recentHistoryEmpty.isVisible = !state.isLoading && state.previewSongs.isEmpty()
+                    recentAdapter.submit(state.previewSongs, state.showSeeAll)
                 }
             }
         }

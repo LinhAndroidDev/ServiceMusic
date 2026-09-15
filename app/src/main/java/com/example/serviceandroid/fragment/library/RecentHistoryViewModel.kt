@@ -18,9 +18,14 @@ class RecentHistoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     val uiState: StateFlow<RecentHistoryUiState> = recentHistoryRepository
-        .observeRecentSongs()
+        .observeRecentSongs(limit = FULL_HISTORY_LIMIT)
         .map { songs ->
-            RecentHistoryUiState(songs = songs, isLoading = false)
+            RecentHistoryUiState(
+                songs = songs,
+                previewSongs = songs.take(PREVIEW_LIMIT),
+                showSeeAll = songs.size > PREVIEW_LIMIT,
+                isLoading = false,
+            )
         }
         .catch {
             emit(
@@ -35,10 +40,17 @@ class RecentHistoryViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = RecentHistoryUiState(isLoading = true),
         )
+
+    companion object {
+        const val PREVIEW_LIMIT = 5
+        const val FULL_HISTORY_LIMIT = 100
+    }
 }
 
 data class RecentHistoryUiState(
     val songs: List<Song> = emptyList(),
+    val previewSongs: List<Song> = emptyList(),
+    val showSeeAll: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 )

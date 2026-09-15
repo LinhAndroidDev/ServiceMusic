@@ -42,7 +42,16 @@
         <action
             android:id="@+id/action_libraryFragment_to_fragmentSearchSong"
             app:destination="@id/fragmentSearchSong" />
+        <action
+            android:id="@+id/action_libraryFragment_to_recentHistoryFragment"
+            app:destination="@id/recentHistoryFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/recentHistoryFragment"
+        android:name="com.example.serviceandroid.fragment.library.RecentHistoryFragment"
+        android:label="recent_history_fragment"
+        tools:layout="@layout/fragment_recent_history" />
 
     <fragment
         android:id="@+id/zingchartFragment"

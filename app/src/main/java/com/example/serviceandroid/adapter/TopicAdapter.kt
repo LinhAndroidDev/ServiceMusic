@@ -6,7 +6,6 @@ import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseAdapter
 import com.example.serviceandroid.databinding.ItemTopicBinding
 import com.example.serviceandroid.model.Topic
-import com.example.serviceandroid.utils.ExtensionFunctions.addCircleRipple
 
 class TopicAdapter(private val context: Context) : BaseAdapter<Topic, ItemTopicBinding>() {
     override fun getLayout(): Int = R.layout.item_topic
@@ -32,10 +31,10 @@ class TopicAdapter(private val context: Context) : BaseAdapter<Topic, ItemTopicB
         with(holder.v) {
             if (position == items.lastIndex) {
                 cvBackground.visibility = View.GONE
-                seeAll.visibility = View.VISIBLE
+                seeAll.root.visibility = View.VISIBLE
             } else {
                 cvBackground.visibility = View.VISIBLE
-                seeAll.visibility = View.GONE
+                seeAll.root.visibility = View.GONE
             }
         }
     }
