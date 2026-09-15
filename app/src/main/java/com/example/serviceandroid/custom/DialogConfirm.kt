@@ -14,6 +14,9 @@ import com.example.serviceandroid.databinding.LayoutDialogConfirmBinding
 class DialogConfirm : DialogFragment() {
     private var v: LayoutDialogConfirmBinding? = null
     var title = ""
+    var message = "Xoá bài hát khỏi thư viện?"
+    var confirmText = "Xoá"
+    var cancelText = "Huỷ"
     var onClickRemove: (() -> Unit)? = null
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,6 +30,9 @@ class DialogConfirm : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         v?.titleDialog?.text = title
+        v?.messageDialog?.text = message
+        v?.removeSong?.text = confirmText
+        v?.cancelDialog?.text = cancelText
         v?.cancelDialog?.setOnClickListener { dismiss() }
         v?.removeSong?.setOnClickListener {
             onClickRemove?.invoke()

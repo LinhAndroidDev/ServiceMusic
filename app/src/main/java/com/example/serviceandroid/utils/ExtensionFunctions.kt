@@ -22,9 +22,6 @@ import androidx.core.widget.NestedScrollView
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import androidx.fragment.app.Fragment
-import com.example.serviceandroid.R
-import com.example.serviceandroid.database.SongEntity
-import com.example.serviceandroid.model.Song
 import com.google.android.material.snackbar.Snackbar
 
 object ExtensionFunctions {
@@ -81,20 +78,6 @@ object ExtensionFunctions {
             name = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
         }
         return name
-    }
-
-    fun SongEntity.toSong(): Song {
-        return Song(
-            id = this.id,
-            title = this.title,
-            nameSinger = this.nameSinger,
-            thumbnailUrl = this.thumbnailUrl,
-            audioUrl = this.audioUrl,
-            lyricUrl = this.lyricUrl,
-            durationSec = this.durationSec,
-            categoryId = this.categoryId,
-            categoryName = this.categoryName,
-        )
     }
 
     fun View.showKeyboard() {

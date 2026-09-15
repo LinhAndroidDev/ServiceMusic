@@ -33,6 +33,20 @@ class ProfileViewModel @Inject constructor(
 
     init {
         _uiState.value.user?.let(::ensureExistingProfile)
+        viewModelScope.launch {
+            var previousUserId = authRepository.currentUser()?.uid
+            authRepository.authState.collect { user ->
+                val signedInNow = previousUserId == null && user != null
+                previousUserId = user?.uid
+                _uiState.value = _uiState.value.copy(user = user)
+                if (
+                    signedInNow &&
+                    runCatching { recentHistoryRepository.hasLocalHistory() }.getOrDefault(false)
+                ) {
+                    _events.send(ProfileEvent.AskToSyncLocalHistory)
+                }
+            }
+        }
     }
 
     fun signInWithGoogle(idToken: String) {
@@ -60,9 +74,6 @@ class ProfileViewModel @Inject constructor(
                     "Đăng nhập thành công nhưng chưa thể đồng bộ hồ sơ lên Firestore"
                 },
             )
-            if (runCatching { recentHistoryRepository.hasLocalHistory() }.getOrDefault(false)) {
-                _events.send(ProfileEvent.AskToSyncLocalHistory)
-            }
         }
     }
 

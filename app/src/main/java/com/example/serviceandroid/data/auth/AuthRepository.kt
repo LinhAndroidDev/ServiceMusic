@@ -46,11 +46,12 @@ class FirebaseAuthRepository @Inject constructor(
         val user = result.user
             ?: throw IllegalStateException("Firebase không trả về thông tin người dùng")
 
-        return user.toAuthUser()
+        return user.toAuthUser().also { _authState.value = it }
     }
 
     override fun signOut() {
         firebaseAuth.signOut()
+        _authState.value = null
     }
 
     private fun FirebaseUser.toAuthUser() = AuthUser(

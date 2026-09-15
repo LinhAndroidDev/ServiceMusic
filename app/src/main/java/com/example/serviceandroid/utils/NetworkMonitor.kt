@@ -44,6 +44,8 @@ class NetworkMonitor @Inject constructor(
     )
     val state: StateFlow<NetworkUiState> = _state.asStateFlow()
 
+    fun isOnlineNow(): Boolean = isNetworkValidated()
+
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
             Log.d(TAG, "onAvailable: network=$network")

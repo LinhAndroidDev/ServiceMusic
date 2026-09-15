@@ -5,7 +5,6 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.example.serviceandroid.database.dao.DownloadedSongDao
-import com.example.serviceandroid.database.dao.FavouriteSongDao
 import com.example.serviceandroid.database.dao.RecentSongDao
 
 class DownloadStatusConverters {
@@ -17,17 +16,16 @@ class DownloadStatusConverters {
 }
 
 @Database(
-    entities = [SongEntity::class, DownloadedSongEntity::class, RecentSongEntity::class],
+    entities = [DownloadedSongEntity::class, RecentSongEntity::class],
     version = MusicDatabase.VERSION,
     exportSchema = false,
 )
 @TypeConverters(DownloadStatusConverters::class)
 abstract class MusicDatabase : RoomDatabase() {
-    abstract fun favouriteSongDao(): FavouriteSongDao
     abstract fun downloadedSongDao(): DownloadedSongDao
     abstract fun recentSongDao(): RecentSongDao
 
     companion object {
-        const val VERSION = 4
+        const val VERSION = 5
     }
 }

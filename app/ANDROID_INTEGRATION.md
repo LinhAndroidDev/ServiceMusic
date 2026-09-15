@@ -559,3 +559,24 @@ match /users/{userId}/recentSongs/{songId} {
 ```
 
 Khi chưa đăng nhập, ứng dụng lưu tối đa 100 bài trong Room. Sau đăng nhập, người dùng chọn đồng bộ hoặc xóa lịch sử local; giao diện Thư viện chỉ hiển thị 20 bài gần nhất.
+
+---
+
+## 12. Bài hát yêu thích theo tài khoản
+
+Bài hát yêu thích chỉ được lưu trên Firestore tại:
+
+```text
+users/{uid}/favouriteSongs/{songId}
+```
+
+Ứng dụng yêu cầu đăng nhập và kết nối mạng đã được xác thực trước khi thêm hoặc xóa. Firestore Rules cần bảo vệ subcollection theo UID:
+
+```javascript
+match /users/{userId}/favouriteSongs/{songId} {
+  allow read, write: if request.auth != null
+                     && request.auth.uid == userId;
+}
+```
+
+Room version 5 không còn bảng `songEntity`; migration `4 → 5` xóa dữ liệu yêu thích local cũ nhưng giữ nguyên nhạc tải xuống và lịch sử nghe.

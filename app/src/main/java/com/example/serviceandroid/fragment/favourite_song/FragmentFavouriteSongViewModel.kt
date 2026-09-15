@@ -2,8 +2,8 @@ package com.example.serviceandroid.fragment.favourite_song
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.serviceandroid.database.SongEntity
 import com.example.serviceandroid.database.repository.FavouriteSongRepository
+import com.example.serviceandroid.database.repository.FavouriteSongRecord
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.utils.SharePreferenceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +25,7 @@ class FragmentFavouriteSongViewModel @Inject constructor(
     private val favouriteCountMutable = MutableStateFlow(0)
     val favouriteCount: StateFlow<Int> = favouriteCountMutable.asStateFlow()
 
-    private var lastEntities: List<SongEntity> = emptyList()
+    private var lastRecords: List<FavouriteSongRecord> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -34,10 +34,10 @@ class FragmentFavouriteSongViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            repository.observeAllEntities().collect { entities ->
-                lastEntities = entities
+            repository.observeAllRecords().collect { records ->
+                lastRecords = records
                 songsMutable.value =
-                    repository.entitiesToSortedSongs(entities, shared.getTypeArrangement())
+                    repository.recordsToSortedSongs(records, shared.getTypeArrangement())
             }
         }
     }
@@ -46,13 +46,8 @@ class FragmentFavouriteSongViewModel @Inject constructor(
     fun applyCurrentArrangement() {
         viewModelScope.launch {
             songsMutable.value =
-                repository.entitiesToSortedSongs(lastEntities, shared.getTypeArrangement())
+                repository.recordsToSortedSongs(lastRecords, shared.getTypeArrangement())
         }
-    }
-
-    fun deleteSongById(id: String, callBackDeleteSong: () -> Unit) = viewModelScope.launch {
-        repository.deleteSongById(id)
-        callBackDeleteSong.invoke()
     }
 
     fun getTypeArrangement() = shared.getTypeArrangement()

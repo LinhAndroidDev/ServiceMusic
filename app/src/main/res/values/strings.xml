@@ -43,4 +43,11 @@
     <string name="recent_history_discard_action">Không đồng bộ</string>
     <string name="recent_history_sync_success">Đã đồng bộ lịch sử nghe</string>
     <string name="recent_history_discarded">Đã xóa lịch sử nghe local</string>
+    <string name="favourite_login_title">Đăng nhập để yêu thích</string>
+    <string name="favourite_login_message">Bạn cần đăng nhập Google để lưu bài hát yêu thích theo tài khoản.</string>
+    <string name="favourite_login_action">Đăng nhập</string>
+    <string name="favourite_login_later">Để sau</string>
+    <string name="favourite_login_required">Bạn cần đăng nhập để sử dụng bài hát yêu thích</string>
+    <string name="favourite_offline">Cần kết nối internet để thay đổi bài hát yêu thích</string>
+    <string name="favourite_operation_failed">Không thể cập nhật bài hát yêu thích</string>
 </resources>

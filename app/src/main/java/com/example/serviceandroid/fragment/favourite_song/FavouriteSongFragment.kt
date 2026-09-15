@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
@@ -83,7 +84,9 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
                 DialogConfirm().apply {
                     title = adapterFavouriteSong.items[index].title
                     onClickRemove = {
-                        viewModel.deleteSongById(adapterFavouriteSong.items[index].id) {
+                        (activity as? MainActivity)?.requestRemoveFavourite(
+                            adapterFavouriteSong.items[index].id
+                        ) {
                             notifyDataSetChanged()
                         }
                     }
@@ -95,7 +98,7 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
                     DialogConfirm().apply {
                         title = song.title
                         onClickRemove = {
-                            viewModel.deleteSongById(song.id) {
+                            (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
                                 Toast.makeText(
                                     requireActivity(),
                                     "Đã xoá khỏi bài hát yêu thích",

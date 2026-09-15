@@ -32,6 +32,7 @@ import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentMusicBinding
@@ -48,7 +49,6 @@ import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.BottomSheetContentDragHelper
 import com.example.serviceandroid.utils.CustomAnimator
-import com.example.serviceandroid.utils.DateUtils
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -427,22 +427,12 @@ class FragmentMusic : BottomSheetDialogFragment() {
         pb.imgFavourite.setOnClickListener {
             val song = playbackViewModel.playbackState.value.currentSong ?: return@setOnClickListener
             if (!isFavourite) {
-                viewModel.insertSong(song, DateUtils.getTimeCurrent()) {
-                    if (!isAdded) return@insertSong
-                    playbackViewModel.refreshMiniPlayerFavouriteForCurrentSong()
-                    Toast.makeText(
-                        requireContext(),
-                        getString(R.string.toast_added_favourite),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                (activity as? MainActivity)?.requestAddFavourite(song)
             } else {
                 DialogConfirm().apply {
                     title = song.title
                     onClickRemove = {
-                        viewModel.deleteSongById(song.id) {
-                            if (!this@FragmentMusic.isAdded) return@deleteSongById
-                            playbackViewModel.refreshMiniPlayerFavouriteForCurrentSong()
+                        (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
                             Toast.makeText(
                                 this@FragmentMusic.requireContext(),
                                 this@FragmentMusic.getString(R.string.toast_removed_favourite),

@@ -8,6 +8,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.bumptech.glide.Glide
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseBottomSheetDialogFragment
 import com.example.serviceandroid.database.DownloadStatus
@@ -15,7 +16,6 @@ import com.example.serviceandroid.databinding.LayoutBottomSheetOptionMusicBindin
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.Convert
-import com.example.serviceandroid.utils.DateUtils
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
@@ -109,17 +109,27 @@ class BottomSheetOptionMusic :
         binding.addFavourite.setOnClickListener {
             if (!isFavourite) {
                 songModel?.let {
-                    viewModel.insertSong(it, DateUtils.getTimeCurrent()) {
-                        songModel?.id?.let { id -> viewModel.checkSongById(id) }
-                        Toast.makeText(
-                            requireActivity(),
-                            "Đã thêm vào bài hát yêu thích",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                    (activity as? MainActivity)?.requestAddFavourite(it)
                 }
             } else {
-                removeFavourite?.invoke()
+                val customRemove = removeFavourite
+                if (customRemove != null) {
+                    customRemove()
+                } else {
+                    val song = songModel ?: return@setOnClickListener
+                    DialogConfirm().apply {
+                        title = song.title
+                        onClickRemove = {
+                            (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
+                                Toast.makeText(
+                                    requireContext(),
+                                    R.string.toast_removed_favourite,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        }
+                    }.show(parentFragmentManager, "remove_favourite")
+                }
                 dismiss()
             }
         }

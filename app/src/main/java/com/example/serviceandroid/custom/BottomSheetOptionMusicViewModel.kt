@@ -28,20 +28,15 @@ class BottomSheetOptionMusicViewModel @Inject constructor(
     val downloadStatus: StateFlow<DownloadStatus?> = _downloadStatus.asStateFlow()
 
     private var statusJob: Job? = null
+    private var favouriteJob: Job? = null
 
-    fun insertSong(song: Song, timeCreate: String, onCallBackInsertSong: () -> Unit) =
-        viewModelScope.launch {
-            repository.insertSong(song, timeCreate)
-            onCallBackInsertSong.invoke()
+    fun checkSongById(id: String) {
+        favouriteJob?.cancel()
+        favouriteJob = viewModelScope.launch {
+            repository.observeIsFavourite(id).collect { favourite ->
+                _isFavourite.value = favourite
+            }
         }
-
-    fun deleteSongById(id: String, onCallBackDeleteSong: () -> Unit) = viewModelScope.launch {
-        repository.deleteSongById(id)
-        onCallBackDeleteSong.invoke()
-    }
-
-    fun checkSongById(id: String) = viewModelScope.launch {
-        _isFavourite.value = repository.checkSongById(id)
     }
 
     fun observeDownload(songId: String) {

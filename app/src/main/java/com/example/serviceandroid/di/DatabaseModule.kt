@@ -7,7 +7,6 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.serviceandroid.database.MusicDatabase
 import com.example.serviceandroid.database.dao.DownloadedSongDao
-import com.example.serviceandroid.database.dao.FavouriteSongDao
 import com.example.serviceandroid.database.dao.RecentSongDao
 import com.example.serviceandroid.utils.SharePreferenceRepository
 import com.example.serviceandroid.utils.SharePreferenceRepositoryImpl
@@ -45,6 +44,12 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("DROP TABLE IF EXISTS `songEntity`")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): MusicDatabase {
@@ -54,14 +59,9 @@ object DatabaseModule {
             "music_database.db"
         )
             .setJournalMode(RoomDatabase.JournalMode.TRUNCATE)
-            .addMigrations(MIGRATION_3_4)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
             .fallbackToDestructiveMigrationFrom(1, 2)
             .build()
-    }
-
-    @Provides
-    fun provideFavouriteSong(musicDatabase: MusicDatabase): FavouriteSongDao {
-        return musicDatabase.favouriteSongDao()
     }
 
     @Provides

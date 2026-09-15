@@ -28,6 +28,7 @@ import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.fragment.music.FragmentMusic
 import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.helper.Constants
+import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.data.repository.SongRepository
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
@@ -43,6 +44,11 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.example.serviceandroid.data.auth.AuthRepository
 import com.example.serviceandroid.data.auth.AuthUser
+import com.example.serviceandroid.data.auth.GoogleSignInHelper
+import com.example.serviceandroid.data.auth.GoogleSignInRequestResult
+import com.example.serviceandroid.data.user.UserRepository
+import com.example.serviceandroid.database.repository.FavouriteMutationResult
+import com.example.serviceandroid.database.repository.FavouriteSongRepository
 
 @AndroidEntryPoint
 @Suppress("DEPRECATION")
@@ -59,6 +65,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     @Inject
     lateinit var authRepository: AuthRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
+
+    @Inject
+    lateinit var favouriteSongRepository: FavouriteSongRepository
 
     /** Avoid mini-player work every playback tick (reduces layout jank in FragmentMusic). */
     private var lastMiniPlayerSongId: String? = null
@@ -432,27 +444,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 DialogConfirm().apply {
                     title = song.title
                     onClickRemove = {
-                        playbackViewModel.toggleCurrentSongFavourite(song) { stillFavourite ->
-                            if (!stillFavourite) {
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    this@MainActivity.getString(R.string.toast_removed_favourite),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
+                        requestRemoveFavourite(song.id) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                this@MainActivity.getString(R.string.toast_removed_favourite),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 }.show(supportFragmentManager, null)
             } else {
-                playbackViewModel.toggleCurrentSongFavourite(song) { added ->
-                    if (added) {
-                        Toast.makeText(
-                            this,
-                            getString(R.string.toast_added_favourite),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
+                requestAddFavourite(song)
             }
         }
     }
@@ -595,6 +597,81 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 View.GONE
             }
         updateNetworkBannerPosition()
+    }
+
+    fun requestAddFavourite(song: Song) {
+        lifecycleScope.launch {
+            when (val result = favouriteSongRepository.insertSong(song)) {
+                FavouriteMutationResult.Success -> Toast.makeText(
+                    this@MainActivity,
+                    R.string.toast_added_favourite,
+                    Toast.LENGTH_SHORT,
+                ).show()
+                FavouriteMutationResult.RequiresLogin -> showFavouriteLoginDialog(song)
+                FavouriteMutationResult.Offline -> showFavouriteToast(R.string.favourite_offline)
+                is FavouriteMutationResult.Failure ->
+                    showFavouriteToast(result.message, R.string.favourite_operation_failed)
+            }
+        }
+    }
+
+    fun requestRemoveFavourite(songId: String, onSuccess: () -> Unit = {}) {
+        lifecycleScope.launch {
+            when (val result = favouriteSongRepository.deleteSongById(songId)) {
+                FavouriteMutationResult.Success -> onSuccess()
+                FavouriteMutationResult.RequiresLogin ->
+                    showFavouriteToast(R.string.favourite_login_required)
+                FavouriteMutationResult.Offline -> showFavouriteToast(R.string.favourite_offline)
+                is FavouriteMutationResult.Failure ->
+                    showFavouriteToast(result.message, R.string.favourite_operation_failed)
+            }
+        }
+    }
+
+    private fun showFavouriteLoginDialog(song: Song) {
+        DialogConfirm().apply {
+            title = getString(R.string.favourite_login_title)
+            message = getString(R.string.favourite_login_message)
+            confirmText = getString(R.string.favourite_login_action)
+            cancelText = getString(R.string.favourite_login_later)
+            onClickRemove = { signInAndAddFavourite(song) }
+        }.show(supportFragmentManager, "favourite_login")
+    }
+
+    private fun signInAndAddFavourite(song: Song) {
+        if (!networkMonitor.isOnlineNow()) {
+            showFavouriteToast(R.string.favourite_offline)
+            return
+        }
+        lifecycleScope.launch {
+            when (val request = GoogleSignInHelper.requestIdToken(this@MainActivity)) {
+                is GoogleSignInRequestResult.IdToken -> {
+                    val user = runCatching {
+                        authRepository.signInWithGoogle(request.value)
+                    }.getOrElse {
+                        showFavouriteToast(it.message.orEmpty(), R.string.auth_invalid_credential)
+                        return@launch
+                    }
+                    runCatching { userRepository.upsertAfterLogin(user) }
+                    updateProfileTabAvatar(user)
+                    requestAddFavourite(song)
+                }
+                is GoogleSignInRequestResult.Error -> showFavouriteToast(request.messageRes)
+                GoogleSignInRequestResult.Cancelled -> Unit
+            }
+        }
+    }
+
+    private fun showFavouriteToast(messageRes: Int) {
+        Toast.makeText(this, messageRes, Toast.LENGTH_LONG).show()
+    }
+
+    private fun showFavouriteToast(message: String, fallbackRes: Int) {
+        Toast.makeText(
+            this,
+            message.ifBlank { getString(fallbackRes) },
+            Toast.LENGTH_LONG,
+        ).show()
     }
 
     internal fun updateProfileTabAvatar(user: AuthUser?) {

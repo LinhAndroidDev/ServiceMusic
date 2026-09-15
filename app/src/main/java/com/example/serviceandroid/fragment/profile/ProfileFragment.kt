@@ -3,11 +3,6 @@ package com.example.serviceandroid.fragment.profile
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.core.view.isVisible
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialCancellationException
-import androidx.credentials.exceptions.GetCredentialException
 import androidx.recyclerview.widget.LinearSnapHelper
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -20,10 +15,10 @@ import com.example.serviceandroid.adapter.UpdateAccountAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.data.auth.AuthUser
+import com.example.serviceandroid.data.auth.GoogleSignInHelper
+import com.example.serviceandroid.data.auth.GoogleSignInRequestResult
 import com.example.serviceandroid.databinding.FragmentProfileBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -31,7 +26,6 @@ import kotlinx.coroutines.launch
 class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
 
     private val viewModel by viewModels<ProfileViewModel>()
-    private val credentialManager by lazy { CredentialManager.create(requireContext()) }
 
     override fun initView() {
         binding.header.title.text = "Cá nhân"
@@ -147,55 +141,14 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
     }
 
     private fun openGoogleAccountChooser() {
-        val serverClientId = getDefaultWebClientId()
-        if (serverClientId.isNullOrBlank()) {
-            Toast.makeText(
-                requireContext(),
-                R.string.auth_config_missing,
-                Toast.LENGTH_LONG,
-            ).show()
-            return
-        }
-
-        val googleIdOption = GetSignInWithGoogleOption.Builder(serverClientId)
-            .build()
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
         viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val response = credentialManager.getCredential(
-                    context = requireContext(),
-                    request = request,
-                )
-                val credential = response.credential
-                if (
-                    credential is CustomCredential &&
-                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                ) {
-                    val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                    viewModel.signInWithGoogle(googleCredential.idToken)
-                } else {
-                    showToast(R.string.auth_invalid_credential)
-                }
-            } catch (_: GetCredentialCancellationException) {
-                // Người dùng chủ động đóng màn hình chọn tài khoản.
-            } catch (_: GetCredentialException) {
-                showToast(R.string.auth_google_unavailable)
-            } catch (_: Exception) {
-                showToast(R.string.auth_invalid_credential)
+            when (val result = GoogleSignInHelper.requestIdToken(requireContext())) {
+                is GoogleSignInRequestResult.IdToken ->
+                    viewModel.signInWithGoogle(result.value)
+                is GoogleSignInRequestResult.Error -> showToast(result.messageRes)
+                GoogleSignInRequestResult.Cancelled -> Unit
             }
         }
-    }
-
-    private fun getDefaultWebClientId(): String? {
-        val resourceId = resources.getIdentifier(
-            "default_web_client_id",
-            "string",
-            requireContext().packageName,
-        )
-        return resourceId.takeIf { it != 0 }?.let(resources::getString)
     }
 
     private fun showToast(messageRes: Int) {
