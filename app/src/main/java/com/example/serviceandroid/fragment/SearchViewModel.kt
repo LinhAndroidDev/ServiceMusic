@@ -18,15 +18,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+enum class SearchResultsMode {
+    TYPING,
+    COMMITTED,
+}
+
 data class SearchUiState(
     val query: String = "",
     val songs: List<Song> = emptyList(),
     val singers: List<Singer> = emptyList(),
+    val relatedNames: List<String> = emptyList(),
     val isSearching: Boolean = false,
+    val mode: SearchResultsMode = SearchResultsMode.TYPING,
     val recentQueries: List<SearchQuery> = emptyList(),
     val suggestions: List<String> = emptyList(),
 ) {
-    val hasResults: Boolean get() = songs.isNotEmpty() || singers.isNotEmpty()
+    val hasResults: Boolean get() = songs.isNotEmpty() || singers.isNotEmpty() || relatedNames.isNotEmpty()
 }
 
 @HiltViewModel
@@ -56,35 +63,11 @@ class SearchViewModel @Inject constructor(
     }
 
     fun search(query: String) {
-        val keyword = query.trim()
-        if (keyword.isEmpty()) {
-            clearResults()
-            return
-        }
-        val current = _uiState.value
-        if (keyword == current.query && !current.isSearching) return
+        runSearch(query, SearchResultsMode.TYPING)
+    }
 
-        viewModelScope.launch {
-            _uiState.value = current.copy(query = keyword, isSearching = true)
-            ensureCatalogLoaded()
-            val songsDeferred = async {
-                SearchCatalog.filterSongs(catalogSongs(), keyword)
-            }
-            val singersDeferred = async {
-                runCatching {
-                    SearchCatalog.filterSingers(
-                        firestore.getSingers().map { it.toDomainSinger() },
-                        keyword,
-                    )
-                }.getOrDefault(emptyList())
-            }
-            _uiState.value = _uiState.value.copy(
-                query = keyword,
-                songs = songsDeferred.await(),
-                singers = singersDeferred.await(),
-                isSearching = false,
-            )
-        }
+    fun commitQuery(raw: String) {
+        runSearch(raw, SearchResultsMode.COMMITTED)
     }
 
     fun recordCurrentQuery() {
@@ -112,8 +95,46 @@ class SearchViewModel @Inject constructor(
             query = "",
             songs = emptyList(),
             singers = emptyList(),
+            relatedNames = emptyList(),
             isSearching = false,
+            mode = SearchResultsMode.TYPING,
         )
+    }
+
+    private fun runSearch(raw: String, mode: SearchResultsMode) {
+        val keyword = raw.trim()
+        if (keyword.isEmpty()) {
+            clearResults()
+            return
+        }
+        val current = _uiState.value
+        if (keyword == current.query && !current.isSearching && current.mode == mode) return
+
+        viewModelScope.launch {
+            _uiState.value = current.copy(query = keyword, isSearching = true, mode = mode)
+            ensureCatalogLoaded()
+            val songsDeferred = async {
+                SearchCatalog.filterSongs(catalogSongs(), keyword)
+            }
+            val singersDeferred = async {
+                runCatching {
+                    SearchCatalog.filterSingers(
+                        firestore.getSingers().map { it.toDomainSinger() },
+                        keyword,
+                    )
+                }.getOrDefault(emptyList())
+            }
+            val songs = songsDeferred.await()
+            val singers = singersDeferred.await()
+            _uiState.value = _uiState.value.copy(
+                query = keyword,
+                songs = songs,
+                singers = singers,
+                relatedNames = SearchCatalog.relatedNames(songs, singers),
+                isSearching = false,
+                mode = mode,
+            )
+        }
     }
 
     private suspend fun loadSuggestions() {

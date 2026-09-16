@@ -1,18 +1,28 @@
 package com.example.serviceandroid.fragment
 
+import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.serviceandroid.R
+import com.example.serviceandroid.adapter.SearchPreviewAdapter
 import com.example.serviceandroid.adapter.SearchResultsPagerAdapter
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.data.search.SearchQuery
 import com.example.serviceandroid.databinding.FragmentSearchSongBinding
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
+import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.playback.PlaybackViewModel
+import com.example.serviceandroid.utils.Constant
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.tabs.TabLayoutMediator
@@ -25,14 +35,17 @@ import kotlinx.coroutines.launch
 class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
 
     private val searchViewModel by viewModels<SearchViewModel>()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private var searchJob: Job? = null
     private var tabMediator: TabLayoutMediator? = null
+    private var previewAdapter: SearchPreviewAdapter? = null
 
     override fun getFragmentBinding(inflater: LayoutInflater) =
         FragmentSearchSongBinding.inflate(inflater)
 
     override fun initView() {
         setupResultsPager()
+        setupPreviewList()
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.microSearch) { v, insets ->
             val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
@@ -59,19 +72,19 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
                 }
             }
             if (query.isBlank()) {
-                bindSearchChrome(
-                    showSuggestions = true,
-                    showResults = false,
-                    showLoading = false,
-                )
+                bindSearchChrome(SearchChrome.Idle)
             } else if (!searchViewModel.uiState.value.hasResults ||
                 searchViewModel.uiState.value.query != query.trim()
             ) {
-                bindSearchChrome(
-                    showSuggestions = false,
-                    showResults = false,
-                    showLoading = true,
-                )
+                bindSearchChrome(SearchChrome.Loading)
+            } else {
+                bindSearchChrome(SearchChrome.Preview)
+            }
+        }
+        binding.searchSong.onSearchAction = { query ->
+            if (query.isNotBlank()) {
+                searchJob?.cancel()
+                searchViewModel.commitQuery(query)
             }
         }
 
@@ -110,36 +123,55 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
         }.also { it.attach() }
     }
 
-    private fun applyState(state: SearchUiState) {
-        bindIdleChips(state)
-        val querying = state.query.isNotBlank() || binding.searchSong.queryText().isNotBlank()
-        when {
-            !querying -> bindSearchChrome(
-                showSuggestions = true,
-                showResults = false,
-                showLoading = false,
-            )
-            state.isSearching -> bindSearchChrome(
-                showSuggestions = false,
-                showResults = state.hasResults,
-                showLoading = !state.hasResults,
-            )
-            else -> bindSearchChrome(
-                showSuggestions = false,
-                showResults = true,
-                showLoading = false,
-            )
+    private fun setupPreviewList() {
+        val adapter = previewAdapter ?: SearchPreviewAdapter().also { created ->
+            created.onClickName = { name ->
+                searchJob?.cancel()
+                binding.searchSong.setQuery(name, notify = false)
+                searchViewModel.commitQuery(name)
+            }
+            created.onClickSong = { song ->
+                searchViewModel.recordCurrentQuery()
+                val songs = searchViewModel.uiState.value.songs
+                playbackViewModel.setPlaybackQueue(songs)
+                playbackViewModel.playSong(requireContext(), song)
+                MusicPlayerLauncher.open(this, song.id, preservePlayback = true)
+            }
+            created.onClickSongMore = { song -> showMoreOptions(song) }
+            created.onClickSinger = { singer ->
+                searchViewModel.recordCurrentQuery()
+                val action = FragmentSearchSongDirections
+                    .actionFragmentSearchSongToSingerDetailFragment(singer.id)
+                findNavController().navigate(action)
+            }
+            previewAdapter = created
+        }
+        if (binding.rcvSearchPreview.adapter !== adapter) {
+            binding.rcvSearchPreview.layoutManager = LinearLayoutManager(requireContext())
+            binding.rcvSearchPreview.adapter = adapter
         }
     }
 
-    private fun bindSearchChrome(
-        showSuggestions: Boolean,
-        showResults: Boolean,
-        showLoading: Boolean,
-    ) {
-        binding.contentView.isVisible = showSuggestions
-        binding.searchResultsContainer.isVisible = showResults
-        binding.searchProgress.isVisible = showLoading
+    private fun applyState(state: SearchUiState) {
+        bindIdleChips(state)
+        previewAdapter?.submit(state.relatedNames, state.songs, state.singers)
+        val querying = state.query.isNotBlank() || binding.searchSong.queryText().isNotBlank()
+        when {
+            !querying -> bindSearchChrome(SearchChrome.Idle)
+            state.isSearching && !state.hasResults -> bindSearchChrome(SearchChrome.Loading)
+            state.mode == SearchResultsMode.COMMITTED && !state.isSearching ->
+                bindSearchChrome(SearchChrome.Tabs)
+            state.isSearching && state.mode == SearchResultsMode.COMMITTED && state.hasResults ->
+                bindSearchChrome(SearchChrome.Tabs)
+            else -> bindSearchChrome(SearchChrome.Preview)
+        }
+    }
+
+    private fun bindSearchChrome(chrome: SearchChrome) {
+        binding.contentView.isVisible = chrome == SearchChrome.Idle
+        binding.rcvSearchPreview.isVisible = chrome == SearchChrome.Preview
+        binding.searchResultsContainer.isVisible = chrome == SearchChrome.Tabs
+        binding.searchProgress.isVisible = chrome == SearchChrome.Loading
     }
 
     private fun bindIdleChips(state: SearchUiState) {
@@ -208,7 +240,15 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
     private fun applyChipQuery(text: String) {
         searchJob?.cancel()
         binding.searchSong.setQuery(text, notify = false)
-        searchViewModel.search(text)
+        searchViewModel.commitQuery(text)
+    }
+
+    private fun showMoreOptions(song: Song) {
+        val dialog = BottomSheetOptionMusic()
+        val bundle = Bundle()
+        bundle.putParcelable(Constant.KEY_SONG, song)
+        dialog.arguments = bundle
+        dialog.show(parentFragmentManager, "")
     }
 
     override fun onClickView() {
@@ -222,6 +262,14 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
         tabMediator?.detach()
         tabMediator = null
         binding.searchResultsPager.adapter = null
+        binding.rcvSearchPreview.adapter = null
         super.onDestroyView()
+    }
+
+    private enum class SearchChrome {
+        Idle,
+        Loading,
+        Preview,
+        Tabs,
     }
 }

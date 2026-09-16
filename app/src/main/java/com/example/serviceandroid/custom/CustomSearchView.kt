@@ -2,7 +2,9 @@ package com.example.serviceandroid.custom
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.inputmethod.EditorInfo
 import android.widget.RelativeLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
@@ -16,6 +18,7 @@ class CustomSearchView @JvmOverloads constructor(
 ) : RelativeLayout(context, attrs, defStyleAttr) {
     private var binding: CustomSearchViewBinding? = null
     var onQueryChanged: ((String) -> Unit)? = null
+    var onSearchAction: ((String) -> Unit)? = null
     private var suppressQueryCallback: Boolean = false
 
     init {
@@ -34,6 +37,17 @@ class CustomSearchView @JvmOverloads constructor(
 
         binding?.removeText?.setOnClickListener {
             binding?.search?.setText("")
+        }
+
+        binding?.search?.setOnEditorActionListener { _, actionId, event ->
+            val isSearch = actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
+            if (isSearch) {
+                onSearchAction?.invoke(queryText())
+                true
+            } else {
+                false
+            }
         }
     }
 

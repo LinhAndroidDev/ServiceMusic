@@ -8,6 +8,7 @@ object SearchCatalog {
     const val RESULT_LIMIT = 20
     const val SUGGESTION_LIMIT = 6
     const val HISTORY_LIMIT = 10
+    const val RELATED_NAME_LIMIT = 3
 
     fun mergeSongs(latest: List<Song>, top: List<Song>): List<Song> {
         val byId = LinkedHashMap<String, Song>()
@@ -39,6 +40,25 @@ object SearchCatalog {
         return singers.asSequence()
             .filter { VietnameseFold.contains(it.name, folded) }
             .take(RESULT_LIMIT)
+            .toList()
+    }
+
+    fun relatedNames(
+        songs: List<Song>,
+        singers: List<Singer>,
+        limit: Int = RELATED_NAME_LIMIT,
+    ): List<String> {
+        val seen = mutableSetOf<String>()
+        val names = songs.asSequence().map { it.title } +
+            singers.asSequence().map { it.name }
+        return names
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .filter { candidate ->
+                val folded = VietnameseFold.fold(candidate)
+                folded.isNotBlank() && seen.add(folded)
+            }
+            .take(limit)
             .toList()
     }
 

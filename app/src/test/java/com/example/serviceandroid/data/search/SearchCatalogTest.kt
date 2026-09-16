@@ -40,6 +40,24 @@ class SearchCatalogTest {
     }
 
     @Test
+    fun relatedNames_takesUniqueTitlesThenSingersUpToThree() {
+        val songs = listOf(
+            song("1", "Sơn Tùng", "A", "Việt"),
+            song("2", "son tung", "B", "Việt"),
+            song("3", "Chúng Ta Của Hiện Tại", "C", "Việt"),
+        )
+        val singers = listOf(
+            Singer("a", "Sơn Tùng M-TP", "", ""),
+            Singer("b", "Đen Vâu", "", ""),
+        )
+
+        assertEquals(
+            listOf("Sơn Tùng", "Chúng Ta Của Hiện Tại", "Sơn Tùng M-TP"),
+            SearchCatalog.relatedNames(songs, singers),
+        )
+    }
+
+    @Test
     fun pickSuggestions_skipsRecentFoldedDuplicates() {
         val pool = listOf("Sơn Tùng", "Nhạc Việt", "Workout", "son tung")
         val recent = listOf(SearchQuery("Sơn Tùng", "son tung"))
