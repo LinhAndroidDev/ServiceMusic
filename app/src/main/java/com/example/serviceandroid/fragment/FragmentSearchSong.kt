@@ -1,29 +1,21 @@
 package com.example.serviceandroid.fragment
 
-import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
-import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.serviceandroid.R
-import com.example.serviceandroid.adapter.SearchResultsAdapter
+import com.example.serviceandroid.adapter.SearchResultsPagerAdapter
 import com.example.serviceandroid.base.BaseFragment
-import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.data.search.SearchQuery
 import com.example.serviceandroid.databinding.FragmentSearchSongBinding
-import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
-import com.example.serviceandroid.model.Song
-import com.example.serviceandroid.playback.PlaybackViewModel
-import com.example.serviceandroid.utils.Constant
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -33,15 +25,14 @@ import kotlinx.coroutines.launch
 class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
 
     private val searchViewModel by viewModels<SearchViewModel>()
-    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private var searchJob: Job? = null
-    private var searchAdapter: SearchResultsAdapter? = null
+    private var tabMediator: TabLayoutMediator? = null
 
     override fun getFragmentBinding(inflater: LayoutInflater) =
         FragmentSearchSongBinding.inflate(inflater)
 
     override fun initView() {
-        binding.rcvSearchResults.layoutManager = LinearLayoutManager(requireContext())
+        setupResultsPager()
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.microSearch) { v, insets ->
             val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
@@ -71,7 +62,6 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
                 bindSearchChrome(
                     showSuggestions = true,
                     showResults = false,
-                    showEmpty = false,
                     showLoading = false,
                 )
             } else if (!searchViewModel.uiState.value.hasResults ||
@@ -80,7 +70,6 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
                 bindSearchChrome(
                     showSuggestions = false,
                     showResults = false,
-                    showEmpty = false,
                     showLoading = true,
                 )
             }
@@ -103,6 +92,24 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
         }
     }
 
+    private fun setupResultsPager() {
+        if (binding.searchResultsPager.adapter != null) return
+        binding.searchResultsPager.offscreenPageLimit = 1
+        binding.searchResultsPager.adapter = SearchResultsPagerAdapter(this)
+        tabMediator = TabLayoutMediator(
+            binding.searchResultsTabs,
+            binding.searchResultsPager,
+        ) { tab, position ->
+            tab.setText(
+                if (position == SearchResultsPagerAdapter.PAGE_SONGS) {
+                    R.string.search_section_songs
+                } else {
+                    R.string.search_section_artists
+                }
+            )
+        }.also { it.attach() }
+    }
+
     private fun applyState(state: SearchUiState) {
         bindIdleChips(state)
         val querying = state.query.isNotBlank() || binding.searchSong.queryText().isNotBlank()
@@ -110,31 +117,16 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
             !querying -> bindSearchChrome(
                 showSuggestions = true,
                 showResults = false,
-                showEmpty = false,
                 showLoading = false,
             )
             state.isSearching -> bindSearchChrome(
                 showSuggestions = false,
                 showResults = state.hasResults,
-                showEmpty = false,
                 showLoading = !state.hasResults,
             )
-            state.hasResults -> {
-                ensureSearchAdapter().submit(state.songs, state.singers)
-                if (binding.rcvSearchResults.adapter !== searchAdapter) {
-                    binding.rcvSearchResults.adapter = searchAdapter
-                }
-                bindSearchChrome(
-                    showSuggestions = false,
-                    showResults = true,
-                    showEmpty = false,
-                    showLoading = false,
-                )
-            }
             else -> bindSearchChrome(
                 showSuggestions = false,
-                showResults = false,
-                showEmpty = true,
+                showResults = true,
                 showLoading = false,
             )
         }
@@ -143,12 +135,10 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
     private fun bindSearchChrome(
         showSuggestions: Boolean,
         showResults: Boolean,
-        showEmpty: Boolean,
         showLoading: Boolean,
     ) {
         binding.contentView.isVisible = showSuggestions
-        binding.rcvSearchResults.isVisible = showResults
-        binding.searchEmptyState.isVisible = showEmpty
+        binding.searchResultsContainer.isVisible = showResults
         binding.searchProgress.isVisible = showLoading
     }
 
@@ -221,39 +211,17 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
         searchViewModel.search(text)
     }
 
-    private fun ensureSearchAdapter(): SearchResultsAdapter {
-        searchAdapter?.let { return it }
-        val adapter = SearchResultsAdapter()
-        adapter.onClickSong = { song ->
-            searchViewModel.recordCurrentQuery()
-            val songs = searchViewModel.uiState.value.songs
-            playbackViewModel.setPlaybackQueue(songs)
-            playbackViewModel.playSong(requireContext(), song)
-            MusicPlayerLauncher.open(this, song.id, preservePlayback = true)
-        }
-        adapter.onClickSongMore = { song -> showMoreOptions(song) }
-        adapter.onClickSinger = { singer ->
-            searchViewModel.recordCurrentQuery()
-            val action = FragmentSearchSongDirections
-                .actionFragmentSearchSongToSingerDetailFragment(singer.id)
-            findNavController().navigate(action)
-        }
-        searchAdapter = adapter
-        return adapter
-    }
-
-    private fun showMoreOptions(song: Song) {
-        val dialog = BottomSheetOptionMusic()
-        val bundle = Bundle()
-        bundle.putParcelable(Constant.KEY_SONG, song)
-        dialog.arguments = bundle
-        dialog.show(parentFragmentManager, "")
-    }
-
     override fun onClickView() {
         binding.backSearch.setOnClickListener { activity?.onBackPressed() }
         binding.clearAllRecentSearches.setOnClickListener {
             searchViewModel.clearRecentQueries()
         }
+    }
+
+    override fun onDestroyView() {
+        tabMediator?.detach()
+        tabMediator = null
+        binding.searchResultsPager.adapter = null
+        super.onDestroyView()
     }
 }

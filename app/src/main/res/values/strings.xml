@@ -25,6 +25,8 @@
     <string name="search_section_artists">Ca sĩ</string>
     <string name="search_empty_title">Không tìm thấy kết quả</string>
     <string name="search_empty_subtitle">Thử từ khóa khác cho bài hát hoặc ca sĩ</string>
+    <string name="search_songs_empty">Không có bài hát</string>
+    <string name="search_singers_empty">Không có ca sĩ</string>
     <string name="search_recent_title">Tìm gần đây</string>
     <string name="search_recent_clear_all">Xóa tất cả</string>
     <string name="search_suggestions_title">Đề xuất cho bạn</string>
