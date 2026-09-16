@@ -1,12 +1,20 @@
 package com.example.serviceandroid.data.firestore
 
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,6 +24,7 @@ interface FirestoreMusicRepository {
     suspend fun getTopSongs(limit: Long = 50, fromServer: Boolean = false): List<FirestoreSong>
     suspend fun getSinger(id: String): FirestoreSinger?
     suspend fun getSingers(): List<FirestoreSinger>
+    /** Categories — oldest first via REST `createTime` (collection has no `createdAt` field). */
     suspend fun getCategories(): List<FirestoreCategory>
     suspend fun getSongsByCategory(categoryId: String, limit: Long = 50): List<FirestoreSong>
     suspend fun getSongsBySinger(singerId: String, limit: Long = 50): List<FirestoreSong>
@@ -30,6 +39,7 @@ interface FirestoreMusicRepository {
 @Singleton
 class FirestoreMusicRepositoryImpl @Inject constructor(
     private val db: FirebaseFirestore,
+    private val firebaseAuth: FirebaseAuth,
 ) : FirestoreMusicRepository {
 
     private val songs get() = db.collection("songs")
@@ -74,13 +84,15 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
                 .toObjects(FirestoreSinger::class.java)
         }
 
-    override suspend fun getCategories(): List<FirestoreCategory> =
-        fetchQuery {
-            categories.orderBy("name")
-                .get(it)
+    override suspend fun getCategories(): List<FirestoreCategory> {
+        val ordered = runCatching { fetchCategoriesOrderedByCreateTime() }.getOrDefault(emptyList())
+        if (ordered.isNotEmpty()) return ordered
+        return fetchQuery {
+            categories.get(it)
                 .await()
                 .toObjects(FirestoreCategory::class.java)
         }
+    }
 
     override suspend fun getSongsByCategory(categoryId: String, limit: Long): List<FirestoreSong> =
         fetchQuery {
@@ -194,4 +206,82 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
     private fun shouldFallbackToCache(error: FirebaseFirestoreException): Boolean =
         error.code == FirebaseFirestoreException.Code.UNAVAILABLE ||
             error.code == FirebaseFirestoreException.Code.FAILED_PRECONDITION
+
+    /**
+     * Android Firestore snapshots do not expose document createTime, so categories are listed
+     * through the REST API and sorted oldest → newest.
+     */
+    private suspend fun fetchCategoriesOrderedByCreateTime(): List<FirestoreCategory> {
+        val projectId = db.app.options.projectId?.takeIf { it.isNotBlank() } ?: return emptyList()
+        val apiKey = db.app.options.apiKey.orEmpty()
+        val token = runCatching {
+            firebaseAuth.currentUser?.getIdToken(false)?.await()?.token
+        }.getOrNull()
+
+        return withContext(Dispatchers.IO) {
+            val documents = mutableListOf<Pair<FirestoreCategory, Instant?>>()
+            var pageToken: String? = null
+            do {
+                val url = buildCategoriesUrl(projectId, apiKey, pageToken)
+                val json = httpGetJson(url, token) ?: break
+                val docs = json.optJSONArray("documents") ?: break
+                for (index in 0 until docs.length()) {
+                    val doc = docs.optJSONObject(index) ?: continue
+                    val id = doc.optString("name").substringAfterLast('/')
+                    if (id.isBlank()) continue
+                    val name = doc.optJSONObject("fields")
+                        ?.optJSONObject("name")
+                        ?.optString("stringValue")
+                        .orEmpty()
+                    val createdAt = doc.optString("createTime")
+                        .takeIf { it.isNotBlank() }
+                        ?.let { runCatching { Instant.parse(it) }.getOrNull() }
+                    documents += FirestoreCategory(id = id, name = name) to createdAt
+                }
+                pageToken = json.optString("nextPageToken").takeIf { it.isNotBlank() }
+            } while (pageToken != null)
+
+            documents
+                .sortedWith(
+                    compareBy(
+                        { it.second ?: Instant.MAX },
+                        { it.first.name },
+                    ),
+                )
+                .map { it.first }
+        }
+    }
+
+    private fun buildCategoriesUrl(projectId: String, apiKey: String, pageToken: String?): String =
+        buildString {
+            append("https://firestore.googleapis.com/v1/projects/")
+            append(projectId)
+            append("/databases/%28default%29/documents/categories?pageSize=100")
+            if (apiKey.isNotBlank()) {
+                append("&key=")
+                append(URLEncoder.encode(apiKey, Charsets.UTF_8.name()))
+            }
+            if (!pageToken.isNullOrBlank()) {
+                append("&pageToken=")
+                append(URLEncoder.encode(pageToken, Charsets.UTF_8.name()))
+            }
+        }
+
+    private fun httpGetJson(url: String, bearerToken: String?): JSONObject? {
+        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 15_000
+            readTimeout = 15_000
+            setRequestProperty("Accept", "application/json")
+            if (!bearerToken.isNullOrBlank()) {
+                setRequestProperty("Authorization", "Bearer $bearerToken")
+            }
+        }
+        return try {
+            if (connection.responseCode !in 200..299) return null
+            connection.inputStream.bufferedReader().use { JSONObject(it.readText()) }
+        } finally {
+            connection.disconnect()
+        }
+    }
 }

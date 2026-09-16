@@ -51,4 +51,6 @@
     <string name="favourite_login_required">Bạn cần đăng nhập để sử dụng bài hát yêu thích</string>
     <string name="favourite_offline">Cần kết nối internet để thay đổi bài hát yêu thích</string>
     <string name="favourite_operation_failed">Không thể cập nhật bài hát yêu thích</string>
+    <string name="category_songs_count">%d bài hát</string>
+    <string name="category_songs_empty">Chưa có bài hát thuộc thể loại này</string>
 </resources>

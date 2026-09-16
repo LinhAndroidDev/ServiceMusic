@@ -26,6 +26,26 @@
         <action
             android:id="@+id/action_homeFragment_to_zingchartFragment"
             app:destination="@id/zingchartFragment" />
+        <action
+            android:id="@+id/action_homeFragment_to_categorySongsFragment"
+            app:destination="@id/categorySongsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/categorySongsFragment"
+        android:name="com.example.serviceandroid.fragment.category.CategorySongsFragment"
+        android:label="category_songs_fragment"
+        tools:layout="@layout/fragment_category_songs">
+        <argument
+            android:name="title"
+            app:argType="string" />
+        <argument
+            android:name="mode"
+            app:argType="string" />
+        <argument
+            android:name="categoryId"
+            android:defaultValue=""
+            app:argType="string" />
     </fragment>
 
     <fragment
