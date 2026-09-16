@@ -12,14 +12,18 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.SearchResultsAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
+import com.example.serviceandroid.data.search.SearchQuery
 import com.example.serviceandroid.databinding.FragmentSearchSongBinding
 import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -100,6 +104,7 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
     }
 
     private fun applyState(state: SearchUiState) {
+        bindIdleChips(state)
         val querying = state.query.isNotBlank() || binding.searchSong.queryText().isNotBlank()
         when {
             !querying -> bindSearchChrome(
@@ -147,10 +152,80 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
         binding.searchProgress.isVisible = showLoading
     }
 
+    private fun bindIdleChips(state: SearchUiState) {
+        binding.recentHistorySection.isVisible = state.recentQueries.isNotEmpty()
+        bindHistoryChips(state.recentQueries)
+        binding.suggestionSection.isVisible = state.suggestions.isNotEmpty()
+        bindSuggestionChips(state.suggestions)
+    }
+
+    private fun bindHistoryChips(queries: List<SearchQuery>) {
+        val group = binding.recentSearchChips
+        val current = chipTexts(group)
+        val next = queries.map { it.query }
+        if (current == next) return
+        group.removeAllViews()
+        queries.forEach { item ->
+            group.addView(
+                createChip(
+                    text = item.query,
+                    showClose = true,
+                    onClick = { applyChipQuery(item.query) },
+                    onClose = { searchViewModel.deleteRecentQuery(item.normalizedQuery) },
+                )
+            )
+        }
+    }
+
+    private fun bindSuggestionChips(suggestions: List<String>) {
+        val group = binding.suggestionChips
+        if (chipTexts(group) == suggestions) return
+        group.removeAllViews()
+        suggestions.forEach { text ->
+            group.addView(
+                createChip(
+                    text = text,
+                    showClose = false,
+                    onClick = { applyChipQuery(text) },
+                )
+            )
+        }
+    }
+
+    private fun chipTexts(group: ChipGroup): List<String> =
+        (0 until group.childCount).mapNotNull { index ->
+            (group.getChildAt(index) as? Chip)?.text?.toString()
+        }
+
+    private fun createChip(
+        text: String,
+        showClose: Boolean,
+        onClick: () -> Unit,
+        onClose: (() -> Unit)? = null,
+    ): Chip {
+        val chip = layoutInflater.inflate(R.layout.item_search_chip, null, false) as Chip
+        return chip.apply {
+            this.text = text
+            isCheckable = false
+            isCloseIconVisible = showClose
+            if (showClose) {
+                setOnCloseIconClickListener { onClose?.invoke() }
+            }
+            setOnClickListener { onClick() }
+        }
+    }
+
+    private fun applyChipQuery(text: String) {
+        searchJob?.cancel()
+        binding.searchSong.setQuery(text, notify = false)
+        searchViewModel.search(text)
+    }
+
     private fun ensureSearchAdapter(): SearchResultsAdapter {
         searchAdapter?.let { return it }
         val adapter = SearchResultsAdapter()
         adapter.onClickSong = { song ->
+            searchViewModel.recordCurrentQuery()
             val songs = searchViewModel.uiState.value.songs
             playbackViewModel.setPlaybackQueue(songs)
             playbackViewModel.playSong(requireContext(), song)
@@ -158,6 +233,7 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
         }
         adapter.onClickSongMore = { song -> showMoreOptions(song) }
         adapter.onClickSinger = { singer ->
+            searchViewModel.recordCurrentQuery()
             val action = FragmentSearchSongDirections
                 .actionFragmentSearchSongToSingerDetailFragment(singer.id)
             findNavController().navigate(action)
@@ -176,5 +252,8 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
 
     override fun onClickView() {
         binding.backSearch.setOnClickListener { activity?.onBackPressed() }
+        binding.clearAllRecentSearches.setOnClickListener {
+            searchViewModel.clearRecentQueries()
+        }
     }
 }

@@ -23,4 +23,23 @@
         <item name="paddingTopSystemWindowInsets">false</item>
         <item name="paddingBottomSystemWindowInsets">false</item>
     </style>
+
+    <style name="Widget.ServiceMusic.SearchChip" parent="Widget.Material3.Chip.Assist">
+        <item name="android:textColor">@color/text_black</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="chipBackgroundColor">@color/grey_light</item>
+        <item name="chipCornerRadius">45dp</item>
+        <item name="chipMinHeight">32dp</item>
+        <item name="chipMinTouchTargetSize">0dp</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipStartPadding">10dp</item>
+        <item name="chipEndPadding">10dp</item>
+        <item name="textStartPadding">4dp</item>
+        <item name="textEndPadding">4dp</item>
+        <item name="closeIcon">@drawable/ic_remove</item>
+        <item name="closeIconSize">14dp</item>
+        <item name="closeIconEndPadding">2dp</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+    </style>
 </resources>
