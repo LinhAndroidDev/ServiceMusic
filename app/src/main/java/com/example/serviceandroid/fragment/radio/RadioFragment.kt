@@ -3,6 +3,7 @@ package com.example.serviceandroid.fragment.radio
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSnapHelper
 import com.example.serviceandroid.R
@@ -86,7 +87,9 @@ class RadioFragment : BaseFragment<FragmentRadioBinding>() {
     }
 
     override fun onClickView() {
-
+        binding.header.search.setOnClickListener {
+            findNavController().navigate(R.id.action_radioFragment_to_fragmentSearchSong)
+        }
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =

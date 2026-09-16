@@ -8,6 +8,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.fragment.findNavController
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.LibraryAdapter
 import com.example.serviceandroid.adapter.ListenRecentAdapter
@@ -37,6 +38,9 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
     }
 
     override fun onClickView() {
+        binding.header.search.setOnClickListener {
+            findNavController().navigate(R.id.action_libraryFragment_to_fragmentSearchSong)
+        }
     }
 
     private fun initRecentHistory() {

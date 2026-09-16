@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -154,6 +155,9 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     }
 
     override fun onClickView() {
+        binding.header.search.setOnClickListener {
+            findNavController().navigate(R.id.action_zingchartFragment_to_fragmentSearchSong)
+        }
         binding.removeSongSuggest.setOnClickListener {
             binding.songSuggestView.isVisible = false
         }

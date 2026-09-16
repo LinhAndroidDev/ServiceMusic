@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearSnapHelper
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -55,6 +56,9 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
     }
 
     override fun onClickView() {
+        binding.header.search.setOnClickListener {
+            findNavController().navigate(R.id.action_profileFragment_to_fragmentSearchSong)
+        }
         binding.buttonAuth.setOnClickListener {
             if (viewModel.uiState.value.user == null) {
                 openGoogleAccountChooser()
