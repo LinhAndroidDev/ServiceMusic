@@ -7,7 +7,6 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.bumptech.glide.Glide
 import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.base.BaseBottomSheetDialogFragment
@@ -16,6 +15,7 @@ import com.example.serviceandroid.databinding.LayoutBottomSheetOptionMusicBindin
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.Convert
+import com.example.serviceandroid.utils.loadSongThumbnail
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
@@ -36,11 +36,7 @@ class BottomSheetOptionMusic :
         val song: Song? = arguments?.getParcelable(Constant.KEY_SONG)
         song?.let {
             songModel = it
-            Glide.with(requireActivity())
-                .load(song.thumbnailUrl)
-                .placeholder(R.drawable.ic_circle)
-                .error(R.drawable.ic_circle)
-                .into(binding.avatar)
+            binding.avatar.loadSongThumbnail(song.thumbnailUrl)
             binding.titleSong.text = song.title
             binding.tvNameSinger.text = song.nameSinger
             viewModel.checkSongById(song.id)

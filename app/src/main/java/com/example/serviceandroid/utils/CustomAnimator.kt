@@ -12,7 +12,6 @@ import android.view.animation.OvershootInterpolator
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import com.example.serviceandroid.R
 import com.example.serviceandroid.helper.Constants
-import de.hdodenhof.circleimageview.CircleImageView
 
 object CustomAnimator {
 
@@ -20,7 +19,7 @@ object CustomAnimator {
      * Continuous rotation for the cover art. Uses a hardware layer and reuses one animator
      * to reduce jank when the rest of the player UI (e.g. SeekBar) invalidates frequently during playback.
      */
-    fun rotationImage(img: CircleImageView) {
+    fun rotationImage(img: View) {
         (img.getTag(R.id.tag_avatar_rotation_animator) as? ObjectAnimator)?.cancel()
 
         img.setLayerType(View.LAYER_TYPE_HARDWARE, null)

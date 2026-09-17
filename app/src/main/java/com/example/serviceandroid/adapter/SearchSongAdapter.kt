@@ -4,10 +4,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import coil.load
-import com.example.serviceandroid.R
 import com.example.serviceandroid.databinding.ItemPagerNewReleaseBinding
 import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.utils.loadSongThumbnail
 
 class SearchSongAdapter : RecyclerView.Adapter<SearchSongAdapter.SongVH>() {
 
@@ -41,10 +40,7 @@ class SearchSongAdapter : RecyclerView.Adapter<SearchSongAdapter.SongVH>() {
         private val binding: ItemPagerNewReleaseBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(song: Song) {
-            binding.imgSong.load(song.thumbnailUrl) {
-                crossfade(true)
-                placeholder(R.drawable.bg_grey_corner_5)
-            }
+            binding.imgSong.loadSongThumbnail(song.thumbnailUrl)
             binding.tvNameSong.text = song.title
             binding.tvNameSinger.text = song.nameSinger
             binding.layoutIndex.visibility = View.GONE

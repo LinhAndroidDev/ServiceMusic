@@ -34,6 +34,7 @@ import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.NetworkMonitor
 import com.example.serviceandroid.utils.NetworkUiState
+import com.example.serviceandroid.utils.loadSongThumbnail
 import com.example.serviceandroid.utils.moveTo
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -511,11 +512,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         state.currentSong?.let { song ->
             if (song.id != lastMiniPlayerSongId) {
                 lastMiniPlayerSongId = song.id
-                com.bumptech.glide.Glide.with(this)
-                    .load(song.thumbnailUrl)
-                    .placeholder(R.drawable.ic_circle)
-                    .error(R.drawable.ic_circle)
-                    .into(binding.avatar)
+                binding.avatar.loadSongThumbnail(song.thumbnailUrl)
                 lastMiniPlayerSeekSyncedMs = Int.MIN_VALUE
             }
             syncMiniPlayerSongInfo(state)

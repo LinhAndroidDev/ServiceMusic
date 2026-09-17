@@ -25,8 +25,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.data.firestore.FirestoreMusicRepository
@@ -41,6 +39,7 @@ import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.playback.PlaybackStateHolder
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.utils.SharePreferenceRepository
+import com.example.serviceandroid.utils.loadSongThumbnailBitmap
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -459,17 +458,8 @@ class MusicService : Service() {
         }
     }
 
-    private suspend fun loadThumbnailBitmap(url: String): Bitmap? = withContext(Dispatchers.IO) {
-        if (url.isBlank()) return@withContext null
-        runCatching {
-            Glide.with(applicationContext)
-                .asBitmap()
-                .load(url)
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .submit()
-                .get()
-        }.getOrNull()
-    }
+    private suspend fun loadThumbnailBitmap(url: String): Bitmap? =
+        loadSongThumbnailBitmap(applicationContext, url)
 
     private fun onTrackCompleted() {
         val player = exoPlayer ?: return

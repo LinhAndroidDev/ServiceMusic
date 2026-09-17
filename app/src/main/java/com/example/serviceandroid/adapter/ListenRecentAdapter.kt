@@ -3,11 +3,10 @@ package com.example.serviceandroid.adapter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.example.serviceandroid.R
 import com.example.serviceandroid.databinding.ItemListenRecentBinding
 import com.example.serviceandroid.databinding.LayoutSeeAllBinding
 import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.utils.loadSongThumbnail
 
 class ListenRecentAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     var onClickItem: ((Song) -> Unit)? = null
@@ -51,12 +50,7 @@ class ListenRecentAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         fun bind(song: Song) {
             binding.recentSongTitle.text = song.title
             binding.recentSongSinger.text = song.nameSinger
-            Glide.with(binding.recentSongThumbnail)
-                .load(song.thumbnailUrl)
-                .placeholder(R.drawable.ic_music)
-                .error(R.drawable.ic_music)
-                .centerCrop()
-                .into(binding.recentSongThumbnail)
+            binding.recentSongThumbnail.loadSongThumbnail(song.thumbnailUrl)
             itemView.setOnClickListener { onClickItem?.invoke(song) }
         }
     }

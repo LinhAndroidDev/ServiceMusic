@@ -24,10 +24,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import com.bumptech.glide.Glide
 import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
@@ -46,6 +43,8 @@ import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.DateUtils
 import com.example.serviceandroid.utils.ExtensionFunctions.setColorTint
+import com.example.serviceandroid.utils.loadSongThumbnail
+import com.example.serviceandroid.utils.loadSongThumbnailBitmap
 import com.github.mikephil.charting.components.Description
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
@@ -192,11 +191,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         val song = suggestedSongId
             ?.let { id -> playlist.find { it.id == id } }
             ?: playlist[Random.nextInt(playlist.size)].also { suggestedSongId = it.id }
-        Glide.with(requireActivity())
-            .load(song.thumbnailUrl)
-            .placeholder(R.mipmap.ic_launcher)
-            .error(R.mipmap.ic_launcher)
-            .into(binding.imgSong)
+        binding.imgSong.loadSongThumbnail(song.thumbnailUrl)
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
         binding.songSuggestView.setOnClickListener {
@@ -436,7 +431,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         if (url.isNullOrBlank()) return
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val loaded = withContext(Dispatchers.IO) { loadChartAvatarBlocking(url) }
+            val loaded = loadSongThumbnailBitmap(requireContext(), url, sizePx = 90)
+                ?: defaultChartBitmap()
             if (!isAdded || view == null || positionChart.ordinal != entryIndex) return@launch
             if (binding.chart.data == null) return@launch
             bitmap = loaded
@@ -529,18 +525,6 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     override fun onDestroy() {
         runnable?.let { handler.removeCallbacks(it) }
         super.onDestroy()
-    }
-
-    private fun loadChartAvatarBlocking(url: String): Bitmap {
-        return try {
-            Glide.with(requireActivity())
-                .asBitmap()
-                .load(url)
-                .submit()
-                .get()
-        } catch (_: Exception) {
-            createBitmap(90, 90)
-        }
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater)

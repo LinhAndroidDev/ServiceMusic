@@ -31,9 +31,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.bumptech.glide.Glide
 import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
+import com.example.serviceandroid.utils.loadSingerAvatar
+import com.example.serviceandroid.utils.loadSongThumbnail
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.FragmentMusicBinding
 import com.example.serviceandroid.databinding.ItemMusicPlayerPageBinding
@@ -483,16 +484,11 @@ class FragmentMusic : BottomSheetDialogFragment() {
         lastDurationLabelMs = -1
         lastLyricsScrollAnchor = Int.MIN_VALUE
         lastPlaybackSeekSequence = -1L
-        Glide.with(this)
-            .load(song.thumbnailUrl)
-            .error(R.drawable.ic_circle)
-            .placeholder(R.drawable.ic_circle)
-            .into(pb.imgSong)
-        Glide.with(this)
-            .load(song.thumbnailUrl)
-            .error(R.drawable.ic_circle)
-            .placeholder(R.drawable.ic_circle)
-            .into(binding.imageCover)
+        pb.imgSong.loadSongThumbnail(song.thumbnailUrl, circle = true)
+        binding.imageCover.loadSongThumbnail(
+            song.thumbnailUrl,
+            sizePx = resources.displayMetrics.widthPixels,
+        )
         pb.imgSong.startAnimation(fadeIn)
         pb.tvNameSong.text = song.title
         pb.tvNameSinger.text = song.nameSinger
@@ -594,11 +590,7 @@ class FragmentMusic : BottomSheetDialogFragment() {
         if (spb.tabSingers.visibility != View.VISIBLE) {
             spb.tvSingerName.text = singer.name
         }
-        Glide.with(this)
-            .load(singer.avatarUrl.takeIf { it.isNotBlank() })
-            .error(R.drawable.ic_circle)
-            .placeholder(R.drawable.ic_circle)
-            .into(spb.imgSingerAvatar)
+        spb.imgSingerAvatar.loadSingerAvatar(singer.avatarUrl)
         spb.tvSingerBio.text = singer.description.takeIf { it.isNotBlank() }
             ?: getString(R.string.singer_bio_empty)
     }

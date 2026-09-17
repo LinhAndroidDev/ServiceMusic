@@ -4,8 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
 import androidx.core.view.isVisible
-import coil.load
 import com.example.serviceandroid.R
+import com.example.serviceandroid.utils.loadSongThumbnail
 import com.example.serviceandroid.base.BaseAdapter
 import com.example.serviceandroid.databinding.ItemPagerNewReleaseBinding
 import com.example.serviceandroid.databinding.PagerNewReleaseBinding
@@ -66,10 +66,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
     ) {
         with(holder.v) {
             items[position].let { item ->
-                imgSong.load(item.thumbnailUrl) {
-                    crossfade(true)
-                    placeholder(R.drawable.bg_grey_corner_5)
-                }
+                imgSong.loadSongThumbnail(item.thumbnailUrl)
                 tvNameSong.text = item.title
                 tvNameSinger.text = item.nameSinger
                 holder.itemView.setOnClickListener {
