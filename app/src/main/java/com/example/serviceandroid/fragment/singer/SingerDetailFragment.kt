@@ -9,7 +9,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.navArgs
-import coil.load
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
@@ -19,6 +18,7 @@ import com.example.serviceandroid.databinding.FragmentSingerDetailBinding
 import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
+import com.example.serviceandroid.utils.loadSingerAvatar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -45,11 +45,7 @@ class SingerDetailFragment : BaseFragment<FragmentSingerDetailBinding>() {
                     val singer = state.singer
                     if (singer != null) {
                         binding.tvSingerName.text = singer.name
-                        binding.imgSingerAvatar.load(singer.avatarUrl) {
-                            crossfade(true)
-                            placeholder(R.drawable.ic_circle)
-                            error(R.drawable.ic_circle)
-                        }
+                        binding.imgSingerAvatar.loadSingerAvatar(singer.avatarUrl)
                         val description = singer.description.trim()
                         binding.tvSingerDescription.isVisible = description.isNotEmpty()
                         binding.tvSingerDescription.text =

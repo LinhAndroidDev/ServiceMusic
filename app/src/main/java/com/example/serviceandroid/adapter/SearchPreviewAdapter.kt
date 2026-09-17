@@ -12,6 +12,7 @@ import com.example.serviceandroid.databinding.ItemSearchSectionHeaderBinding
 import com.example.serviceandroid.databinding.ItemSearchSingerBinding
 import com.example.serviceandroid.model.Singer
 import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.utils.loadSingerAvatar
 
 class SearchPreviewAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -103,11 +104,7 @@ class SearchPreviewAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         private val binding: ItemSearchSingerBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(singer: Singer) {
-            binding.imgSingerAvatar.load(singer.avatarUrl) {
-                crossfade(true)
-                placeholder(R.drawable.ic_circle)
-                error(R.drawable.ic_circle)
-            }
+            binding.imgSingerAvatar.loadSingerAvatar(singer.avatarUrl)
             binding.tvSingerName.text = singer.name
             binding.root.setOnClickListener { onClickSinger?.invoke(singer) }
         }

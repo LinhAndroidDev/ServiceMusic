@@ -30,14 +30,16 @@
                 tools:ignore="ContentDescription" />
         </LinearLayout>
 
-        <de.hdodenhof.circleimageview.CircleImageView
+        <ImageView
             android:id="@+id/imgSingerAvatar"
-            android:layout_width="140dp"
-            android:layout_height="140dp"
+            android:layout_width="@dimen/singer_avatar_detail"
+            android:layout_height="@dimen/singer_avatar_detail"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="16dp"
-            android:src="@drawable/ic_circle"
-            tools:src="@drawable/ic_circle" />
+            android:contentDescription="@string/search_section_artists"
+            android:scaleType="centerCrop"
+            android:src="@drawable/bg_grey_circle"
+            tools:src="@drawable/bg_grey_circle" />
 
         <TextView
             android:id="@+id/tvSingerName"

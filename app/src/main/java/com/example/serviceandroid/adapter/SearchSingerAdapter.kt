@@ -3,10 +3,9 @@ package com.example.serviceandroid.adapter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import coil.load
-import com.example.serviceandroid.R
 import com.example.serviceandroid.databinding.ItemSearchSingerBinding
 import com.example.serviceandroid.model.Singer
+import com.example.serviceandroid.utils.loadSingerAvatar
 
 class SearchSingerAdapter : RecyclerView.Adapter<SearchSingerAdapter.SingerVH>() {
 
@@ -39,11 +38,7 @@ class SearchSingerAdapter : RecyclerView.Adapter<SearchSingerAdapter.SingerVH>()
         private val binding: ItemSearchSingerBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(singer: Singer) {
-            binding.imgSingerAvatar.load(singer.avatarUrl) {
-                crossfade(true)
-                placeholder(R.drawable.ic_circle)
-                error(R.drawable.ic_circle)
-            }
+            binding.imgSingerAvatar.loadSingerAvatar(singer.avatarUrl)
             binding.tvSingerName.text = singer.name
             binding.root.setOnClickListener { onClickSinger?.invoke(singer) }
         }

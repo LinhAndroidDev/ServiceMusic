@@ -5,4 +5,6 @@
     <dimen name="network_banner_bottom_gap">8dp</dimen>
     <dimen name="screen_header_margin_top">56dp</dimen>
     <dimen name="music_player_header_margin_top">20dp</dimen>
+    <dimen name="singer_avatar_list">56dp</dimen>
+    <dimen name="singer_avatar_detail">140dp</dimen>
 </resources>
