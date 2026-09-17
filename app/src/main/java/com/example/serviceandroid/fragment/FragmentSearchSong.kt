@@ -11,12 +11,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.SearchPreviewAdapter
 import com.example.serviceandroid.adapter.SearchResultsPagerAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
+import com.example.serviceandroid.custom.VoiceSearch
 import com.example.serviceandroid.data.search.SearchQuery
 import com.example.serviceandroid.databinding.FragmentSearchSongBinding
 import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
@@ -34,11 +36,17 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
 
+    private val args by navArgs<FragmentSearchSongArgs>()
     private val searchViewModel by viewModels<SearchViewModel>()
     private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private var searchJob: Job? = null
     private var tabMediator: TabLayoutMediator? = null
     private var previewAdapter: SearchPreviewAdapter? = null
+    private val voiceSearch = VoiceSearch(this) { query ->
+        searchJob?.cancel()
+        binding.searchSong.setQuery(query, notify = false)
+        searchViewModel.commitQuery(query)
+    }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =
         FragmentSearchSongBinding.inflate(inflater)
@@ -47,17 +55,10 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
         setupResultsPager()
         setupPreviewList()
 
+        binding.microSearch.isVisible = true
         ViewCompat.setOnApplyWindowInsetsListener(binding.microSearch) { v, insets ->
             val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-
-            v.translationY = if (imeHeight > 0) {
-                binding.microSearch.isVisible = true
-                -imeHeight.toFloat()
-            } else {
-                binding.microSearch.isVisible = false
-                0f
-            }
-
+            v.translationY = if (imeHeight > 0) -imeHeight.toFloat() else 0f
             insets
         }
 
@@ -88,12 +89,18 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
             }
         }
 
+        val committed = args.committedQuery.trim()
         val restored = searchViewModel.uiState.value
-        if (restored.query.isNotBlank()) {
-            binding.searchSong.setQuery(restored.query, notify = false)
-            applyState(restored)
-        } else {
-            binding.searchSong.showActionSearch()
+        when {
+            committed.isNotBlank() -> {
+                binding.searchSong.setQuery(committed, notify = false)
+                searchViewModel.commitQuery(committed)
+            }
+            restored.query.isNotBlank() -> {
+                binding.searchSong.setQuery(restored.query, notify = false)
+                applyState(restored)
+            }
+            else -> binding.searchSong.showActionSearch()
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -253,6 +260,7 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
 
     override fun onClickView() {
         binding.backSearch.setOnClickListener { activity?.onBackPressed() }
+        binding.microSearch.setOnClickListener { voiceSearch.start() }
         binding.clearAllRecentSearches.setOnClickListener {
             searchViewModel.clearRecentQueries()
         }

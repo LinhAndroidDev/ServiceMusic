@@ -13,6 +13,7 @@ import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.LibraryAdapter
 import com.example.serviceandroid.adapter.ListenRecentAdapter
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.VoiceSearch
 import com.example.serviceandroid.databinding.FragmentLibraryBinding
 import com.example.serviceandroid.fragment.downloaded.DownloadedSongsViewModel
 import com.example.serviceandroid.fragment.favourite_song.FragmentFavouriteSongViewModel
@@ -30,6 +31,11 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
     private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private val recentHistoryViewModel by viewModels<RecentHistoryViewModel>()
     private lateinit var recentAdapter: ListenRecentAdapter
+    private val voiceSearch = VoiceSearch(this) { query ->
+        findNavController().navigate(
+            LibraryFragmentDirections.actionLibraryFragmentToFragmentSearchSong(query),
+        )
+    }
 
     override fun initView() {
         binding.header.title.text = "Thư viện"
@@ -41,6 +47,7 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
         binding.header.search.setOnClickListener {
             findNavController().navigate(R.id.action_libraryFragment_to_fragmentSearchSong)
         }
+        binding.header.micro.setOnClickListener { voiceSearch.start() }
     }
 
     private fun initRecentHistory() {

@@ -38,6 +38,7 @@ import com.example.serviceandroid.custom.ChartAvatarState
 import com.example.serviceandroid.custom.CustomLineChartRenderer
 import com.example.serviceandroid.custom.CustomXAxisFormatter
 import com.example.serviceandroid.custom.DialogConfirm
+import com.example.serviceandroid.custom.VoiceSearch
 import com.example.serviceandroid.databinding.FragmentZingChartBinding
 import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.PositionChart
@@ -68,6 +69,11 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     private var avatarTransitionAnimator: ValueAnimator? = null
     private var avatarAnimationProgress = 1f
     private val viewModel by viewModels<ZingChartViewModel>()
+    private val voiceSearch = VoiceSearch(this) { query ->
+        findNavController().navigate(
+            ZingChartFragmentDirections.actionZingchartFragmentToFragmentSearchSong(query),
+        )
+    }
 
     private data class ChartData(
         val lineData: LineData,
@@ -158,6 +164,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         binding.header.search.setOnClickListener {
             findNavController().navigate(R.id.action_zingchartFragment_to_fragmentSearchSong)
         }
+        binding.header.micro.setOnClickListener { voiceSearch.start() }
         binding.removeSongSuggest.setOnClickListener {
             binding.songSuggestView.isVisible = false
         }

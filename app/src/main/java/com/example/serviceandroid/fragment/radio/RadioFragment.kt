@@ -11,6 +11,7 @@ import com.example.serviceandroid.adapter.MoodAndActivityAdapter
 import com.example.serviceandroid.adapter.RadioAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.ArcLayoutManager
+import com.example.serviceandroid.custom.VoiceSearch
 import com.example.serviceandroid.custom.OverlapItemDecoration
 import com.example.serviceandroid.databinding.FragmentRadioBinding
 import com.example.serviceandroid.utils.ExtensionFunctions.setColorTint
@@ -20,6 +21,11 @@ import dagger.hilt.android.AndroidEntryPoint
 class RadioFragment : BaseFragment<FragmentRadioBinding>() {
 
     private val viewModel by viewModels<RadioViewModel>()
+    private val voiceSearch = VoiceSearch(this) { query ->
+        findNavController().navigate(
+            RadioFragmentDirections.actionRadioFragmentToFragmentSearchSong(query),
+        )
+    }
 
     @SuppressLint("ClickableViewAccessibility", "ResourceAsColor")
     override fun initView() {
@@ -90,6 +96,7 @@ class RadioFragment : BaseFragment<FragmentRadioBinding>() {
         binding.header.search.setOnClickListener {
             findNavController().navigate(R.id.action_radioFragment_to_fragmentSearchSong)
         }
+        binding.header.micro.setOnClickListener { voiceSearch.start() }
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =

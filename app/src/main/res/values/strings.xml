@@ -30,6 +30,13 @@
     <string name="search_recent_title">Tìm gần đây</string>
     <string name="search_recent_clear_all">Xóa tất cả</string>
     <string name="search_suggestions_title">Đề xuất cho bạn</string>
+    <string name="voice_search_title">Tìm kiếm bằng giọng nói</string>
+    <string name="voice_search_listening">Đang nghe…</string>
+    <string name="voice_search_try_again">Không nghe rõ. Thử nói lại</string>
+    <string name="voice_search_unsupported">Thiết bị không hỗ trợ nhận dạng giọng nói</string>
+    <string name="voice_search_need_network">Cần kết nối mạng để nhận dạng giọng nói</string>
+    <string name="voice_search_permission_denied">Cần quyền micro để tìm kiếm bằng giọng nói</string>
+    <string name="voice_search_cancel">Huỷ</string>
     <string name="singer_detail_songs_count">%d bài hát</string>
     <string name="singer_detail_songs_empty">Chưa có bài hát của ca sĩ này</string>
     <string name="profile_signed_out_title">Đăng nhập tài khoản</string>

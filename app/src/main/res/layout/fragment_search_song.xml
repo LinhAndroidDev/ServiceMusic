@@ -189,6 +189,7 @@
         android:id="@+id/microSearch"
         android:layout_width="50dp"
         android:layout_height="50dp"
+        android:contentDescription="@string/voice_search_title"
         android:layout_marginEnd="15dp"
         android:layout_marginBottom="15dp"
         app:backgroundTint="@color/white"

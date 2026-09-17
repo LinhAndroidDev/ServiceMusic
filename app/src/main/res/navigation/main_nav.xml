@@ -118,6 +118,10 @@
         android:name="com.example.serviceandroid.fragment.FragmentSearchSong"
         android:label="fragment_search_song"
         tools:layout="@layout/fragment_search_song">
+        <argument
+            android:name="committedQuery"
+            android:defaultValue=""
+            app:argType="string" />
         <action
             android:id="@+id/action_fragmentSearchSong_to_singerDetailFragment"
             app:destination="@id/singerDetailFragment" />

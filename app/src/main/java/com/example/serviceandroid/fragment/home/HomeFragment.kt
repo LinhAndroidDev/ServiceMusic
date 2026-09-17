@@ -28,6 +28,7 @@ import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.DialogConfirm
+import com.example.serviceandroid.custom.VoiceSearch
 import com.example.serviceandroid.databinding.FragmentHomeBinding
 import com.example.serviceandroid.fragment.category.CategorySongsMode
 import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
@@ -68,6 +69,11 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var stickTile = Title.TITLE_TOPIC
     private val viewModel by viewModels<HomeViewModel>()
     private var topicAdapter: TopicAdapter? = null
+    private val voiceSearch = VoiceSearch(this) { query ->
+        findNavController().navigate(
+            HomeFragmentDirections.actionHomeFragmentToFragmentSearchSong(query),
+        )
+    }
 
     override fun initView() {
         binding.titleCover.isVisible = binding.scrollHome.isViewVisible(binding.titleTopic)
@@ -465,6 +471,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.header.search.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_fragmentSearchSong)
         }
+        binding.header.micro.setOnClickListener { voiceSearch.start() }
 
         binding.tvSeeAll.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_zingchartFragment)
