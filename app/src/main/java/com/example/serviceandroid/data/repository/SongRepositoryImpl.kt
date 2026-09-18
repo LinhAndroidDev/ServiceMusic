@@ -13,7 +13,7 @@ class SongRepositoryImpl @Inject constructor(
 
     private val latestCache = mutableListOf<Song>()
     private val topCache = mutableListOf<Song>()
-    /** Playback queue — last refreshed source (latest or top). */
+    /** Playback queue — set only when the user plays a visible list. */
     private val playbackQueue = mutableListOf<Song>()
 
     override suspend fun refreshPlaylist(): Result<Unit> = runCatching {
@@ -23,8 +23,6 @@ class SongRepositoryImpl @Inject constructor(
             if (songs.isEmpty() && latestCache.isNotEmpty()) return@runCatching
             latestCache.clear()
             latestCache.addAll(songs)
-            playbackQueue.clear()
-            playbackQueue.addAll(songs)
         }
     }
 
@@ -35,8 +33,6 @@ class SongRepositoryImpl @Inject constructor(
             if (songs.isEmpty() && topCache.isNotEmpty()) return@runCatching
             topCache.clear()
             topCache.addAll(songs)
-            playbackQueue.clear()
-            playbackQueue.addAll(songs)
         }
     }
 

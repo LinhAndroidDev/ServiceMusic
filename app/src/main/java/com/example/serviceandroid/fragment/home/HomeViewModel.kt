@@ -131,13 +131,6 @@ class HomeViewModel @Inject constructor(
 
     fun getTopSongs(): List<Song> = _topSongs.value.ifEmpty { songRepository.getTopPlaylist() }
 
-    fun prepareTopPlaybackQueue() {
-        val songs = getTopSongs()
-        if (songs.isNotEmpty()) {
-            songRepository.setPlaybackQueue(songs)
-        }
-    }
-
     fun getAdvertisements(): List<Advertisement> = _advertisements.value
 
     fun ensureTopSongsLoaded() {

@@ -67,6 +67,13 @@ class PlaybackViewModel @Inject constructor(
 
     fun setPlaybackQueue(songs: List<Song>) = songRepository.setPlaybackQueue(songs)
 
+    fun playFromVisibleList(context: Context, songs: List<Song>, songId: String): Boolean {
+        val song = songs.find { it.id == songId } ?: return false
+        setPlaybackQueue(songs)
+        playSong(context, song)
+        return true
+    }
+
     fun resolveQueueIndexForSongId(songId: String): Int {
         if (songId.isBlank()) return -1
         return songRepository.ensureQueueForSongId(songId)

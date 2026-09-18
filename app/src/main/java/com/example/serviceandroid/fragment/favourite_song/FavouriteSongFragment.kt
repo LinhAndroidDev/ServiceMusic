@@ -17,6 +17,8 @@ import com.example.serviceandroid.custom.BottomSheetSongArrangement
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.database.repository.ArrangeMusic
 import com.example.serviceandroid.databinding.FragmentFavouriteSongBinding
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
+import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +30,7 @@ import kotlinx.coroutines.withContext
 @AndroidEntryPoint
 class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
     private val viewModel: FragmentFavouriteSongViewModel by activityViewModels()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private lateinit var adapterFavouriteSong: PagerNewReleaseAdapter
 
     override fun initView() {
@@ -80,6 +83,16 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
     private fun initListSong() {
         adapterFavouriteSong = PagerNewReleaseAdapter(requireActivity(), TypeList.TYPE_NATIONAL).apply {
             isFavourite = true
+            onClickItem = { songId ->
+                val songs = adapterFavouriteSong.items.toList()
+                if (playbackViewModel.playFromVisibleList(requireContext(), songs, songId)) {
+                    MusicPlayerLauncher.open(
+                        this@FavouriteSongFragment,
+                        songId,
+                        preservePlayback = true,
+                    )
+                }
+            }
             onClickUnFavourite = { index ->
                 DialogConfirm().apply {
                     title = adapterFavouriteSong.items[index].title

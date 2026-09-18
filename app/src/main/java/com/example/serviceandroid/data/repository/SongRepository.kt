@@ -13,7 +13,7 @@ interface SongRepository {
     fun getPlaylist(): List<Song>
     fun getLatestPlaylist(): List<Song>
     fun getTopPlaylist(): List<Song>
-    /** Replace the active playback queue (e.g. downloaded / favourites offline list). */
+    /** Replace the active playback queue when the user plays a visible list. */
     fun setPlaybackQueue(songs: List<Song>)
     /**
      * Ensures [songId] is in the active playback queue.

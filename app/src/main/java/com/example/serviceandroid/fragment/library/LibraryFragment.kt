@@ -53,14 +53,14 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
     private fun initRecentHistory() {
         recentAdapter = ListenRecentAdapter().apply {
             onClickItem = { song ->
-                val songs = recentHistoryViewModel.uiState.value.songs
-                playbackViewModel.setPlaybackQueue(songs)
-                playbackViewModel.playSong(requireContext(), song)
-                MusicPlayerLauncher.open(
-                    fragment = this@LibraryFragment,
-                    songId = song.id,
-                    preservePlayback = true,
-                )
+                val songs = recentHistoryViewModel.uiState.value.previewSongs
+                if (playbackViewModel.playFromVisibleList(requireContext(), songs, song.id)) {
+                    MusicPlayerLauncher.open(
+                        fragment = this@LibraryFragment,
+                        songId = song.id,
+                        preservePlayback = true,
+                    )
+                }
             }
             onClickSeeAll = {
                 val navHostFragment =

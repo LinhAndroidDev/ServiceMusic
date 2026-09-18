@@ -2,7 +2,6 @@ package com.example.serviceandroid.custom
 
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent

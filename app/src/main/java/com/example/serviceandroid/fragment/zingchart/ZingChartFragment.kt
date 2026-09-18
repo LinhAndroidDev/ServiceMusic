@@ -19,6 +19,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.Lifecycle
@@ -40,6 +41,7 @@ import com.example.serviceandroid.databinding.FragmentZingChartBinding
 import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.PositionChart
 import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.DateUtils
 import com.example.serviceandroid.utils.ExtensionFunctions.setColorTint
@@ -68,6 +70,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     private var avatarTransitionAnimator: ValueAnimator? = null
     private var avatarAnimationProgress = 1f
     private val viewModel by viewModels<ZingChartViewModel>()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private val voiceSearch = VoiceSearch(this) { query ->
         findNavController().navigate(
             ZingChartFragmentDirections.actionZingchartFragmentToFragmentSearchSong(query),
@@ -195,7 +198,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
         binding.songSuggestView.setOnClickListener {
-            MusicPlayerLauncher.open(this, song.id)
+            playVisibleChartSong(song.id)
         }
     }
 
@@ -208,7 +211,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
             type = TypeList.TYPE_NEW_UPDATE,
         ).also { created ->
             created.onClickItem = { songId ->
-                MusicPlayerLauncher.open(this, songId)
+                playVisibleChartSong(songId)
             }
             created.onClickMoreOption = { song -> showMoreOptions(song) }
             songChartAdapter = created
@@ -221,6 +224,13 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         }
         if (binding.rcvSongChart.adapter !== adapter) {
             binding.rcvSongChart.adapter = adapter
+        }
+    }
+
+    private fun playVisibleChartSong(songId: String) {
+        val songs = viewModel.getPlaylist()
+        if (playbackViewModel.playFromVisibleList(requireContext(), songs, songId)) {
+            MusicPlayerLauncher.open(this, songId)
         }
     }
 

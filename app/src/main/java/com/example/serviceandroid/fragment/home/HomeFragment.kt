@@ -7,6 +7,7 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -37,6 +38,7 @@ import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
 import com.example.serviceandroid.model.TopicType
+import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.ExtensionFunctions
 import com.example.serviceandroid.utils.ExtensionFunctions.isViewVisible
@@ -68,6 +70,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var bannerScrollListener: RecyclerView.OnScrollListener? = null
     private var stickTile = Title.TITLE_TOPIC
     private val viewModel by viewModels<HomeViewModel>()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private var topicAdapter: TopicAdapter? = null
     private val voiceSearch = VoiceSearch(this) { query ->
         findNavController().navigate(
@@ -353,7 +356,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             type = TypeList.TYPE_NATIONAL,
         ).also { adapter ->
             adapter.onClickItem = { songId ->
-                MusicPlayerLauncher.open(this, songId)
+                val songs = viewModel.getPlaylist().filter { it.checkMusicNational(national) }
+                if (playbackViewModel.playFromVisibleList(requireContext(), songs, songId)) {
+                    MusicPlayerLauncher.open(this, songId)
+                }
             }
             adapter.onClickMoreOption = { song -> showMoreOptions(song) }
             adapterNational = adapter
@@ -387,8 +393,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             type = TypeList.TYPE_NEW_UPDATE,
         ).also { adapter ->
             adapter.onClickItem = { songId ->
-                viewModel.prepareTopPlaybackQueue()
-                MusicPlayerLauncher.open(this, songId)
+                val songs = viewModel.getTopSongs().take(5)
+                if (playbackViewModel.playFromVisibleList(requireContext(), songs, songId)) {
+                    MusicPlayerLauncher.open(this, songId)
+                }
             }
             adapter.onClickMoreOption = { song -> showMoreOptions(song) }
             newUpdateAdapter = adapter

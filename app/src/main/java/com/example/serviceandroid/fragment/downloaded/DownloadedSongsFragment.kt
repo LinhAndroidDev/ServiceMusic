@@ -43,10 +43,7 @@ class DownloadedSongsFragment : BaseFragment<FragmentDownloadedSongsBinding>() {
         adapter = PagerNewReleaseAdapter(requireActivity(), TypeList.TYPE_NATIONAL).apply {
             onClickItem = { songId ->
                 val songs = viewModel.songs.value
-                val song = songs.find { it.id == songId }
-                if (song != null) {
-                    playbackViewModel.setPlaybackQueue(songs)
-                    playbackViewModel.playSong(requireContext(), song)
+                if (playbackViewModel.playFromVisibleList(requireContext(), songs, songId)) {
                     MusicPlayerLauncher.open(this@DownloadedSongsFragment, songId, preservePlayback = true)
                 }
             }

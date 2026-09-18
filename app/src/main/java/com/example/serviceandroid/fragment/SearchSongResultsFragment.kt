@@ -36,10 +36,14 @@ class SearchSongResultsFragment : BaseFragment<FragmentSearchSongResultsBinding>
         val adapter = SearchSongAdapter().also { created ->
             created.onClickSong = { song ->
                 searchViewModel.recordCurrentQuery()
-                val songs = searchViewModel.uiState.value.songs
-                playbackViewModel.setPlaybackQueue(songs)
-                playbackViewModel.playSong(requireContext(), song)
-                MusicPlayerLauncher.open(this, song.id, preservePlayback = true)
+                if (playbackViewModel.playFromVisibleList(
+                        requireContext(),
+                        searchViewModel.uiState.value.songs,
+                        song.id,
+                    )
+                ) {
+                    MusicPlayerLauncher.open(this, song.id, preservePlayback = true)
+                }
             }
             created.onClickSongMore = { song -> showMoreOptions(song) }
             songAdapter = created
