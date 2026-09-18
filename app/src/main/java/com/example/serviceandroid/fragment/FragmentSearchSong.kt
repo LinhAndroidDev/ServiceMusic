@@ -2,6 +2,7 @@ package com.example.serviceandroid.fragment
 
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -42,6 +43,10 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
     private var searchJob: Job? = null
     private var tabMediator: TabLayoutMediator? = null
     private var previewAdapter: SearchPreviewAdapter? = null
+    private var imeBottomInset = 0
+    private val chromeLayoutListener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+        applyMicroSearchClearance()
+    }
     private val voiceSearch = VoiceSearch(this) { query ->
         searchJob?.cancel()
         binding.searchSong.setQuery(query, notify = false)
@@ -55,12 +60,7 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
         setupResultsPager()
         setupPreviewList()
 
-        binding.microSearch.isVisible = true
-        ViewCompat.setOnApplyWindowInsetsListener(binding.microSearch) { v, insets ->
-            val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            v.translationY = if (imeHeight > 0) -imeHeight.toFloat() else 0f
-            insets
-        }
+        setupMicroSearchClearance()
 
         binding.searchSong.onQueryChanged = { query ->
             searchJob?.cancel()
@@ -110,6 +110,37 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
                 }
             }
         }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playbackViewModel.playbackState.collect { applyMicroSearchClearance() }
+            }
+        }
+    }
+
+    private fun setupMicroSearchClearance() {
+        binding.microSearch.isVisible = true
+        ViewCompat.setOnApplyWindowInsetsListener(binding.microSearch) { _, insets ->
+            imeBottomInset = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            applyMicroSearchClearance()
+            insets
+        }
+        activity?.findViewById<View>(R.id.bottomBar)?.addOnLayoutChangeListener(chromeLayoutListener)
+        activity?.findViewById<View>(R.id.bottomPlay)?.addOnLayoutChangeListener(chromeLayoutListener)
+        binding.microSearch.post { applyMicroSearchClearance() }
+    }
+
+    private fun applyMicroSearchClearance() {
+        if (!isAdded || view == null) return
+        val extra = (8 * resources.displayMetrics.density).toInt()
+        val chrome = visibleOverlayHeight(R.id.bottomBar) + visibleOverlayHeight(R.id.bottomPlay)
+        val clearance = maxOf(imeBottomInset, chrome) + extra
+        binding.microSearch.translationY = -clearance.toFloat()
+    }
+
+    private fun visibleOverlayHeight(viewId: Int): Int {
+        val overlay = activity?.findViewById<View>(viewId) ?: return 0
+        if (!overlay.isVisible) return 0
+        return overlay.height
     }
 
     private fun setupResultsPager() {
@@ -271,6 +302,10 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
     }
 
     override fun onDestroyView() {
+        activity?.findViewById<View>(R.id.bottomBar)
+            ?.removeOnLayoutChangeListener(chromeLayoutListener)
+        activity?.findViewById<View>(R.id.bottomPlay)
+            ?.removeOnLayoutChangeListener(chromeLayoutListener)
         tabMediator?.detach()
         tabMediator = null
         binding.searchResultsPager.adapter = null
