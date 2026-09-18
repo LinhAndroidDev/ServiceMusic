@@ -169,7 +169,6 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
                 searchViewModel.commitQuery(name)
             }
             created.onClickSong = { song ->
-                searchViewModel.recordCurrentQuery()
                 if (playbackViewModel.playFromVisibleList(
                         requireContext(),
                         searchViewModel.uiState.value.songs,
@@ -181,7 +180,6 @@ class FragmentSearchSong : BaseFragment<FragmentSearchSongBinding>() {
             }
             created.onClickSongMore = { song -> showMoreOptions(song) }
             created.onClickSinger = { singer ->
-                searchViewModel.recordCurrentQuery()
                 val action = FragmentSearchSongDirections
                     .actionFragmentSearchSongToSingerDetailFragment(singer.id)
                 findNavController().navigate(action)

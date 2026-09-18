@@ -46,20 +46,53 @@ object SearchCatalog {
     fun relatedNames(
         songs: List<Song>,
         singers: List<Singer>,
+        query: String = "",
         limit: Int = RELATED_NAME_LIMIT,
     ): List<String> {
+        val titles = uniqueFoldedNames(songs.asSequence().map { it.title })
+        val artists = uniqueFoldedNames(
+            singers.asSequence().map { it.name } +
+                songs.asSequence().map { it.nameSinger },
+        )
+        val foldedQuery = VietnameseFold.fold(query)
+        val titleQueue = prioritizeQueryMatches(titles, foldedQuery).toMutableList()
+        val artistQueue = prioritizeQueryMatches(artists, foldedQuery).toMutableList()
+
         val seen = mutableSetOf<String>()
-        val names = songs.asSequence().map { it.title } +
-            singers.asSequence().map { it.name }
+        val names = ArrayList<String>(limit)
+        var takeTitle = titleQueue.any { VietnameseFold.contains(it, foldedQuery) } ||
+            artistQueue.none { VietnameseFold.contains(it, foldedQuery) }
+
+        while (names.size < limit && (titleQueue.isNotEmpty() || artistQueue.isNotEmpty())) {
+            val primary = if (takeTitle) titleQueue else artistQueue
+            val fallback = if (takeTitle) artistQueue else titleQueue
+            val next = primary.removeFirstOrNull() ?: fallback.removeFirstOrNull() ?: break
+            val folded = VietnameseFold.fold(next)
+            if (folded.isNotBlank() && seen.add(folded)) {
+                names.add(next)
+            }
+            takeTitle = !takeTitle
+        }
         return names
+    }
+
+    private fun uniqueFoldedNames(values: Sequence<String>): List<String> {
+        val seen = mutableSetOf<String>()
+        return values
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .filter { candidate ->
                 val folded = VietnameseFold.fold(candidate)
                 folded.isNotBlank() && seen.add(folded)
             }
-            .take(limit)
             .toList()
+    }
+
+    private fun prioritizeQueryMatches(names: List<String>, foldedQuery: String): List<String> {
+        if (foldedQuery.isBlank()) return names
+        val matches = names.filter { VietnameseFold.contains(it, foldedQuery) }
+        val rest = names.filter { !VietnameseFold.contains(it, foldedQuery) }
+        return matches + rest
     }
 
     fun pickSuggestions(

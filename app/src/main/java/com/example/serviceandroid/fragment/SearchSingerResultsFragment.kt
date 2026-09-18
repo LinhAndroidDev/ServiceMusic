@@ -28,7 +28,6 @@ class SearchSingerResultsFragment : BaseFragment<FragmentSearchSongResultsBindin
         binding.tvSearchPageEmpty.setText(R.string.search_singers_empty)
         val adapter = SearchSingerAdapter().also { created ->
             created.onClickSinger = { singer ->
-                searchViewModel.recordCurrentQuery()
                 val action = FragmentSearchSongDirections
                     .actionFragmentSearchSongToSingerDetailFragment(singer.id)
                 requireParentFragment().findNavController().navigate(action)

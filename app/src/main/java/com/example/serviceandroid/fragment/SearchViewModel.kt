@@ -67,15 +67,13 @@ class SearchViewModel @Inject constructor(
     }
 
     fun commitQuery(raw: String) {
-        runSearch(raw, SearchResultsMode.COMMITTED)
-    }
-
-    fun recordCurrentQuery() {
-        val keyword = _uiState.value.query.trim()
-        if (keyword.isBlank()) return
-        viewModelScope.launch {
-            searchHistoryRepository.recordQuery(keyword)
+        val keyword = raw.trim()
+        if (keyword.isNotBlank()) {
+            viewModelScope.launch {
+                searchHistoryRepository.recordQuery(keyword)
+            }
         }
+        runSearch(raw, SearchResultsMode.COMMITTED)
     }
 
     fun deleteRecentQuery(normalizedQuery: String) {
@@ -130,7 +128,7 @@ class SearchViewModel @Inject constructor(
                 query = keyword,
                 songs = songs,
                 singers = singers,
-                relatedNames = SearchCatalog.relatedNames(songs, singers),
+                relatedNames = SearchCatalog.relatedNames(songs, singers, keyword),
                 isSearching = false,
                 mode = mode,
             )

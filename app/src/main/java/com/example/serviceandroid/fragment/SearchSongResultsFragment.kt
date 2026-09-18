@@ -35,7 +35,6 @@ class SearchSongResultsFragment : BaseFragment<FragmentSearchSongResultsBinding>
         binding.tvSearchPageEmpty.setText(R.string.search_songs_empty)
         val adapter = SearchSongAdapter().also { created ->
             created.onClickSong = { song ->
-                searchViewModel.recordCurrentQuery()
                 if (playbackViewModel.playFromVisibleList(
                         requireContext(),
                         searchViewModel.uiState.value.songs,

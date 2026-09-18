@@ -40,7 +40,7 @@ class SearchCatalogTest {
     }
 
     @Test
-    fun relatedNames_takesUniqueTitlesThenSingersUpToThree() {
+    fun relatedNames_interleavesTitlesAndSingersUpToThree() {
         val songs = listOf(
             song("1", "Sơn Tùng", "A", "Việt"),
             song("2", "son tung", "B", "Việt"),
@@ -52,8 +52,23 @@ class SearchCatalogTest {
         )
 
         assertEquals(
-            listOf("Sơn Tùng", "Chúng Ta Của Hiện Tại", "Sơn Tùng M-TP"),
+            listOf("Sơn Tùng", "Sơn Tùng M-TP", "Chúng Ta Của Hiện Tại"),
             SearchCatalog.relatedNames(songs, singers),
+        )
+    }
+
+    @Test
+    fun relatedNames_includesArtistWhenQueryMatchesSinger() {
+        val songs = listOf(
+            song("1", "Chúng Ta Của Hiện Tại", "Sơn Tùng M-TP", "Việt"),
+            song("2", "Nơi Này Có Anh", "Sơn Tùng M-TP", "Việt"),
+            song("3", "Có Chắc Yêu Là Đây", "Sơn Tùng M-TP", "Việt"),
+        )
+        val singers = listOf(Singer("a", "Sơn Tùng M-TP", "", ""))
+
+        assertEquals(
+            listOf("Sơn Tùng M-TP", "Chúng Ta Của Hiện Tại", "Nơi Này Có Anh"),
+            SearchCatalog.relatedNames(songs, singers, "son tung"),
         )
     }
 
