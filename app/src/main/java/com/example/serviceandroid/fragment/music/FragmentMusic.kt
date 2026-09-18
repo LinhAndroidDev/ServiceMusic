@@ -35,7 +35,9 @@ import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.utils.loadSingerAvatar
 import com.example.serviceandroid.utils.loadSongThumbnail
+import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.DialogConfirm
+import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.databinding.FragmentMusicBinding
 import com.example.serviceandroid.databinding.ItemMusicPlayerPageBinding
 import com.example.serviceandroid.databinding.ItemMusicSingerPageBinding
@@ -356,6 +358,18 @@ class FragmentMusic : BottomSheetDialogFragment() {
         binding.backMusic.setOnClickListener {
             dismiss()
         }
+        binding.menuMusic.setOnClickListener {
+            showSongOptions()
+        }
+    }
+
+    private fun showSongOptions() {
+        val song = playbackViewModel.playbackState.value.currentSong ?: return
+        val dialog = BottomSheetOptionMusic()
+        dialog.arguments = Bundle().apply {
+            putParcelable(Constant.KEY_SONG, song)
+        }
+        dialog.show(parentFragmentManager, "song_options")
     }
 
     /** Re-bind / play when the sheet is already showing (e.g. open another song). */

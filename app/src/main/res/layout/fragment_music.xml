@@ -66,10 +66,11 @@
                 </LinearLayout>
 
                 <ImageView
+                    android:id="@+id/menuMusic"
                     android:layout_width="25dp"
                     android:layout_height="25dp"
                     android:layout_alignParentEnd="true"
-                    android:importantForAccessibility="no"
+                    android:contentDescription="@string/song_options"
                     android:src="@drawable/ic_menu"
                     app:tint="@color/white" />
             </RelativeLayout>
