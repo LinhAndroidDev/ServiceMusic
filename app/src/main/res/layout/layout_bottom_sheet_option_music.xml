@@ -67,6 +67,33 @@
             android:layout_height="0.8dp"/>
 
         <LinearLayout
+            android:id="@+id/sleepTimer"
+            android:layout_marginTop="10dp"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/imgSleepTimer"
+                android:src="@drawable/ic_timer"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                app:tint="@color/black"/>
+
+            <TextView
+                android:id="@+id/tvSleepTimer"
+                android:layout_marginStart="20dp"
+                android:text="@string/sleep_timer_menu"
+                android:textSize="16sp"
+                android:textColor="@color/text_black"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/downloadSong"
             android:layout_marginTop="10dp"
             android:paddingHorizontal="20dp"

@@ -80,6 +80,29 @@ class MusicServiceConnector @Inject constructor() {
         }
     }
 
+    fun setSleepTimer(
+        context: Context,
+        option: SleepTimerOption,
+        durationMs: Long? = null,
+    ) {
+        musicBinder?.setSleepTimer(option, durationMs) ?: ContextCompat.startForegroundService(
+            context,
+            Intent(context, MusicService::class.java).apply {
+                putExtra(Constants.EXTRA_SLEEP_TIMER_OPTION, option.name)
+                putExtra(Constants.EXTRA_SLEEP_TIMER_DURATION_MS, durationMs ?: -1L)
+            },
+        )
+    }
+
+    fun cancelSleepTimer(context: Context) {
+        musicBinder?.cancelSleepTimer() ?: ContextCompat.startForegroundService(
+            context,
+            Intent(context, MusicService::class.java).apply {
+                putExtra(Constants.EXTRA_SLEEP_TIMER_CANCEL, true)
+            },
+        )
+    }
+
     fun pause(context: Context) {
         musicBinder?.pause() ?: dispatchAction(context, Action.ACTION_PAUSE)
     }

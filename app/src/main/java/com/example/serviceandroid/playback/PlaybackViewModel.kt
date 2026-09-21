@@ -24,6 +24,7 @@ class PlaybackViewModel @Inject constructor(
 ) : ViewModel() {
 
     val playbackState: StateFlow<PlaybackUiState> = stateHolder.state
+    val sleepTimerState: StateFlow<SleepTimerState> = stateHolder.sleepTimer
 
     private val _miniPlayerIsFavourite = MutableStateFlow(false)
     val miniPlayerIsFavourite: StateFlow<Boolean> = _miniPlayerIsFavourite.asStateFlow()
@@ -90,6 +91,14 @@ class PlaybackViewModel @Inject constructor(
     }
 
     fun playFirstSong(context: Context) = playSongAtIndex(context, 0)
+
+    fun setSleepTimer(
+        context: Context,
+        option: SleepTimerOption,
+        durationMs: Long? = null,
+    ) = connector.setSleepTimer(context, option, durationMs)
+
+    fun cancelSleepTimer(context: Context) = connector.cancelSleepTimer(context)
 
     fun pause(context: Context) = connector.pause(context)
 

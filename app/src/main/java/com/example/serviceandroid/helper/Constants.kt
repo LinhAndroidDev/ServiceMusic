@@ -4,6 +4,9 @@ object Constants {
     /** Same string as legacy [com.example.serviceandroid.MainActivity.MESSAGE_MAIN] for intents. */
     const val EXTRA_START_SONG = "MESSAGE_MAIN"
     const val EXTRA_SEEK_POSITION_MS = "EXTRA_SEEK_POSITION_MS"
+    const val EXTRA_SLEEP_TIMER_OPTION = "EXTRA_SLEEP_TIMER_OPTION"
+    const val EXTRA_SLEEP_TIMER_DURATION_MS = "EXTRA_SLEEP_TIMER_DURATION_MS"
+    const val EXTRA_SLEEP_TIMER_CANCEL = "EXTRA_SLEEP_TIMER_CANCEL"
 
     const val RECEIVER_ACTION_MUSIC = "RECEIVER_ACTION_MUSIC"
 

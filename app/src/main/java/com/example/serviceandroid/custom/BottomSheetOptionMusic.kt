@@ -3,6 +3,8 @@ package com.example.serviceandroid.custom
 import android.content.res.ColorStateList
 import android.view.View
 import android.widget.Toast
+import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -13,6 +15,7 @@ import com.example.serviceandroid.base.BaseBottomSheetDialogFragment
 import com.example.serviceandroid.database.DownloadStatus
 import com.example.serviceandroid.databinding.LayoutBottomSheetOptionMusicBinding
 import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.Convert
 import com.example.serviceandroid.utils.loadSongThumbnail
@@ -25,6 +28,7 @@ import kotlinx.coroutines.launch
 class BottomSheetOptionMusic :
     BaseBottomSheetDialogFragment<LayoutBottomSheetOptionMusicBinding>() {
     private val viewModel by viewModels<BottomSheetOptionMusicViewModel>()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private var isFavourite = false
     private var songModel: Song? = null
     var removeFavourite: (() -> Unit)? = null
@@ -33,6 +37,17 @@ class BottomSheetOptionMusic :
         get() = R.layout.layout_bottom_sheet_option_music
 
     override fun initView() {
+        binding.sleepTimer.isVisible =
+            arguments?.getBoolean(Constant.KEY_SHOW_SLEEP_TIMER, false) == true
+        if (binding.sleepTimer.isVisible) {
+            bindSleepTimer(playbackViewModel.sleepTimerState.value.isActive)
+            lifecycleScope.launch {
+                playbackViewModel.sleepTimerState.collect { timer ->
+                    bindSleepTimer(timer.isActive)
+                }
+            }
+        }
+
         val song: Song? = arguments?.getParcelable(Constant.KEY_SONG)
         song?.let {
             songModel = it
@@ -69,6 +84,15 @@ class BottomSheetOptionMusic :
         }
     }
 
+    private fun bindSleepTimer(isActive: Boolean) {
+        val color = requireContext().getColor(if (isActive) R.color.purple_1 else R.color.black)
+        binding.imgSleepTimer.setImageResource(
+            if (isActive) R.drawable.ic_timer_fill else R.drawable.ic_timer,
+        )
+        binding.imgSleepTimer.imageTintList = ColorStateList.valueOf(color)
+        binding.tvSleepTimer.setTextColor(color)
+    }
+
     private fun bindDownloadStatus(status: DownloadStatus?) {
         when (status) {
             DownloadStatus.COMPLETED -> {
@@ -102,6 +126,11 @@ class BottomSheetOptionMusic :
     }
 
     override fun onClickView() {
+        binding.sleepTimer.setOnClickListener {
+            val manager = parentFragmentManager
+            dismiss()
+            BottomSheetSleepTimer().show(manager, "sleep_timer")
+        }
         binding.addFavourite.setOnClickListener {
             if (!isFavourite) {
                 songModel?.let {

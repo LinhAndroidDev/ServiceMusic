@@ -66,4 +66,21 @@
     <string name="favourite_operation_failed">Không thể cập nhật bài hát yêu thích</string>
     <string name="category_songs_count">%d bài hát</string>
     <string name="category_songs_empty">Chưa có bài hát thuộc thể loại này</string>
+    <string name="sleep_timer_menu">Hẹn giờ</string>
+    <string name="sleep_timer_title">Hẹn giờ tắt</string>
+    <string name="sleep_timer_15">15 phút</string>
+    <string name="sleep_timer_30">30 phút</string>
+    <string name="sleep_timer_45">45 phút</string>
+    <string name="sleep_timer_60">1 giờ</string>
+    <string name="sleep_timer_end_of_track">Tới cuối bài</string>
+    <string name="sleep_timer_custom">Tuỳ chọn khác</string>
+    <string name="sleep_timer_cancel_remaining">Tắt hẹn giờ (Còn lại %1$s)</string>
+    <string name="sleep_timer_remaining_text">Còn lại %1$s</string>
+    <string name="sleep_timer_custom_title">Tuỳ chỉnh thời gian</string>
+    <string name="sleep_timer_hours">Giờ</string>
+    <string name="sleep_timer_minutes">Phút</string>
+    <string name="sleep_timer_confirm">Xác nhận</string>
+    <string name="sleep_timer_cancel">Huỷ</string>
+    <string name="sleep_timer_expired">Đã tắt nhạc</string>
+    <string name="sleep_timer_custom_invalid">Chọn ít nhất 1 phút</string>
 </resources>

@@ -14,14 +14,26 @@ class PlaybackStateHolder @Inject constructor() {
     private val _state = MutableStateFlow(PlaybackUiState.idle())
     val state: StateFlow<PlaybackUiState> = _state.asStateFlow()
 
+    private val _sleepTimer = MutableStateFlow(SleepTimerState.idle())
+    val sleepTimer: StateFlow<SleepTimerState> = _sleepTimer.asStateFlow()
+
     private val openFromMiniPlayerPending = AtomicBoolean(false)
 
     fun update(transform: (PlaybackUiState) -> PlaybackUiState) {
         _state.update(transform)
     }
 
+    fun updateSleepTimer(state: SleepTimerState) {
+        _sleepTimer.value = state
+    }
+
+    fun resetSleepTimer() {
+        _sleepTimer.value = SleepTimerState.idle()
+    }
+
     fun reset() {
         _state.value = PlaybackUiState.idle()
+        resetSleepTimer()
     }
 
     fun setPendingOpenFromMiniPlayer(pending: Boolean) {

@@ -368,6 +368,7 @@ class FragmentMusic : BottomSheetDialogFragment() {
         val dialog = BottomSheetOptionMusic()
         dialog.arguments = Bundle().apply {
             putParcelable(Constant.KEY_SONG, song)
+            putBoolean(Constant.KEY_SHOW_SLEEP_TIMER, true)
         }
         dialog.show(parentFragmentManager, "song_options")
     }
