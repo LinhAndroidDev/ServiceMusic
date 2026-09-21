@@ -84,6 +84,32 @@
         <argument
             android:name="playlistId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_playlistDetailFragment_to_addPlaylistSongsFragment"
+            app:destination="@id/addPlaylistSongsFragment" />
+        <action
+            android:id="@+id/action_playlistDetailFragment_to_editPlaylistFragment"
+            app:destination="@id/editPlaylistFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addPlaylistSongsFragment"
+        android:name="com.example.serviceandroid.fragment.playlist.AddPlaylistSongsFragment"
+        android:label="add_playlist_songs_fragment"
+        tools:layout="@layout/fragment_add_playlist_songs">
+        <argument
+            android:name="playlistId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editPlaylistFragment"
+        android:name="com.example.serviceandroid.fragment.playlist.EditPlaylistFragment"
+        android:label="edit_playlist_fragment"
+        tools:layout="@layout/fragment_edit_playlist">
+        <argument
+            android:name="playlistId"
+            app:argType="string" />
     </fragment>
 
     <fragment

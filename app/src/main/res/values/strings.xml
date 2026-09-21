@@ -107,4 +107,17 @@
     <string name="playlist_login_required">Bạn cần đăng nhập để sử dụng playlist</string>
     <string name="playlist_offline">Cần kết nối internet để thay đổi playlist</string>
     <string name="playlist_operation_failed">Không thể cập nhật playlist</string>
+    <string name="playlist_menu_add">Thêm bài hát</string>
+    <string name="playlist_menu_edit">Chỉnh sửa playlist</string>
+    <string name="playlist_menu_delete">Xoá playlist</string>
+    <string name="playlist_add_songs_title">Thêm bài hát vào playlist</string>
+    <string name="playlist_edit_title">Chỉnh sửa playlist</string>
+    <string name="playlist_save">Lưu</string>
+    <string name="playlist_updated">Đã lưu playlist</string>
+    <string name="playlist_deleted">Đã xoá playlist</string>
+    <string name="playlist_delete_title">Xoá playlist?</string>
+    <string name="playlist_delete_message">Playlist và các bài hát trong đó sẽ bị xoá khỏi tài khoản.</string>
+    <string name="playlist_delete_confirm">Xoá</string>
+    <string name="playlist_search_empty">Không có bài hát</string>
+    <string name="playlist_search_hint">Tìm kiếm bài hát, nghệ sĩ...</string>
 </resources>

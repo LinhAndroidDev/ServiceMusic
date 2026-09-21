@@ -56,6 +56,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
     var onClickUnFavourite: ((Int) -> Unit)? = null
     var isFavourite = false
     var onClickMoreOption: ((Song) -> Unit)? = null
+    var showMoreOption: Boolean = true
 
     override fun getLayout(): Int = R.layout.item_pager_new_release
 
@@ -75,6 +76,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
                 holder.v.imgFavourite.setOnClickListener {
                     onClickUnFavourite?.invoke(position)
                 }
+                holder.v.moreOption.isVisible = showMoreOption
                 holder.v.moreOption.setOnClickListener {
                     onClickMoreOption?.invoke(item)
                 }

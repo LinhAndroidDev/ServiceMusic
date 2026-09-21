@@ -36,6 +36,17 @@ interface PlaylistRepository {
         song: Song,
         currentCoverUrl: String = "",
     ): PlaylistMutationResult
+    suspend fun updatePlaylist(
+        playlistId: String,
+        title: String,
+        isPublic: Boolean,
+    ): PlaylistMutationResult
+    suspend fun reorderSongs(
+        playlistId: String,
+        songIds: List<String>,
+        firstCoverUrl: String,
+    ): PlaylistMutationResult
+    suspend fun deletePlaylist(playlistId: String): PlaylistMutationResult
 }
 
 @Singleton
@@ -108,10 +119,12 @@ class PlaylistRepositoryImpl @Inject constructor(
 
         return runCatching {
             val playlistRef = playlistsCollection(userId.orEmpty()).document(playlistId)
-            val songRef = playlistRef.collection(SONGS_COLLECTION).document(song.id)
-            if (songRef.get().await().exists()) {
+            val songsRef = playlistRef.collection(SONGS_COLLECTION)
+            val existing = songsRef.get().await()
+            if (existing.documents.any { it.id == song.id }) {
                 return PlaylistMutationResult.AlreadyExists
             }
+            val nextOrder = existing.documents.maxOfOrNull { songOrder(it) }?.plus(1) ?: 0L
             val updates = hashMapOf<String, Any>(
                 FIELD_SONG_COUNT to FieldValue.increment(1),
                 FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
@@ -120,12 +133,100 @@ class PlaylistRepositoryImpl @Inject constructor(
                 updates[FIELD_COVER_URL] = song.thumbnailUrl
             }
             val batch = firestore.batch()
-            batch.set(songRef, song.toPlaylistSongMap(), SetOptions.merge())
+            batch.set(
+                songsRef.document(song.id),
+                song.toPlaylistSongMap(nextOrder),
+                SetOptions.merge(),
+            )
             batch.update(playlistRef, updates)
             batch.commit().await()
             PlaylistMutationResult.Success(playlistId)
         }.getOrElse {
             PlaylistMutationResult.Failure(it.message ?: "Không thể thêm bài hát vào playlist")
+        }
+    }
+
+    override suspend fun updatePlaylist(
+        playlistId: String,
+        title: String,
+        isPublic: Boolean,
+    ): PlaylistMutationResult {
+        val name = title.trim()
+        val userId = authRepository.currentUser()?.uid
+        playlistWritePrecondition(networkMonitor.isOnlineNow(), userId)?.let { return it }
+        if (playlistId.isBlank()) {
+            return PlaylistMutationResult.Failure("Playlist không tồn tại")
+        }
+        if (name.isBlank()) {
+            return PlaylistMutationResult.Failure("Tên playlist không được để trống")
+        }
+        return runCatching {
+            playlistsCollection(userId.orEmpty()).document(playlistId)
+                .update(
+                    mapOf(
+                        FIELD_TITLE to name,
+                        FIELD_IS_PUBLIC to isPublic,
+                        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+                    ),
+                )
+                .await()
+            PlaylistMutationResult.Success(playlistId)
+        }.getOrElse {
+            PlaylistMutationResult.Failure(it.message ?: "Không thể cập nhật playlist")
+        }
+    }
+
+    override suspend fun reorderSongs(
+        playlistId: String,
+        songIds: List<String>,
+        firstCoverUrl: String,
+    ): PlaylistMutationResult {
+        val userId = authRepository.currentUser()?.uid
+        playlistWritePrecondition(networkMonitor.isOnlineNow(), userId)?.let { return it }
+        if (playlistId.isBlank()) {
+            return PlaylistMutationResult.Failure("Playlist không tồn tại")
+        }
+        return runCatching {
+            val playlistRef = playlistsCollection(userId.orEmpty()).document(playlistId)
+            val songsRef = playlistRef.collection(SONGS_COLLECTION)
+            val batch = firestore.batch()
+            songIds.forEachIndexed { index, songId ->
+                if (songId.isNotBlank()) {
+                    batch.update(songsRef.document(songId), mapOf(FIELD_ORDER to index.toLong()))
+                }
+            }
+            val playlistUpdates = hashMapOf<String, Any>(
+                FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+            )
+            if (firstCoverUrl.isNotBlank()) {
+                playlistUpdates[FIELD_COVER_URL] = firstCoverUrl
+            }
+            batch.update(playlistRef, playlistUpdates)
+            batch.commit().await()
+            PlaylistMutationResult.Success(playlistId)
+        }.getOrElse {
+            PlaylistMutationResult.Failure(it.message ?: "Không thể sắp xếp playlist")
+        }
+    }
+
+    override suspend fun deletePlaylist(playlistId: String): PlaylistMutationResult {
+        val userId = authRepository.currentUser()?.uid
+        playlistWritePrecondition(networkMonitor.isOnlineNow(), userId)?.let { return it }
+        if (playlistId.isBlank()) {
+            return PlaylistMutationResult.Failure("Playlist không tồn tại")
+        }
+        return runCatching {
+            val playlistRef = playlistsCollection(userId.orEmpty()).document(playlistId)
+            val songs = playlistRef.collection(SONGS_COLLECTION).get().await()
+            songs.documents.chunked(400).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { batch.delete(it.reference) }
+                batch.commit().await()
+            }
+            playlistRef.delete().await()
+            PlaylistMutationResult.Success(playlistId)
+        }.getOrElse {
+            PlaylistMutationResult.Failure(it.message ?: "Không thể xóa playlist")
         }
     }
 
@@ -163,13 +264,16 @@ class PlaylistRepositoryImpl @Inject constructor(
             val registration = playlistsCollection(userId)
                 .document(playlistId)
                 .collection(SONGS_COLLECTION)
-                .orderBy(FIELD_ADDED_AT, Query.Direction.ASCENDING)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
                         trySend(emptyList())
                         return@addSnapshotListener
                     }
-                    trySend(snapshot?.documents.orEmpty().mapNotNull(::toSong))
+                    val songs = snapshot?.documents.orEmpty()
+                        .mapNotNull(::toSongRecord)
+                        .sortedWith(compareBy<PlaylistSongRecord> { it.order }.thenBy { it.addedAt })
+                        .map { it.song }
+                    trySend(songs)
                 }
             awaitClose { registration.remove() }
         }
@@ -179,7 +283,7 @@ class PlaylistRepositoryImpl @Inject constructor(
             .document(userId)
             .collection(PLAYLISTS_COLLECTION)
 
-    private fun Song.toPlaylistSongMap(): Map<String, Any?> = mapOf(
+    private fun Song.toPlaylistSongMap(order: Long): Map<String, Any?> = mapOf(
         "songId" to id,
         "title" to title,
         "nameSinger" to nameSinger,
@@ -190,8 +294,24 @@ class PlaylistRepositoryImpl @Inject constructor(
         "categoryId" to categoryId,
         "categoryName" to categoryName,
         "views" to views,
+        FIELD_ORDER to order,
         FIELD_ADDED_AT to FieldValue.serverTimestamp(),
     )
+
+    private fun songOrder(document: DocumentSnapshot): Long {
+        val order = document.getLong(FIELD_ORDER)
+        if (order != null) return order
+        return document.getTimestamp(FIELD_ADDED_AT)?.toDate()?.time ?: Long.MAX_VALUE
+    }
+
+    private fun toSongRecord(document: DocumentSnapshot): PlaylistSongRecord? {
+        val song = toSong(document) ?: return null
+        return PlaylistSongRecord(
+            song = song,
+            order = document.getLong(FIELD_ORDER) ?: Long.MAX_VALUE,
+            addedAt = document.getTimestamp(FIELD_ADDED_AT)?.toDate()?.time ?: 0L,
+        )
+    }
 
     private fun toPlaylist(document: DocumentSnapshot): UserPlaylist? {
         val title = document.getString(FIELD_TITLE).orEmpty()
@@ -234,8 +354,15 @@ class PlaylistRepositoryImpl @Inject constructor(
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_AT = "updatedAt"
         const val FIELD_ADDED_AT = "addedAt"
+        const val FIELD_ORDER = "order"
     }
 }
+
+private data class PlaylistSongRecord(
+    val song: Song,
+    val order: Long,
+    val addedAt: Long,
+)
 
 internal fun playlistWritePrecondition(
     isOnline: Boolean,

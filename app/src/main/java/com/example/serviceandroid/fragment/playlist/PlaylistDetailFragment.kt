@@ -10,15 +10,21 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import android.widget.Toast
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
+import com.example.serviceandroid.custom.BottomSheetPlaylistMenu
+import com.example.serviceandroid.custom.DialogConfirm
+import com.example.serviceandroid.data.playlist.PlaylistMutationResult
 import com.example.serviceandroid.databinding.FragmentPlaylistDetailBinding
 import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
+import com.example.serviceandroid.utils.loadSongThumbnail
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -68,6 +74,7 @@ class PlaylistDetailFragment : BaseFragment<FragmentPlaylistDetailBinding>() {
                     }
                     binding.notFoundSong.isVisible = songs.isEmpty()
                     binding.rcvPlaylistSongs.isVisible = songs.isNotEmpty()
+                    bindCover(songs.firstOrNull()?.thumbnailUrl)
                     adapter.items = songs.toMutableList()
                     adapter.notifyDataSetChanged()
                 }
@@ -79,6 +86,60 @@ class PlaylistDetailFragment : BaseFragment<FragmentPlaylistDetailBinding>() {
         binding.backPlaylist.setOnClickListener {
             findNavController().popBackStack()
         }
+        binding.menuPlaylist.setOnClickListener { showPlaylistMenu() }
+    }
+
+    private fun bindCover(url: String?) {
+        if (url.isNullOrBlank()) {
+            binding.playlistCover.setImageResource(R.drawable.ic_playlist)
+        } else {
+            binding.playlistCover.loadSongThumbnail(url)
+        }
+    }
+
+    private fun showPlaylistMenu() {
+        BottomSheetPlaylistMenu().apply {
+            onAddSongs = {
+                findNavController().navigate(
+                    PlaylistDetailFragmentDirections
+                        .actionPlaylistDetailFragmentToAddPlaylistSongsFragment(
+                            viewModel.playlistId,
+                        ),
+                )
+            }
+            onEditPlaylist = {
+                findNavController().navigate(
+                    PlaylistDetailFragmentDirections
+                        .actionPlaylistDetailFragmentToEditPlaylistFragment(
+                            viewModel.playlistId,
+                        ),
+                )
+            }
+            onDeletePlaylist = { confirmDeletePlaylist() }
+        }.show(parentFragmentManager, "playlist_menu")
+    }
+
+    private fun confirmDeletePlaylist() {
+        DialogConfirm().apply {
+            title = getString(R.string.playlist_delete_title)
+            message = getString(R.string.playlist_delete_message)
+            confirmText = getString(R.string.playlist_delete_confirm)
+            cancelText = getString(R.string.playlist_cancel)
+            onClickRemove = {
+                viewModel.deletePlaylist { result ->
+                    if (result is PlaylistMutationResult.Success) {
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.playlist_deleted,
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        findNavController().popBackStack()
+                    } else {
+                        (activity as? MainActivity)?.showPlaylistMutation(result)
+                    }
+                }
+            }
+        }.show(parentFragmentManager, "delete_playlist")
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =

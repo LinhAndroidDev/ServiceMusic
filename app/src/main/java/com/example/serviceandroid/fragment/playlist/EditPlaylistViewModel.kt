@@ -15,12 +15,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class PlaylistDetailViewModel @Inject constructor(
+class EditPlaylistViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    val playlistId: String = savedStateHandle.get<String>(ARG_PLAYLIST_ID).orEmpty()
+    private val playlistId: String = savedStateHandle.get<String>(ARG_PLAYLIST_ID).orEmpty()
 
     val playlist: StateFlow<UserPlaylist?> = playlistRepository.observePlaylist(playlistId)
         .stateIn(
@@ -36,9 +36,25 @@ class PlaylistDetailViewModel @Inject constructor(
             initialValue = emptyList(),
         )
 
-    fun deletePlaylist(onResult: (PlaylistMutationResult) -> Unit) {
+    fun savePlaylist(
+        title: String,
+        isPublic: Boolean,
+        onResult: (PlaylistMutationResult) -> Unit,
+    ) {
         viewModelScope.launch {
-            onResult(playlistRepository.deletePlaylist(playlistId))
+            onResult(playlistRepository.updatePlaylist(playlistId, title, isPublic))
+        }
+    }
+
+    fun persistOrder(songs: List<Song>, onResult: (PlaylistMutationResult) -> Unit = {}) {
+        viewModelScope.launch {
+            onResult(
+                playlistRepository.reorderSongs(
+                    playlistId = playlistId,
+                    songIds = songs.map { it.id },
+                    firstCoverUrl = songs.firstOrNull()?.thumbnailUrl.orEmpty(),
+                ),
+            )
         }
     }
 
