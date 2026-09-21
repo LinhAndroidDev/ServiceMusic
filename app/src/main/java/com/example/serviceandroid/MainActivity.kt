@@ -48,6 +48,9 @@ import com.example.serviceandroid.data.auth.AuthUser
 import com.example.serviceandroid.data.auth.GoogleSignInHelper
 import com.example.serviceandroid.data.auth.GoogleSignInRequestResult
 import com.example.serviceandroid.data.user.UserRepository
+import com.example.serviceandroid.data.playlist.PlaylistMutationResult
+import com.example.serviceandroid.data.playlist.PlaylistRepository
+import com.example.serviceandroid.data.playlist.UserPlaylist
 import com.example.serviceandroid.database.repository.FavouriteMutationResult
 import com.example.serviceandroid.database.repository.FavouriteSongRepository
 
@@ -72,6 +75,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     @Inject
     lateinit var favouriteSongRepository: FavouriteSongRepository
+
+    @Inject
+    lateinit var playlistRepository: PlaylistRepository
 
     /** Avoid mini-player work every playback tick (reduces layout jank in FragmentMusic). */
     private var lastMiniPlayerSongId: String? = null
@@ -625,19 +631,89 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
     }
 
+    fun ensureSignedInForPlaylist(onReady: () -> Unit) {
+        if (authRepository.currentUser() != null) {
+            onReady()
+            return
+        }
+        DialogConfirm().apply {
+            title = getString(R.string.playlist_login_title)
+            message = getString(R.string.playlist_login_message)
+            confirmText = getString(R.string.favourite_login_action)
+            cancelText = getString(R.string.favourite_login_later)
+            onClickRemove = {
+                signInWithGoogleThen(
+                    offlineMessageRes = R.string.playlist_offline,
+                    onReady = onReady,
+                )
+            }
+        }.show(supportFragmentManager, "playlist_login")
+    }
+
+    fun addSongToPlaylist(playlist: UserPlaylist, song: Song) {
+        lifecycleScope.launch {
+            showPlaylistMutation(
+                playlistRepository.addSong(playlist.id, song, playlist.coverUrl),
+                playlist.title,
+            )
+        }
+    }
+
+    fun createPlaylistAndAddSong(title: String, isPublic: Boolean, song: Song) {
+        lifecycleScope.launch {
+            when (val created = playlistRepository.createPlaylist(title, isPublic)) {
+                is PlaylistMutationResult.Success -> showPlaylistMutation(
+                    playlistRepository.addSong(created.playlistId, song),
+                    title,
+                )
+                else -> showPlaylistMutation(created)
+            }
+        }
+    }
+
+    fun showPlaylistMutation(result: PlaylistMutationResult, playlistTitle: String? = null) {
+        when (result) {
+            is PlaylistMutationResult.Success -> Toast.makeText(
+                this,
+                if (playlistTitle.isNullOrBlank()) {
+                    getString(R.string.playlist_created)
+                } else {
+                    getString(R.string.playlist_added, playlistTitle)
+                },
+                Toast.LENGTH_SHORT,
+            ).show()
+            PlaylistMutationResult.AlreadyExists -> Toast.makeText(
+                this,
+                R.string.playlist_already_added,
+                Toast.LENGTH_SHORT,
+            ).show()
+            PlaylistMutationResult.RequiresLogin -> ensureSignedInForPlaylist {}
+            PlaylistMutationResult.Offline -> showFavouriteToast(R.string.playlist_offline)
+            is PlaylistMutationResult.Failure -> showFavouriteToast(
+                result.message,
+                R.string.playlist_operation_failed,
+            )
+        }
+    }
+
     private fun showFavouriteLoginDialog(song: Song) {
         DialogConfirm().apply {
             title = getString(R.string.favourite_login_title)
             message = getString(R.string.favourite_login_message)
             confirmText = getString(R.string.favourite_login_action)
             cancelText = getString(R.string.favourite_login_later)
-            onClickRemove = { signInAndAddFavourite(song) }
+            onClickRemove = {
+                signInWithGoogleThen(
+                    offlineMessageRes = R.string.favourite_offline,
+                    onReady = { requestAddFavourite(song) },
+                )
+            }
         }.show(supportFragmentManager, "favourite_login")
     }
 
-    private fun signInAndAddFavourite(song: Song) {
+    private fun signInWithGoogleThen(offlineMessageRes: Int, onReady: () -> Unit) {
         if (!networkMonitor.isOnlineNow()) {
-            showFavouriteToast(R.string.favourite_offline)
+            showFavouriteToast(offlineMessageRes)
             return
         }
         lifecycleScope.launch {
@@ -651,7 +727,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                     }
                     runCatching { userRepository.upsertAfterLogin(user) }
                     updateProfileTabAvatar(user)
-                    requestAddFavourite(song)
+                    onReady()
                 }
                 is GoogleSignInRequestResult.Error -> showFavouriteToast(request.messageRes)
                 GoogleSignInRequestResult.Cancelled -> Unit

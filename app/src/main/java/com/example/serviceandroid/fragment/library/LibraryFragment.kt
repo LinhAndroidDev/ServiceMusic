@@ -10,9 +10,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import com.example.serviceandroid.R
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.adapter.LibraryAdapter
 import com.example.serviceandroid.adapter.ListenRecentAdapter
+import com.example.serviceandroid.adapter.UserPlaylistAdapter
 import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.custom.DialogCreatePlaylist
 import com.example.serviceandroid.custom.VoiceSearch
 import com.example.serviceandroid.databinding.FragmentLibraryBinding
 import com.example.serviceandroid.fragment.downloaded.DownloadedSongsViewModel
@@ -30,7 +33,9 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
     private val downloadedViewModel by viewModels<DownloadedSongsViewModel>()
     private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private val recentHistoryViewModel by viewModels<RecentHistoryViewModel>()
+    private val playlistViewModel by viewModels<PlaylistViewModel>()
     private lateinit var recentAdapter: ListenRecentAdapter
+    private lateinit var playlistAdapter: UserPlaylistAdapter
     private val voiceSearch = VoiceSearch(this) { query ->
         findNavController().navigate(
             LibraryFragmentDirections.actionLibraryFragmentToFragmentSearchSong(query),
@@ -41,6 +46,7 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
         binding.header.title.text = "Thư viện"
         initLibrary()
         initRecentHistory()
+        initPlaylists()
     }
 
     override fun onClickView() {
@@ -48,6 +54,7 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
             findNavController().navigate(R.id.action_libraryFragment_to_fragmentSearchSong)
         }
         binding.header.micro.setOnClickListener { voiceSearch.start() }
+        binding.addPlaylist.setOnClickListener { showCreatePlaylist() }
     }
 
     private fun initRecentHistory() {
@@ -81,6 +88,40 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
                     recentAdapter.submit(state.previewSongs, state.showSeeAll)
                 }
             }
+        }
+    }
+
+    private fun initPlaylists() {
+        playlistAdapter = UserPlaylistAdapter().apply {
+            onClickItem = { playlist ->
+                findNavController().navigate(
+                    LibraryFragmentDirections.actionLibraryFragmentToPlaylistDetailFragment(
+                        playlist.id,
+                    ),
+                )
+            }
+        }
+        binding.rcvPlaylists.adapter = playlistAdapter
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                playlistViewModel.playlists.collect { playlists ->
+                    playlistAdapter.submit(playlists)
+                    binding.rcvPlaylists.isVisible = playlists.isNotEmpty()
+                    binding.playlistEmpty.isVisible = playlists.isEmpty()
+                }
+            }
+        }
+    }
+
+    private fun showCreatePlaylist() {
+        (activity as? MainActivity)?.ensureSignedInForPlaylist {
+            DialogCreatePlaylist().apply {
+                onConfirm = { title, isPublic ->
+                    playlistViewModel.createPlaylist(title, isPublic) { result ->
+                        (activity as? MainActivity)?.showPlaylistMutation(result)
+                    }
+                }
+            }.show(parentFragmentManager, "create_playlist")
         }
     }
 

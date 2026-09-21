@@ -145,6 +145,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/addToPlaylist"
             android:paddingHorizontal="20dp"
             android:paddingVertical="10dp"
             android:layout_width="match_parent"
@@ -159,7 +160,7 @@
 
             <TextView
                 android:layout_marginStart="20dp"
-                android:text="Thêm vào playlist"
+                android:text="@string/playlist_add_title"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"

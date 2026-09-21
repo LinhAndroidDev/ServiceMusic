@@ -159,6 +159,14 @@ class BottomSheetOptionMusic :
             }
         }
 
+        binding.addToPlaylist.setOnClickListener {
+            val song = songModel ?: return@setOnClickListener
+            val manager = parentFragmentManager
+            dismiss()
+            (activity as? MainActivity)?.ensureSignedInForPlaylist {
+                BottomSheetPickPlaylist.newInstance(song).show(manager, "pick_playlist")
+            }
+        }
         binding.downloadSong.setOnClickListener {
             val song = songModel ?: return@setOnClickListener
             if (viewModel.downloadStatus.value == DownloadStatus.COMPLETED) {

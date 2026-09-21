@@ -1,5 +1,7 @@
 package com.example.serviceandroid.di
 
+import com.example.serviceandroid.data.playlist.PlaylistRepository
+import com.example.serviceandroid.data.playlist.PlaylistRepositoryImpl
 import com.example.serviceandroid.data.recent.RecentHistoryRepository
 import com.example.serviceandroid.data.recent.RecentHistoryRepositoryImpl
 import com.example.serviceandroid.data.repository.SongRepository
@@ -31,4 +33,10 @@ abstract class AppModule {
     abstract fun bindSearchHistoryRepository(
         impl: SearchHistoryRepositoryImpl,
     ): SearchHistoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPlaylistRepository(
+        impl: PlaylistRepositoryImpl,
+    ): PlaylistRepository
 }

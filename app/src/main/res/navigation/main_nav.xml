@@ -65,6 +65,9 @@
         <action
             android:id="@+id/action_libraryFragment_to_recentHistoryFragment"
             app:destination="@id/recentHistoryFragment" />
+        <action
+            android:id="@+id/action_libraryFragment_to_playlistDetailFragment"
+            app:destination="@id/playlistDetailFragment" />
     </fragment>
 
     <fragment
@@ -72,6 +75,16 @@
         android:name="com.example.serviceandroid.fragment.library.RecentHistoryFragment"
         android:label="recent_history_fragment"
         tools:layout="@layout/fragment_recent_history" />
+
+    <fragment
+        android:id="@+id/playlistDetailFragment"
+        android:name="com.example.serviceandroid.fragment.playlist.PlaylistDetailFragment"
+        android:label="playlist_detail_fragment"
+        tools:layout="@layout/fragment_playlist_detail">
+        <argument
+            android:name="playlistId"
+            app:argType="string" />
+    </fragment>
 
     <fragment
         android:id="@+id/zingchartFragment"
