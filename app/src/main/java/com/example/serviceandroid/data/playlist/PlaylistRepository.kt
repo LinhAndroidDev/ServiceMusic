@@ -47,6 +47,7 @@ interface PlaylistRepository {
         firstCoverUrl: String,
     ): PlaylistMutationResult
     suspend fun deletePlaylist(playlistId: String): PlaylistMutationResult
+    suspend fun removeSong(playlistId: String, songId: String): PlaylistMutationResult
 }
 
 @Singleton
@@ -227,6 +228,47 @@ class PlaylistRepositoryImpl @Inject constructor(
             PlaylistMutationResult.Success(playlistId)
         }.getOrElse {
             PlaylistMutationResult.Failure(it.message ?: "Không thể xóa playlist")
+        }
+    }
+
+    override suspend fun removeSong(
+        playlistId: String,
+        songId: String,
+    ): PlaylistMutationResult {
+        val userId = authRepository.currentUser()?.uid
+        playlistWritePrecondition(networkMonitor.isOnlineNow(), userId)?.let { return it }
+        if (playlistId.isBlank() || songId.isBlank()) {
+            return PlaylistMutationResult.Failure("Không thể xoá bài hát khỏi playlist")
+        }
+        return runCatching {
+            val playlistRef = playlistsCollection(userId.orEmpty()).document(playlistId)
+            val songsRef = playlistRef.collection(SONGS_COLLECTION)
+            val existing = songsRef.get().await()
+            val remaining = existing.documents.filter { it.id != songId }
+            if (remaining.size == existing.size()) {
+                return PlaylistMutationResult.Failure("Bài hát không có trong playlist")
+            }
+            val nextCover = remaining
+                .mapNotNull(::toSongRecord)
+                .sortedWith(compareBy<PlaylistSongRecord> { it.order }.thenBy { it.addedAt })
+                .firstOrNull()
+                ?.song
+                ?.thumbnailUrl
+                .orEmpty()
+            val batch = firestore.batch()
+            batch.delete(songsRef.document(songId))
+            batch.update(
+                playlistRef,
+                mapOf(
+                    FIELD_SONG_COUNT to FieldValue.increment(-1),
+                    FIELD_COVER_URL to nextCover,
+                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+                ),
+            )
+            batch.commit().await()
+            PlaylistMutationResult.Success(playlistId)
+        }.getOrElse {
+            PlaylistMutationResult.Failure(it.message ?: "Không thể xoá bài hát khỏi playlist")
         }
     }
 

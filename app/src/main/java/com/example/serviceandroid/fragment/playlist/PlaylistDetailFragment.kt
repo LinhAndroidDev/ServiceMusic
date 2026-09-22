@@ -52,8 +52,10 @@ class PlaylistDetailFragment : BaseFragment<FragmentPlaylistDetailBinding>() {
             onClickMoreOption = { song ->
                 val dialog = BottomSheetOptionMusic()
                 dialog.removeFavourite = null
+                dialog.onRemoveFromPlaylist = { removeSongFromPlaylist(song.id) }
                 dialog.arguments = Bundle().apply {
                     putParcelable(Constant.KEY_SONG, song)
+                    putBoolean(Constant.KEY_SHOW_REMOVE_FROM_PLAYLIST, true)
                 }
                 dialog.show(parentFragmentManager, "song_options")
             }
@@ -98,48 +100,63 @@ class PlaylistDetailFragment : BaseFragment<FragmentPlaylistDetailBinding>() {
     }
 
     private fun showPlaylistMenu() {
-        BottomSheetPlaylistMenu().apply {
-            onAddSongs = {
-                findNavController().navigate(
-                    PlaylistDetailFragmentDirections
-                        .actionPlaylistDetailFragmentToAddPlaylistSongsFragment(
-                            viewModel.playlistId,
-                        ),
-                )
+        val menu = BottomSheetPlaylistMenu()
+        menu.onAddSongs = {
+            findNavController().navigate(
+                PlaylistDetailFragmentDirections
+                    .actionPlaylistDetailFragmentToAddPlaylistSongsFragment(
+                        viewModel.playlistId,
+                    ),
+            )
+        }
+        menu.onEditPlaylist = {
+            findNavController().navigate(
+                PlaylistDetailFragmentDirections
+                    .actionPlaylistDetailFragmentToEditPlaylistFragment(
+                        viewModel.playlistId,
+                    ),
+            )
+        }
+        menu.onDeletePlaylist = { confirmDeletePlaylist() }
+        menu.show(parentFragmentManager, "playlist_menu")
+    }
+
+    private fun removeSongFromPlaylist(songId: String) {
+        viewModel.removeSong(songId) { result ->
+            if (result is PlaylistMutationResult.Success) {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.playlist_song_removed,
+                    Toast.LENGTH_SHORT,
+                ).show()
+            } else {
+                (activity as? MainActivity)?.showPlaylistMutation(result)
             }
-            onEditPlaylist = {
-                findNavController().navigate(
-                    PlaylistDetailFragmentDirections
-                        .actionPlaylistDetailFragmentToEditPlaylistFragment(
-                            viewModel.playlistId,
-                        ),
-                )
-            }
-            onDeletePlaylist = { confirmDeletePlaylist() }
-        }.show(parentFragmentManager, "playlist_menu")
+        }
     }
 
     private fun confirmDeletePlaylist() {
-        DialogConfirm().apply {
-            title = getString(R.string.playlist_delete_title)
-            message = getString(R.string.playlist_delete_message)
-            confirmText = getString(R.string.playlist_delete_confirm)
-            cancelText = getString(R.string.playlist_cancel)
-            onClickRemove = {
-                viewModel.deletePlaylist { result ->
-                    if (result is PlaylistMutationResult.Success) {
-                        Toast.makeText(
-                            requireContext(),
-                            R.string.playlist_deleted,
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                        findNavController().popBackStack()
-                    } else {
-                        (activity as? MainActivity)?.showPlaylistMutation(result)
-                    }
+        val dialog = DialogConfirm()
+        dialog.title = getString(R.string.playlist_delete_title)
+        dialog.message = getString(R.string.playlist_delete_message)
+        dialog.confirmText = getString(R.string.playlist_delete_confirm)
+        dialog.cancelText = getString(R.string.playlist_cancel)
+        dialog.onClickRemove = {
+            viewModel.deletePlaylist { result ->
+                if (!isAdded) return@deletePlaylist
+                if (result is PlaylistMutationResult.Success) {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.playlist_deleted,
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                    findNavController().popBackStack()
+                } else {
+                    (activity as? MainActivity)?.showPlaylistMutation(result)
                 }
             }
-        }.show(parentFragmentManager, "delete_playlist")
+        }
+        dialog.show(parentFragmentManager, "delete_playlist")
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater) =

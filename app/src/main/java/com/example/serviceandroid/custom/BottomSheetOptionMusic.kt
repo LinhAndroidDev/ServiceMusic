@@ -32,6 +32,7 @@ class BottomSheetOptionMusic :
     private var isFavourite = false
     private var songModel: Song? = null
     var removeFavourite: (() -> Unit)? = null
+    var onRemoveFromPlaylist: (() -> Unit)? = null
 
     override val layoutResId: Int
         get() = R.layout.layout_bottom_sheet_option_music
@@ -39,6 +40,8 @@ class BottomSheetOptionMusic :
     override fun initView() {
         binding.sleepTimer.isVisible =
             arguments?.getBoolean(Constant.KEY_SHOW_SLEEP_TIMER, false) == true
+        binding.removeFromPlaylist.isVisible =
+            arguments?.getBoolean(Constant.KEY_SHOW_REMOVE_FROM_PLAYLIST, false) == true
         if (binding.sleepTimer.isVisible) {
             bindSleepTimer(playbackViewModel.sleepTimerState.value.isActive)
             lifecycleScope.launch {
@@ -159,6 +162,10 @@ class BottomSheetOptionMusic :
             }
         }
 
+        binding.removeFromPlaylist.setOnClickListener {
+            dismiss()
+            onRemoveFromPlaylist?.invoke()
+        }
         binding.addToPlaylist.setOnClickListener {
             val song = songModel ?: return@setOnClickListener
             val manager = parentFragmentManager

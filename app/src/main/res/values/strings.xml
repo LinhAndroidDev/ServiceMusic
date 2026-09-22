@@ -120,4 +120,6 @@
     <string name="playlist_delete_confirm">Xoá</string>
     <string name="playlist_search_empty">Không có bài hát</string>
     <string name="playlist_search_hint">Tìm kiếm bài hát, nghệ sĩ...</string>
+    <string name="playlist_remove_song">Xoá nhạc khỏi playlist này</string>
+    <string name="playlist_song_removed">Đã xoá khỏi playlist</string>
 </resources>

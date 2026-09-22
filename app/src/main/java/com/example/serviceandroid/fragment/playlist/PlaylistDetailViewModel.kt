@@ -42,6 +42,12 @@ class PlaylistDetailViewModel @Inject constructor(
         }
     }
 
+    fun removeSong(songId: String, onResult: (PlaylistMutationResult) -> Unit) {
+        viewModelScope.launch {
+            onResult(playlistRepository.removeSong(playlistId, songId))
+        }
+    }
+
     companion object {
         const val ARG_PLAYLIST_ID = "playlistId"
     }

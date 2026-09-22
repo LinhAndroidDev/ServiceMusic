@@ -18,16 +18,19 @@ class BottomSheetPlaylistMenu :
 
     override fun onClickView() {
         binding.addSongs.setOnClickListener {
+            val action = onAddSongs
             dismiss()
-            onAddSongs?.invoke()
+            action?.invoke()
         }
         binding.editPlaylist.setOnClickListener {
+            val action = onEditPlaylist
             dismiss()
-            onEditPlaylist?.invoke()
+            action?.invoke()
         }
         binding.deletePlaylist.setOnClickListener {
+            val action = onDeletePlaylist
             dismiss()
-            onDeletePlaylist?.invoke()
+            action?.invoke()
         }
     }
 }
