@@ -154,8 +154,8 @@ class LoopingMarqueeText @JvmOverloads constructor(
             this.duration = duration
             interpolator = LinearInterpolator()
             addUpdateListener {
-                fadingLeft = true
                 offset = it.animatedValue as Float
+                fadingLeft = offset < textWidth
                 invalidate()
             }
             addListener(object : AnimatorListenerAdapter() {
