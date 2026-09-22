@@ -48,4 +48,9 @@
     <color name="network_banner_online_accent">#05CDBB</color>
     <color name="network_banner_online_icon_bg">#3305CDBB</color>
     <color name="network_banner_subtitle">#B3FFFFFF</color>
+
+    <color name="splash_background">#100C18</color>
+    <color name="splash_mark">#241C36</color>
+    <color name="splash_mark_stroke">#66A78BFA</color>
+    <color name="splash_subtitle">#B3A99BB8</color>
 </resources>
