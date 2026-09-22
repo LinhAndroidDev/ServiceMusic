@@ -271,7 +271,7 @@ class FragmentMusic : BottomSheetDialogFragment() {
                         if (it) {
                             pb.imgFavourite.setImageResource(R.drawable.ic_favourite_fill)
                             pb.imgFavourite.imageTintList =
-                                ColorStateList.valueOf(requireContext().getColor(R.color.red))
+                                ColorStateList.valueOf(requireContext().getColor(R.color.bg_pink))
                         } else {
                             pb.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
                             pb.imgFavourite.imageTintList =

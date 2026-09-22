@@ -36,6 +36,8 @@ class BottomSheetContentDragHelper(
     private val touchSlop = ViewConfiguration.get(sheetView.context).scaledTouchSlop
     private val minFlingVelocity =
         ViewConfiguration.get(sheetView.context).scaledMinimumFlingVelocity.toFloat()
+    private val lightPushVelocity =
+        LIGHT_PUSH_DP_PER_SEC * sheetView.resources.displayMetrics.density
     private val interpolator = FastOutSlowInInterpolator()
 
     private var velocityTracker: VelocityTracker? = null
@@ -47,6 +49,11 @@ class BottomSheetContentDragHelper(
     private var dismissed = false
     private var allowDragFromDown = false
     private var peakTranslationY = 0f
+    private var dragVelocityY = 0f
+    private var inertiaVelocityY = 0f
+    private var inertiaVelocityTime = 0L
+    private var recentDownVelocity = 0f
+    private var recentDownVelocityAt = 0L
 
     init {
         contentRoot.dragHelper = this
@@ -73,6 +80,9 @@ class BottomSheetContentDragHelper(
                 downYInRoot = ev.y
                 dragging = false
                 peakTranslationY = 0f
+                dragVelocityY = 0f
+                inertiaVelocityY = 0f
+                inertiaVelocityTime = 0L
                 allowDragFromDown = !isInteractiveTarget(contentRoot, downXInRoot, downYInRoot)
                 obtainVelocityTracker().apply {
                     clear()
@@ -82,6 +92,7 @@ class BottomSheetContentDragHelper(
             MotionEvent.ACTION_MOVE -> {
                 if (!allowDragFromDown) return false
                 obtainVelocityTracker().addMovement(ev)
+                captureDragVelocity(ev.eventTime)
                 val dy = ev.rawY - downRawY
                 val dx = ev.rawX - downRawX
                 if (!dragging && dy > touchSlop && abs(dy) > abs(dx)) {
@@ -91,10 +102,12 @@ class BottomSheetContentDragHelper(
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (dragging) return false
                 recycleVelocityTracker()
-                dragging = false
                 allowDragFromDown = false
                 peakTranslationY = 0f
+                dragVelocityY = 0f
+                inertiaVelocityY = 0f
             }
         }
         return false
@@ -111,11 +124,15 @@ class BottomSheetContentDragHelper(
                 downYInRoot = ev.y
                 dragging = false
                 peakTranslationY = 0f
+                dragVelocityY = 0f
+                inertiaVelocityY = 0f
+                inertiaVelocityTime = 0L
                 allowDragFromDown = !isInteractiveTarget(contentRoot, downXInRoot, downYInRoot)
                 return allowDragFromDown
             }
             MotionEvent.ACTION_MOVE -> {
                 if (!allowDragFromDown) return false
+                captureDragVelocity(ev.eventTime)
                 val dy = (ev.rawY - downRawY).coerceAtLeast(0f)
                 val dx = ev.rawX - downRawX
                 if (!dragging) {
@@ -152,19 +169,31 @@ class BottomSheetContentDragHelper(
         sheetView.alpha = 1f - ALPHA_FADE_AMOUNT * progress
     }
 
+    private fun captureDragVelocity(eventTime: Long) {
+        velocityTracker?.computeCurrentVelocity(1000)
+        val velocityY = velocityTracker?.yVelocity ?: return
+        dragVelocityY = velocityY
+        val holdingRecentPush = eventTime - inertiaVelocityTime <= INERTIA_HOLD_MS
+        if (velocityY >= inertiaVelocityY || !holdingRecentPush) {
+            inertiaVelocityY = velocityY
+            inertiaVelocityTime = eventTime
+        }
+    }
+
     private fun finishDrag() {
         val height = sheetView.height.coerceAtLeast(1)
         val translationY = sheetView.translationY
-        velocityTracker?.computeCurrentVelocity(1000)
-        val velocityY = velocityTracker?.yVelocity ?: 0f
-        val flingThreshold = minFlingVelocity * FLING_MULTIPLIER
-        val movedBackUp = translationY < peakTranslationY - touchSlop
-
-        // Any upward intent (velocity or finger moving back up) settles to full.
-        val shouldDismiss = when {
-            velocityY < 0f || movedBackUp -> false
-            velocityY > flingThreshold -> true
-            else -> translationY > height * dismissFraction
+        val velocityY = maxOf(dragVelocityY, inertiaVelocityY)
+        val hasDownwardInertia = velocityY > lightPushVelocity
+        val shouldDismiss = if (hasDownwardInertia) {
+            true
+        } else {
+            val flingThreshold = minFlingVelocity * FLING_MULTIPLIER
+            val cancelPullUpPx = CANCEL_PULL_UP_DP * sheetView.resources.displayMetrics.density
+            val pulledBackUp = translationY < peakTranslationY - cancelPullUpPx
+            val flungUp = velocityY < -flingThreshold
+            val draggedFarEnough = translationY > height * dismissFraction
+            !flungUp && !pulledBackUp && draggedFarEnough
         }
 
         if (shouldDismiss) {
@@ -206,6 +235,9 @@ class BottomSheetContentDragHelper(
     companion object {
         private const val ALPHA_FADE_AMOUNT = 0.35f
         private const val FLING_MULTIPLIER = 1.5f
+        private const val CANCEL_PULL_UP_DP = 48f
+        private const val LIGHT_PUSH_DP_PER_SEC = 24f
+        private const val INERTIA_HOLD_MS = 180L
         private const val SETTLE_BACK_MS = 200L
         private const val DISMISS_MS = 220L
 
