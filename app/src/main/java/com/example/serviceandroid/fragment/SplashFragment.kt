@@ -6,20 +6,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.example.serviceandroid.R
+import com.example.serviceandroid.ads.AppOpenAdController
 import com.example.serviceandroid.databinding.FragmentSplashBinding
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class SplashFragment : Fragment() {
     private val binding by lazy { FragmentSplashBinding.inflate(layoutInflater) }
-    private val viewModel by viewModels<SplashViewModel>()
+
+    @Inject
+    lateinit var appOpenAdController: AppOpenAdController
+
+    private var adFlowStarted = false
+    private var leavingSplash = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,13 +35,20 @@ class SplashFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         playEntrance()
+        beginAdFlow()
+    }
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.navigateHome.collect {
-                    findNavController().navigate(R.id.homeFragment)
-                }
-            }
+    private fun beginAdFlow() {
+        if (adFlowStarted || leavingSplash) return
+        adFlowStarted = true
+        appOpenAdController.load { loaded ->
+            if (!isAdded || leavingSplash) return@load
+            leavingSplash = true
+            val activity = requireActivity()
+            goHome()
+            if (!loaded) return@load
+            parentFragmentManager.executePendingTransactions()
+            appOpenAdController.showIfAvailable(activity) {}
         }
     }
 
@@ -79,13 +89,21 @@ class SplashFragment : Fragment() {
             .start()
     }
 
-    override fun onResume() {
-        super.onResume()
-        viewModel.restartSplashTimer()
+    private fun goHome() {
+        if (!isAdded) return
+        val navController = findNavController()
+        if (navController.currentDestination?.id != R.id.splashFragment) return
+        navController.navigate(
+            R.id.homeFragment,
+            null,
+            NavOptions.Builder()
+                .setPopUpTo(R.id.splashFragment, true)
+                .setEnterAnim(0)
+                .setExitAnim(0)
+                .setPopEnterAnim(0)
+                .setPopExitAnim(0)
+                .build(),
+        )
     }
 
-    override fun onStop() {
-        viewModel.cancelSplashTimer()
-        super.onStop()
-    }
 }
