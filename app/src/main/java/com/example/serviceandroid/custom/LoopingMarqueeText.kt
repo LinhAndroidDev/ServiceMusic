@@ -7,6 +7,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Shader
 import android.graphics.Typeface
 import android.text.TextPaint
 import android.util.AttributeSet
@@ -22,6 +27,12 @@ class LoopingMarqueeText @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private val textPaint = TextPaint(TextPaint.ANTI_ALIAS_FLAG)
+    private val fadePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+    }
+    private var fadeShaderWidth = -1
+    private var fadeShaderLeft = false
+    private var fadingLeft = false
     private val gapPx = GAP_DP * resources.displayMetrics.density
     private val speedPxPerSec = SPEED_DP_PER_SEC * resources.displayMetrics.density
 
@@ -82,10 +93,16 @@ class LoopingMarqueeText @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         if (label.isEmpty()) return
         val y = height / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
-        canvas.drawText(label, -offset, y, textPaint)
-        if (shouldScroll()) {
-            canvas.drawText(label, -offset + textWidth + gapPx, y, textPaint)
+        if (!shouldScroll()) {
+            canvas.drawText(label, 0f, y, textPaint)
+            return
         }
+        val layer = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
+        canvas.drawText(label, -offset, y, textPaint)
+        canvas.drawText(label, -offset + textWidth + gapPx, y, textPaint)
+        ensureFadeShader(width, fadingLeft)
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), fadePaint)
+        canvas.restoreToCount(layer)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -103,10 +120,31 @@ class LoopingMarqueeText @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
+    private fun ensureFadeShader(viewWidth: Int, fadeLeftEdge: Boolean) {
+        if (viewWidth <= 0) return
+        if (viewWidth == fadeShaderWidth && fadeLeftEdge == fadeShaderLeft) return
+        fadeShaderWidth = viewWidth
+        fadeShaderLeft = fadeLeftEdge
+        val edge = (FADE_DP * resources.displayMetrics.density).coerceAtMost(viewWidth / 4f)
+        val start = edge / viewWidth
+        val end = 1f - start
+        val leftColor = if (fadeLeftEdge) Color.TRANSPARENT else Color.BLACK
+        fadePaint.shader = LinearGradient(
+            0f,
+            0f,
+            viewWidth.toFloat(),
+            0f,
+            intArrayOf(leftColor, Color.BLACK, Color.BLACK, Color.TRANSPARENT),
+            floatArrayOf(0f, start, end, 1f),
+            Shader.TileMode.CLAMP,
+        )
+    }
+
     private fun shouldScroll(): Boolean = textWidth > width && width > 0
 
     private fun restart() {
         stop()
+        fadingLeft = false
         offset = 0f
         invalidate()
         if (!isAttachedToWindow || !shouldScroll()) return
@@ -116,6 +154,7 @@ class LoopingMarqueeText @JvmOverloads constructor(
             this.duration = duration
             interpolator = LinearInterpolator()
             addUpdateListener {
+                fadingLeft = true
                 offset = it.animatedValue as Float
                 invalidate()
             }
@@ -129,6 +168,7 @@ class LoopingMarqueeText @JvmOverloads constructor(
                         cancelled = false
                         return
                     }
+                    fadingLeft = false
                     offset = distance
                     invalidate()
                     postDelayed(resumeScroll, LOOP_PAUSE_MS)
@@ -147,6 +187,7 @@ class LoopingMarqueeText @JvmOverloads constructor(
     }
 
     private companion object {
+        const val FADE_DP = 16f
         const val GAP_DP = 15f
         const val SPEED_DP_PER_SEC = 40f
         const val PAUSE_MS = 1_000L
