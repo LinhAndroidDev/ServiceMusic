@@ -47,6 +47,7 @@ class SearchViewModel @Inject constructor(
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     private var suggestionPool: List<String> = emptyList()
+    private var suggestionCategories: List<String> = emptyList()
 
     init {
         viewModelScope.launch {
@@ -136,14 +137,22 @@ class SearchViewModel @Inject constructor(
     }
 
     private suspend fun loadSuggestions() {
+        publishSuggestions()
         if (songRepository.getTopPlaylist().isEmpty()) {
-            songRepository.refreshTopPlaylist()
+            songRepository.refreshTopPlaylist(fromServer = false)
+            publishSuggestions()
         }
-        val titles = songRepository.getTopPlaylist().map { it.title }
         val categories = runCatching {
             firestore.getCategories().map { it.name }
         }.getOrDefault(emptyList())
-        suggestionPool = titles + categories
+        if (categories.isEmpty()) return
+        suggestionCategories = categories
+        publishSuggestions()
+    }
+
+    private fun publishSuggestions() {
+        val titles = songRepository.getTopPlaylist().map { it.title }
+        suggestionPool = titles + suggestionCategories
         _uiState.value = _uiState.value.copy(
             suggestions = SearchCatalog.pickSuggestions(suggestionPool, _uiState.value.recentQueries),
         )

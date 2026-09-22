@@ -26,8 +26,8 @@ class SongRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun refreshTopPlaylist(): Result<Unit> = runCatching {
-        val songs = firestore.getTopSongs(limit = 100, fromServer = true)
+    override suspend fun refreshTopPlaylist(fromServer: Boolean): Result<Unit> = runCatching {
+        val songs = firestore.getTopSongs(limit = 100, fromServer = fromServer)
             .map { it.toDomainSong() }
         synchronized(this) {
             if (songs.isEmpty() && topCache.isNotEmpty()) return@runCatching

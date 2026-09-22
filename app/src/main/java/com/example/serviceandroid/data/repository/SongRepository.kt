@@ -8,7 +8,7 @@ import com.example.serviceandroid.model.Song
  */
 interface SongRepository {
     suspend fun refreshPlaylist(): Result<Unit>
-    suspend fun refreshTopPlaylist(): Result<Unit>
+    suspend fun refreshTopPlaylist(fromServer: Boolean = true): Result<Unit>
     /** Active queue used by [MusicService] / playback. */
     fun getPlaylist(): List<Song>
     fun getLatestPlaylist(): List<Song>

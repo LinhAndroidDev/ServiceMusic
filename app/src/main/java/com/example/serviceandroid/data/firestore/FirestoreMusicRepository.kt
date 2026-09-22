@@ -50,6 +50,9 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
     @Volatile
     private var advertisementCache: List<FirestoreAdvertisement>? = null
 
+    @Volatile
+    private var categoryCache: List<FirestoreCategory>? = null
+
     override suspend fun getSong(id: String): FirestoreSong? =
         fetchDocument(id) { songs.document(it) }
 
@@ -85,13 +88,19 @@ class FirestoreMusicRepositoryImpl @Inject constructor(
         }
 
     override suspend fun getCategories(): List<FirestoreCategory> {
+        categoryCache?.let { return it }
         val ordered = runCatching { fetchCategoriesOrderedByCreateTime() }.getOrDefault(emptyList())
-        if (ordered.isNotEmpty()) return ordered
-        return fetchQuery {
-            categories.get(it)
-                .await()
-                .toObjects(FirestoreCategory::class.java)
+        val categoriesResult = ordered.ifEmpty {
+            fetchQuery {
+                categories.get(it)
+                    .await()
+                    .toObjects(FirestoreCategory::class.java)
+            }
         }
+        if (categoriesResult.isNotEmpty()) {
+            categoryCache = categoriesResult
+        }
+        return categoriesResult
     }
 
     override suspend fun getSongsByCategory(categoryId: String, limit: Long): List<FirestoreSong> =
