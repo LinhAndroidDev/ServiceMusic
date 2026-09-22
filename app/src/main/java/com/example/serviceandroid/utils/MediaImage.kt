@@ -7,6 +7,7 @@ import androidx.annotation.DrawableRes
 import androidx.core.graphics.drawable.toBitmap
 import coil.imageLoader
 import coil.load
+import coil.request.ErrorResult
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import coil.size.Scale
@@ -17,6 +18,9 @@ fun ImageView.loadSongThumbnail(
     url: String?,
     sizePx: Int? = null,
     circle: Boolean = false,
+    crossfade: Boolean = true,
+    allowHardware: Boolean = true,
+    onReady: (() -> Unit)? = null,
 ) {
     loadMediaImage(
         url = url,
@@ -24,6 +28,9 @@ fun ImageView.loadSongThumbnail(
         circle = circle,
         placeholder = if (circle) R.drawable.bg_grey_circle else R.drawable.bg_grey_corner_5,
         fallbackDimen = if (circle) R.dimen.song_thumbnail_player else R.dimen.song_thumbnail_list,
+        crossfade = crossfade,
+        allowHardware = allowHardware,
+        onReady = onReady,
     )
 }
 
@@ -58,15 +65,26 @@ private fun ImageView.loadMediaImage(
     circle: Boolean,
     @DrawableRes placeholder: Int,
     fallbackDimen: Int,
+    crossfade: Boolean = true,
+    allowHardware: Boolean = true,
+    onReady: (() -> Unit)? = null,
 ) {
     val targetSize = sizePx?.takeIf { it > 0 } ?: imageRequestSize(fallbackDimen)
     load(url?.takeIf { it.isNotBlank() }) {
-        crossfade(true)
+        crossfade(crossfade)
+        allowHardware(allowHardware)
         size(targetSize)
         scale(Scale.FILL)
         if (circle) transformations(CircleCropTransformation())
         placeholder(placeholder)
         error(placeholder)
+        if (onReady != null) {
+            listener(
+                onSuccess = { _: ImageRequest, _: SuccessResult -> onReady() },
+                onError = { _: ImageRequest, _: ErrorResult -> onReady() },
+                onCancel = { onReady() },
+            )
+        }
     }
 }
 

@@ -29,7 +29,7 @@ class BottomSheetPickPlaylist :
 
     override fun initView() {
         song = arguments?.getParcelable(Constant.KEY_SONG)
-        adapter.onClickItem = { playlist -> addSongToPlaylist(playlist) }
+        adapter.onClickItem = { playlist, _, _ -> addSongToPlaylist(playlist) }
         binding.rcvPlaylists.adapter = adapter
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {

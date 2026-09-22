@@ -2,6 +2,7 @@ package com.example.serviceandroid.fragment.playlist
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.transition.TransitionInflater
 import android.view.LayoutInflater
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
@@ -24,8 +25,10 @@ import com.example.serviceandroid.databinding.FragmentPlaylistDetailBinding
 import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
+import com.example.serviceandroid.utils.PlaylistSharedElement
 import com.example.serviceandroid.utils.loadSongThumbnail
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -37,7 +40,30 @@ class PlaylistDetailFragment : BaseFragment<FragmentPlaylistDetailBinding>() {
     private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private lateinit var adapter: PagerNewReleaseAdapter
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        sharedElementEnterTransition = moveTransition()
+        sharedElementReturnTransition = moveTransition()
+        postponeEnterTransition(400, TimeUnit.MILLISECONDS)
+    }
+
     override fun initView() {
+        val args = PlaylistDetailFragmentArgs.fromBundle(requireArguments())
+        binding.playlistCoverCard.transitionName =
+            PlaylistSharedElement.coverName(viewModel.playlistId)
+        binding.playlistTitle.transitionName =
+            PlaylistSharedElement.titleName(viewModel.playlistId)
+        if (args.playlistTitle.isNotBlank()) {
+            binding.playlistTitle.text = args.playlistTitle
+        }
+        val coverSize = (180 * resources.displayMetrics.density).toInt()
+        binding.playlistCover.loadSongThumbnail(
+            url = args.playlistCoverUrl,
+            sizePx = coverSize,
+            crossfade = false,
+            allowHardware = false,
+            onReady = { startPostponedEnterTransition() },
+        )
         adapter = PagerNewReleaseAdapter(requireActivity(), TypeList.TYPE_NATIONAL).apply {
             onClickItem = { songId ->
                 val songs = viewModel.songs.value
@@ -95,7 +121,7 @@ class PlaylistDetailFragment : BaseFragment<FragmentPlaylistDetailBinding>() {
         if (url.isNullOrBlank()) {
             binding.playlistCover.setImageResource(R.drawable.ic_playlist)
         } else {
-            binding.playlistCover.loadSongThumbnail(url)
+            binding.playlistCover.loadSongThumbnail(url, allowHardware = false, crossfade = false)
         }
     }
 
@@ -158,6 +184,9 @@ class PlaylistDetailFragment : BaseFragment<FragmentPlaylistDetailBinding>() {
         }
         dialog.show(parentFragmentManager, "delete_playlist")
     }
+
+    private fun moveTransition() =
+        TransitionInflater.from(requireContext()).inflateTransition(android.R.transition.move)
 
     override fun getFragmentBinding(inflater: LayoutInflater) =
         FragmentPlaylistDetailBinding.inflate(inflater)

@@ -84,6 +84,14 @@
         <argument
             android:name="playlistId"
             app:argType="string" />
+        <argument
+            android:name="playlistTitle"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="playlistCoverUrl"
+            android:defaultValue=""
+            app:argType="string" />
         <action
             android:id="@+id/action_playlistDetailFragment_to_addPlaylistSongsFragment"
             app:destination="@id/addPlaylistSongsFragment" />

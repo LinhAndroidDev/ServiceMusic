@@ -1,12 +1,17 @@
 package com.example.serviceandroid.fragment.library
 
+import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.doOnPreDraw
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import com.example.serviceandroid.R
@@ -17,6 +22,7 @@ import com.example.serviceandroid.adapter.UserPlaylistAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.DialogCreatePlaylist
 import com.example.serviceandroid.custom.VoiceSearch
+import com.example.serviceandroid.data.playlist.UserPlaylist
 import com.example.serviceandroid.databinding.FragmentLibraryBinding
 import com.example.serviceandroid.fragment.downloaded.DownloadedSongsViewModel
 import com.example.serviceandroid.fragment.favourite_song.FragmentFavouriteSongViewModel
@@ -24,6 +30,7 @@ import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.Library
 import com.example.serviceandroid.playback.PlaybackViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -36,10 +43,22 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
     private val playlistViewModel by viewModels<PlaylistViewModel>()
     private lateinit var recentAdapter: ListenRecentAdapter
     private lateinit var playlistAdapter: UserPlaylistAdapter
+    private var returningPlaylistId: String? = null
     private val voiceSearch = VoiceSearch(this) { query ->
         findNavController().navigate(
             LibraryFragmentDirections.actionLibraryFragmentToFragmentSearchSong(query),
         )
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View? {
+        if (returningPlaylistId != null) {
+            postponeEnterTransition(500, TimeUnit.MILLISECONDS)
+        }
+        return super.onCreateView(inflater, container, savedInstanceState)
     }
 
     override fun initView() {
@@ -93,11 +112,19 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
 
     private fun initPlaylists() {
         playlistAdapter = UserPlaylistAdapter().apply {
-            onClickItem = { playlist ->
+            onClickItem = { playlist, cover, title ->
+                returningPlaylistId = playlist.id
+                val extras = FragmentNavigatorExtras(
+                    cover to cover.transitionName,
+                    title to title.transitionName,
+                )
                 findNavController().navigate(
                     LibraryFragmentDirections.actionLibraryFragmentToPlaylistDetailFragment(
                         playlist.id,
+                        playlist.title,
+                        playlist.coverUrl,
                     ),
+                    extras,
                 )
             }
         }
@@ -108,8 +135,20 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
                     playlistAdapter.submit(playlists)
                     binding.rcvPlaylists.isVisible = playlists.isNotEmpty()
                     binding.playlistEmpty.isVisible = playlists.isEmpty()
+                    startReturnTransitionIfNeeded(playlists)
                 }
             }
+        }
+    }
+
+    private fun startReturnTransitionIfNeeded(playlists: List<UserPlaylist>) {
+        val playlistId = returningPlaylistId ?: return
+        if (playlists.none { it.id == playlistId }) return
+        returningPlaylistId = null
+        val index = playlists.indexOfFirst { it.id == playlistId }
+        if (index >= 0) binding.rcvPlaylists.scrollToPosition(index)
+        binding.rcvPlaylists.doOnPreDraw {
+            startPostponedEnterTransition()
         }
     }
 
