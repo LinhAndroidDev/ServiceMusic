@@ -32,8 +32,8 @@ class CustomBottomBar @JvmOverloads constructor(
     var selectedItem: ((ActionBottomBar) -> Unit)? = null
     init {
         binding.root.layoutParams = LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
+            LayoutParams.MATCH_PARENT,
+            LayoutParams.WRAP_CONTENT
         )
         addView(binding.root)
         val array = context.theme.obtainStyledAttributes(attrs, R.styleable.CustomBottomBar, 0, 0)

@@ -59,10 +59,10 @@ class FavouriteSongRepository @Inject constructor(
     private val records: StateFlow<List<FavouriteSongRecord>> = authRepository.authState
         .flatMapLatest { user ->
             if (user == null) {
-                flow<List<FavouriteSongRecord>> { emit(emptyList()) }
+                flow { emit(emptyList()) }
             } else {
                 flow {
-                    emit(emptyList<FavouriteSongRecord>())
+                    emit(emptyList())
                     emitAll(observeRemote(user.uid))
                 }
             }

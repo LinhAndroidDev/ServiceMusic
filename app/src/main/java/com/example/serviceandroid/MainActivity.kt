@@ -755,7 +755,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         cancelOfflineBannerStartupDelay()
         if (isFinishing && !isChangingConfigurations) {
             playbackViewModel.unbind(this)
-            val intent = android.content.Intent(this, com.example.serviceandroid.service.MusicService::class.java)
+            val intent = Intent(this, com.example.serviceandroid.service.MusicService::class.java)
             stopService(intent)
         }
         super.onDestroy()

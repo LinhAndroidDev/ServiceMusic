@@ -32,7 +32,7 @@ class FirestoreUserRepository @Inject constructor(
         val userDocument = firestore.collection(USERS_COLLECTION).document(user.uid)
         firestore.runTransaction { transaction ->
             val snapshot = transaction.get(userDocument)
-            val profile = mutableMapOf<String, Any?>(
+            val profile = mutableMapOf(
                 "uid" to user.uid,
                 "displayName" to user.displayName,
                 "email" to user.email,
