@@ -140,8 +140,10 @@
 
                         <TextView
                             android:id="@+id/tvNameSong"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:maxLines="1"
                             android:text="Hà Nội Chiều Tháng Ba"
                             android:textColor="@color/text_white"
                             android:textSize="14sp"
@@ -149,9 +151,11 @@
 
                         <TextView
                             android:id="@+id/tvNameSinger"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
                             android:text="Hà Trần"
                             android:textColor="@color/txt_hint"
                             android:textSize="12sp" />
