@@ -123,4 +123,19 @@
     <string name="playlist_search_hint">Tìm kiếm bài hát, nghệ sĩ...</string>
     <string name="playlist_remove_song">Xoá nhạc khỏi playlist này</string>
     <string name="playlist_song_removed">Đã xoá khỏi playlist</string>
+    <string name="artist_follow">Quan tâm</string>
+    <string name="artist_following">Đã quan tâm</string>
+    <string name="artist_play">Phát nhạc</string>
+    <string name="artist_info_title">Thông tin</string>
+    <string name="artist_see_more">xem thêm</string>
+    <string name="artist_see_less">thu gọn</string>
+    <string name="artist_login_title">Đăng nhập để quan tâm</string>
+    <string name="artist_login_message">Bạn cần đăng nhập Google để lưu nghệ sĩ quan tâm theo tài khoản.</string>
+    <string name="artist_followed_toast">Đã quan tâm</string>
+    <string name="artist_unfollowed_toast">Đã bỏ quan tâm</string>
+    <string name="artist_offline">Cần kết nối internet để thay đổi nghệ sĩ quan tâm</string>
+    <string name="artist_operation_failed">Không thể cập nhật nghệ sĩ quan tâm</string>
+    <string name="artist_empty">Chưa quan tâm nghệ sĩ nào</string>
+    <string name="artist_play_empty">Ca sĩ này chưa có bài hát</string>
+    <string name="artist_screen_title">Nghệ sĩ</string>
 </resources>

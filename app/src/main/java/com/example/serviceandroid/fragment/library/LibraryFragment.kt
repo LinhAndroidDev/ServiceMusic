@@ -22,6 +22,7 @@ import com.example.serviceandroid.adapter.UserPlaylistAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.DialogCreatePlaylist
 import com.example.serviceandroid.custom.VoiceSearch
+import com.example.serviceandroid.data.artist.FollowedSingerRepository
 import com.example.serviceandroid.data.playlist.UserPlaylist
 import com.example.serviceandroid.databinding.FragmentLibraryBinding
 import com.example.serviceandroid.fragment.downloaded.DownloadedSongsViewModel
@@ -31,11 +32,16 @@ import com.example.serviceandroid.model.Library
 import com.example.serviceandroid.playback.PlaybackViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
+    @Inject
+    lateinit var followedSingerRepository: FollowedSingerRepository
+
     private val favouriteViewModel by activityViewModels<FragmentFavouriteSongViewModel>()
     private val downloadedViewModel by viewModels<DownloadedSongsViewModel>()
     private val playbackViewModel by activityViewModels<PlaybackViewModel>()
@@ -170,13 +176,14 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
                 combine(
                     favouriteViewModel.favouriteCount,
                     downloadedViewModel.count,
-                ) { favouriteCount, downloadedCount ->
-                    favouriteCount to downloadedCount
-                }.collect { (favouriteCount, downloadedCount) ->
+                    followedSingerRepository.observeFollowed().map { it.size },
+                ) { favouriteCount, downloadedCount, artistCount ->
+                    Triple(favouriteCount, downloadedCount, artistCount)
+                }.collect { (favouriteCount, downloadedCount, artistCount) ->
                     val librarys = arrayListOf(
                         Library(R.drawable.favourite, "Bài hát yêu thích", favouriteCount, R.color.bg_blue),
                         Library(R.drawable.ic_download, "Đã tải", downloadedCount, R.color.bg_purple),
-                        Library(R.drawable.ic_artist, "Nghệ sĩ", 0, R.color.bg_orange),
+                        Library(R.drawable.ic_artist, "Nghệ sĩ", artistCount, R.color.bg_orange),
                         Library(R.drawable.ic_upload, "Upload", 0, R.color.yellow_dark),
                         Library(R.drawable.ic_mv, "MV", 0, R.color.bg_purple),
                     )
@@ -189,6 +196,7 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
                         when (index) {
                             0 -> navController.navigate(R.id.favouriteSongFragment)
                             1 -> navController.navigate(R.id.downloadedSongsFragment)
+                            2 -> navController.navigate(R.id.followedSingersFragment)
                         }
                     }
                     binding.rcvLibrary.adapter = libraryAdapter

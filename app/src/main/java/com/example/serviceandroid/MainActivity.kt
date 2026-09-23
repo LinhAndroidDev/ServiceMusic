@@ -631,6 +631,29 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
     }
 
+    fun ensureSignedInForArtist(onReady: () -> Unit) {
+        if (authRepository.currentUser() != null) {
+            onReady()
+            return
+        }
+        val loginTitle = getString(R.string.artist_login_title)
+        val loginMessage = getString(R.string.artist_login_message)
+        val loginConfirm = getString(R.string.favourite_login_action)
+        val loginCancel = getString(R.string.favourite_login_later)
+        DialogConfirm().apply {
+            title = loginTitle
+            message = loginMessage
+            confirmText = loginConfirm
+            cancelText = loginCancel
+            onClickRemove = {
+                signInWithGoogleThen(
+                    offlineMessageRes = R.string.artist_offline,
+                    onReady = onReady,
+                )
+            }
+        }.show(supportFragmentManager, "artist_login")
+    }
+
     fun ensureSignedInForPlaylist(onReady: () -> Unit) {
         if (authRepository.currentUser() != null) {
             onReady()
