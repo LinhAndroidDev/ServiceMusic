@@ -9,7 +9,6 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.DecelerateInterpolator
 import android.view.animation.PathInterpolator
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -102,6 +101,9 @@ class LineLyricsAdapter(
         init {
             tv.scaleX = IDLE_SCALE
             tv.scaleY = IDLE_SCALE
+            highlightBg.alpha = 0f
+            highlightBg.visibility = View.VISIBLE
+            highlightBg.setBackgroundResource(R.drawable.bg_lyric_line_highlight)
         }
 
         fun bind(
@@ -112,16 +114,20 @@ class LineLyricsAdapter(
             onLineClick: ((TimedLyricLine) -> Unit)?,
         ) {
             tv.animate().cancel()
+            highlightBg.animate().cancel()
             cancelColorAnimator(tv)
             tv.text = line.text
-            if (selected) {
-                tv.setTextColor(defaultColor)
-                animateTextColor(tv, defaultColor, activeColor, COLOR_DURATION_MS)
-            } else {
-                tv.setTextColor(defaultColor)
-            }
-            applyHighlightChrome(highlightBg, tv, selected)
-            tv.post { animateTextScaleForSelection(selected) }
+            tv.setTextColor(if (selected) activeColor else defaultColor)
+            tv.scaleX = if (selected) HIGHLIGHT_SCALE else IDLE_SCALE
+            tv.scaleY = if (selected) HIGHLIGHT_SCALE else IDLE_SCALE
+            applyPivotLeftAligned(tv)
+            highlightBg.alpha = if (selected) 1f else 0f
+            tv.setShadowLayer(
+                if (selected) 4f * tv.resources.displayMetrics.density else 0f,
+                0f,
+                if (selected) 1f * tv.resources.displayMetrics.density else 0f,
+                if (selected) Color.argb(60, 40, 40, 40) else Color.TRANSPARENT,
+            )
             val listener = onLineClick
             itemView.setOnClickListener(
                 if (listener != null) View.OnClickListener { listener(line) } else null,
@@ -130,31 +136,39 @@ class LineLyricsAdapter(
 
         fun bindSelectionOnly(selected: Boolean, defaultColor: Int, activeColor: Int) {
             tv.animate().cancel()
+            highlightBg.animate().cancel()
             cancelColorAnimator(tv)
-            val target = if (selected) activeColor else defaultColor
-            animateTextColor(tv, tv.currentTextColor, target, COLOR_DURATION_MS)
-            applyHighlightChrome(highlightBg, tv, selected)
-            tv.post { animateTextScaleForSelection(selected) }
+            val targetColor = if (selected) activeColor else defaultColor
+            animateTextColor(tv, tv.currentTextColor, targetColor, TRANSITION_DURATION_MS)
+            animateTextScaleForSelection(selected)
+            animateHighlightChrome(selected)
         }
 
         private fun animateTextScaleForSelection(selected: Boolean) {
             applyPivotLeftAligned(tv)
+            val target = if (selected) HIGHLIGHT_SCALE else IDLE_SCALE
+            // Animate from current scale — avoid snapping to IDLE first (causes visible jump).
+            tv.animate()
+                .scaleX(target)
+                .scaleY(target)
+                .setDuration(TRANSITION_DURATION_MS)
+                .setInterpolator(SOFT_INTERPOLATOR)
+                .start()
+        }
+
+        private fun animateHighlightChrome(selected: Boolean) {
+            val d = tv.resources.displayMetrics.density
+            val targetAlpha = if (selected) 1f else 0f
+            highlightBg.animate()
+                .alpha(targetAlpha)
+                .setDuration(TRANSITION_DURATION_MS)
+                .setInterpolator(SOFT_INTERPOLATOR)
+                .start()
+            // Soft shadow: set once toward the end state (avoid mid-scroll layout thrash).
             if (selected) {
-                tv.scaleX = IDLE_SCALE
-                tv.scaleY = IDLE_SCALE
-                tv.animate()
-                    .scaleX(HIGHLIGHT_SCALE)
-                    .scaleY(HIGHLIGHT_SCALE)
-                    .setDuration(SCALE_DURATION_MS)
-                    .setInterpolator(DecelerateInterpolator())
-                    .start()
+                tv.setShadowLayer(4f * d, 0f, 1f * d, Color.argb(60, 40, 40, 40))
             } else {
-                tv.animate()
-                    .scaleX(IDLE_SCALE)
-                    .scaleY(IDLE_SCALE)
-                    .setDuration(SCALE_DURATION_MS)
-                    .setInterpolator(DecelerateInterpolator())
-                    .start()
+                tv.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
             }
         }
 
@@ -171,7 +185,7 @@ class LineLyricsAdapter(
             cancelColorAnimator(view)
             val anim = ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = durationMs
-                interpolator = COLOR_INTERPOLATOR
+                interpolator = SOFT_INTERPOLATOR
                 addUpdateListener { a ->
                     val t = a.animatedValue as Float
                     val color = argbEvaluator.evaluate(t, from, to) as Int
@@ -186,26 +200,12 @@ class LineLyricsAdapter(
                     }
 
                     override fun onAnimationCancel(animation: Animator) {
-                        view.setTextColor(to)
+                        // Keep current interpolated color; don't snap on cancel mid-transition.
                     }
                 })
             }
             view.setTag(R.id.tag_lyric_line_color_animator, anim)
             anim.start()
-        }
-
-        private fun applyHighlightChrome(highlightBg: View, tv: TextView, selected: Boolean) {
-            val d = tv.resources.displayMetrics.density
-            if (selected) {
-                highlightBg.setBackgroundResource(R.drawable.bg_lyric_line_highlight)
-                highlightBg.visibility = View.VISIBLE
-                highlightBg.alpha = 1f
-                tv.setShadowLayer(6f * d, 0f, 1f * d, Color.argb(90, 40, 40, 40))
-            } else {
-                highlightBg.background = null
-                highlightBg.visibility = View.GONE
-                tv.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
-            }
         }
 
         /** Scale text from the start edge so lines stay left-aligned. */
@@ -216,15 +216,12 @@ class LineLyricsAdapter(
         }
 
         companion object {
-            /** Slightly smaller than “full” size when not highlighted */
-            private const val IDLE_SCALE = 0.88f
-            /** Size when highlighted (after animate from [IDLE_SCALE]) */
-            private const val HIGHLIGHT_SCALE = 1.08f
-            private const val SCALE_DURATION_MS = 220L
-            private const val COLOR_DURATION_MS = 300L
+            /** Softer idle/active delta to avoid fighting auto-scroll visually. */
+            private const val IDLE_SCALE = 0.94f
+            private const val HIGHLIGHT_SCALE = 1.03f
+            private const val TRANSITION_DURATION_MS = 420L
 
-            /** Material “standard” easing (fast out, slow in). */
-            private val COLOR_INTERPOLATOR = PathInterpolator(0.4f, 0f, 0.2f, 1f)
+            private val SOFT_INTERPOLATOR = PathInterpolator(0.33f, 0f, 0.2f, 1f)
         }
     }
 

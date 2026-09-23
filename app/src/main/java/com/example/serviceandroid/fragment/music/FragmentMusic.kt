@@ -1,46 +1,63 @@
 package com.example.serviceandroid.fragment.music
 
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Bundle
+import android.util.DisplayMetrics
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.core.graphics.drawable.toDrawable
+import androidx.core.os.bundleOf
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
-import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.bumptech.glide.Glide
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
-import com.example.serviceandroid.base.BaseFragment
+import com.example.serviceandroid.utils.loadSingerAvatar
+import com.example.serviceandroid.utils.loadSongThumbnail
+import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.DialogConfirm
+import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.databinding.FragmentMusicBinding
 import com.example.serviceandroid.databinding.ItemMusicPlayerPageBinding
 import com.example.serviceandroid.databinding.ItemMusicSingerPageBinding
 import com.example.serviceandroid.helper.Constants
-import com.example.serviceandroid.model.Singer
-import com.google.android.material.tabs.TabLayout
 import com.example.serviceandroid.lyrics.LineLyricsAdapter
 import com.example.serviceandroid.lyrics.SongLyricsLoader
 import com.example.serviceandroid.lyrics.TimedLyricLine
 import com.example.serviceandroid.model.Repeat
+import com.example.serviceandroid.model.Singer
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
+import com.example.serviceandroid.utils.BottomSheetContentDragHelper
 import com.example.serviceandroid.utils.CustomAnimator
-import com.example.serviceandroid.utils.DateUtils
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -48,13 +65,17 @@ import java.text.SimpleDateFormat
 import kotlin.math.roundToInt
 
 @AndroidEntryPoint
-class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
+class FragmentMusic : BottomSheetDialogFragment() {
 
-    private val args: FragmentMusicArgs by navArgs()
+    @Inject
+    lateinit var songLyricsLoader: SongLyricsLoader
+
+    private var _binding: FragmentMusicBinding? = null
+    private val binding get() = _binding!!
+
     private val viewModel by viewModels<FragmentMusicViewModel>()
     private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private val fadeIn by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.anim_fade_in) }
-    private val rotate45 by lazy { AnimationUtils.loadAnimation(requireActivity(), R.anim.rotation_45) }
     private var isFavourite: Boolean = false
     private var lastRenderedSongId: String? = null
 
@@ -93,7 +114,11 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         }
     }
 
-    private companion object {
+    companion object {
+        const val TAG = "FragmentMusic"
+        const val ARG_SONG_ID = "song_id"
+        const val ARG_PRESERVE_PLAYBACK = "preserve_playback"
+
         private const val PAGE_SINGER = 0
         private const val PAGE_SONG = 1
         private const val PAGE_LYRICS = 2
@@ -108,16 +133,103 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         private const val LYRIC_TIME_EPS = 1e-4
         /** Min ms between SeekBar / clock UI updates while playing (lyrics still use full [positionMs]). */
         private const val SEEK_UI_THROTTLE_MS = 220
-    }
+        /** Drag past this fraction of screen height → dismiss on release. */
+        private const val DISMISS_DRAG_FRACTION = 0.10f
+        /**
+         * Lyric auto-scroll speed (ms per inch). Default [LinearSmoothScroller] is ~25;
+         * higher = slower, softer line-to-line motion.
+         */
+        private const val LYRICS_SCROLL_MS_PER_INCH = 130f
+        /** Cap scroll duration on long jumps (e.g. seek). */
+        private const val LYRICS_SCROLL_MAX_DURATION_MS = 700
+        /** Soft landing after lyric auto-scroll. */
+        private const val LYRICS_SCROLL_DECELERATION_MS = 280
 
-    override fun getFragmentBinding(inflater: LayoutInflater): FragmentMusicBinding {
-        return FragmentMusicBinding.inflate(inflater)
-    }
-
-    override fun initView() {
-        val songId = args.songId.ifBlank {
-            arguments?.getString("song_id").orEmpty()
+        fun newInstance(songId: String, preservePlayback: Boolean = false): FragmentMusic {
+            return FragmentMusic().apply {
+                arguments = bundleOf(
+                    ARG_SONG_ID to songId,
+                    ARG_PRESERVE_PLAYBACK to preservePlayback,
+                )
+            }
         }
+    }
+
+    override fun getTheme(): Int = R.style.Theme_MusicPlayer_BottomSheet
+
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val dialog = super.onCreateDialog(savedInstanceState) as BottomSheetDialog
+        dialog.setOnShowListener {
+            val bottomSheet = dialog.findViewById<View>(
+                com.google.android.material.R.id.design_bottom_sheet
+            ) ?: return@setOnShowListener
+            configureExpandedBottomSheet(dialog, bottomSheet)
+        }
+        return dialog
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
+        _binding = FragmentMusicBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initView()
+        onClickView()
+    }
+
+    private var contentDragHelper: BottomSheetContentDragHelper? = null
+
+    private fun configureExpandedBottomSheet(dialog: BottomSheetDialog, bottomSheet: View) {
+        bottomSheet.layoutParams = bottomSheet.layoutParams.apply {
+            height = ViewGroup.LayoutParams.MATCH_PARENT
+        }
+        bottomSheet.setBackgroundColor(Color.BLACK)
+        bottomSheet.requestLayout()
+
+        dialog.window?.apply {
+            setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+            clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            setDimAmount(0f)
+            addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+            // Keep content below system bars (not edge-to-edge / fullscreen).
+            WindowCompat.setDecorFitsSystemWindows(this, true)
+            statusBarColor = Color.BLACK
+            navigationBarColor = Color.BLACK
+            WindowInsetsControllerCompat(this, decorView).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
+        }
+        dialog.findViewById<View>(com.google.android.material.R.id.touch_outside)
+            ?.setBackgroundColor(Color.TRANSPARENT)
+
+        val behavior = BottomSheetBehavior.from(bottomSheet)
+        behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        behavior.skipCollapsed = true
+        behavior.isHideable = true
+        behavior.isDraggable = false
+
+        if (_binding != null) {
+            contentDragHelper?.detach()
+            contentDragHelper = BottomSheetContentDragHelper(
+                sheetView = bottomSheet,
+                contentRoot = binding.root,
+                dismissFraction = DISMISS_DRAG_FRACTION,
+                onDismiss = {
+                    if (isAdded) dismissAllowingStateLoss()
+                },
+            )
+        }
+    }
+
+    private fun initView() {
+        val songId = arguments?.getString(ARG_SONG_ID).orEmpty()
         pendingInitSongId = songId.takeIf { it.isNotBlank() }
 
         pagerAdapter = MusicNowPlayingPagerAdapter(
@@ -159,7 +271,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                         if (it) {
                             pb.imgFavourite.setImageResource(R.drawable.ic_favourite_fill)
                             pb.imgFavourite.imageTintList =
-                                ColorStateList.valueOf(requireContext().getColor(R.color.red))
+                                ColorStateList.valueOf(requireContext().getColor(R.color.bg_pink))
                         } else {
                             pb.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
                             pb.imgFavourite.imageTintList =
@@ -242,9 +354,38 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         playbackViewModel.syncRepeatMode(requireContext())
     }
 
-    override fun onClickView() {
+    private fun onClickView() {
         binding.backMusic.setOnClickListener {
-            activity?.onBackPressed()
+            dismiss()
+        }
+        binding.menuMusic.setOnClickListener {
+            showSongOptions()
+        }
+    }
+
+    private fun showSongOptions() {
+        val song = playbackViewModel.playbackState.value.currentSong ?: return
+        val dialog = BottomSheetOptionMusic()
+        dialog.arguments = Bundle().apply {
+            putParcelable(Constant.KEY_SONG, song)
+            putBoolean(Constant.KEY_SHOW_SLEEP_TIMER, true)
+        }
+        dialog.show(parentFragmentManager, "song_options")
+    }
+
+    /** Re-bind / play when the sheet is already showing (e.g. open another song). */
+    fun playSongIfNeeded(songId: String, preservePlayback: Boolean = false) {
+        arguments = (arguments ?: Bundle()).apply {
+            putString(ARG_SONG_ID, songId)
+            putBoolean(ARG_PRESERVE_PLAYBACK, preservePlayback)
+        }
+        if (preservePlayback) {
+            playbackViewModel.setPendingOpenFromMiniPlayer()
+        }
+        if (playerControlsAttached) {
+            initMusic(songId)
+        } else {
+            pendingInitSongId = songId
         }
     }
 
@@ -252,14 +393,18 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         val transport = binding.playerTransport
 
         transport.imgNext.setOnClickListener {
-            playbackViewModel.next(requireContext())
+            CustomAnimator.animateTransportButton(transport.imgNext) {
+                playbackViewModel.next(requireContext())
+            }
         }
         transport.imgPrevious.setOnClickListener {
-            playbackViewModel.previous(requireContext())
+            CustomAnimator.animateTransportButton(transport.imgPrevious) {
+                playbackViewModel.previous(requireContext())
+            }
         }
 
         transport.imgPlay.setOnClickListener {
-            CustomAnimator.endAnimation(rotate45) {
+            CustomAnimator.animateTransportButton(transport.imgPlay) {
                 val st = playbackViewModel.playbackState.value
                 if (!st.isPlaying) {
                     playbackViewModel.resume(requireContext())
@@ -267,7 +412,6 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
                     playbackViewModel.pause(requireContext())
                 }
             }
-            transport.imgPlay.startAnimation(rotate45)
         }
 
         transport.imgRepeat.setOnClickListener {
@@ -299,22 +443,12 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         pb.imgFavourite.setOnClickListener {
             val song = playbackViewModel.playbackState.value.currentSong ?: return@setOnClickListener
             if (!isFavourite) {
-                viewModel.insertSong(song, DateUtils.getTimeCurrent()) {
-                    if (!isAdded) return@insertSong
-                    playbackViewModel.refreshMiniPlayerFavouriteForCurrentSong()
-                    Toast.makeText(
-                        requireContext(),
-                        getString(R.string.toast_added_favourite),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                (activity as? MainActivity)?.requestAddFavourite(song)
             } else {
                 DialogConfirm().apply {
                     title = song.title
                     onClickRemove = {
-                        viewModel.deleteSongById(song.id) {
-                            if (!this@FragmentMusic.isAdded) return@deleteSongById
-                            playbackViewModel.refreshMiniPlayerFavouriteForCurrentSong()
+                        (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
                             Toast.makeText(
                                 this@FragmentMusic.requireContext(),
                                 this@FragmentMusic.getString(R.string.toast_removed_favourite),
@@ -331,19 +465,30 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         if (playerPageBinding == null) return
         resetFavourite()
         val resolvedIndex = playbackViewModel.resolveQueueIndexForSongId(songId)
-        val song = playbackViewModel.getPlaylist()[resolvedIndex]
+        if (resolvedIndex < 0) {
+            Log.e(TAG, "initMusic: songId=$songId not found in any playlist cache")
+            return
+        }
+        val playlist = playbackViewModel.getPlaylist()
+        if (resolvedIndex > playlist.lastIndex) return
+        val song = playlist[resolvedIndex]
         val fromMini = playbackViewModel.consumePendingOpenFromMiniPlayer()
         val st = playbackViewModel.playbackState.value
-        val keepPlaying = fromMini &&
-            st.queueIndex == resolvedIndex &&
-            st.hasActivePlayer
+        val sameActiveSong = st.hasActivePlayer && st.currentSong?.id == song.id
 
-        if (!keepPlaying) {
-            playbackViewModel.playSongAtIndex(requireContext(), resolvedIndex)
+        when {
+            !sameActiveSong -> {
+                playbackViewModel.playSongAtIndex(requireContext(), resolvedIndex)
+            }
+            // Opened from mini player while paused → resume.
+            fromMini && !st.isPlaying -> {
+                playbackViewModel.resume(requireContext())
+            }
         }
 
         bindSongMetadata(song)
         viewModel.checkSongById(song.id)
+        onPlaybackStateChanged(playbackViewModel.playbackState.value)
     }
 
     private fun bindSongMetadata(song: Song) {
@@ -354,16 +499,11 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         lastDurationLabelMs = -1
         lastLyricsScrollAnchor = Int.MIN_VALUE
         lastPlaybackSeekSequence = -1L
-        Glide.with(this)
-            .load(song.thumbnailUrl)
-            .error(R.drawable.ic_circle)
-            .placeholder(R.drawable.ic_circle)
-            .into(pb.imgSong)
-        Glide.with(this)
-            .load(song.thumbnailUrl)
-            .error(R.drawable.ic_circle)
-            .placeholder(R.drawable.ic_circle)
-            .into(binding.imageCover)
+        pb.imgSong.loadSongThumbnail(song.thumbnailUrl, circle = true)
+        binding.imageCover.loadSongThumbnail(
+            song.thumbnailUrl,
+            sizePx = resources.displayMetrics.widthPixels,
+        )
         pb.imgSong.startAnimation(fadeIn)
         pb.tvNameSong.text = song.title
         pb.tvNameSinger.text = song.nameSinger
@@ -465,11 +605,7 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         if (spb.tabSingers.visibility != View.VISIBLE) {
             spb.tvSingerName.text = singer.name
         }
-        Glide.with(this)
-            .load(singer.avatarUrl.takeIf { it.isNotBlank() })
-            .error(R.drawable.ic_circle)
-            .placeholder(R.drawable.ic_circle)
-            .into(spb.imgSingerAvatar)
+        spb.imgSingerAvatar.loadSingerAvatar(singer.avatarUrl)
         spb.tvSingerBio.text = singer.description.takeIf { it.isNotBlank() }
             ?: getString(R.string.singer_bio_empty)
     }
@@ -533,18 +669,18 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         val targetSongId = song.id
         viewLifecycleOwner.lifecycleScope.launch {
             val lines = withContext(Dispatchers.IO) {
-                SongLyricsLoader.loadTimedLines(song)
+                songLyricsLoader.loadTimedLines(song)
             }
             if (!isAdded) return@launch
             if (lastRenderedSongId != targetSongId) return@launch
             if (lines.isNullOrEmpty()) {
                 lyricLines = null
-                rv.visibility = android.view.View.GONE
-                empty.visibility = android.view.View.VISIBLE
+                rv.visibility = View.GONE
+                empty.visibility = View.VISIBLE
             } else {
                 lyricLines = lines
-                empty.visibility = android.view.View.GONE
-                rv.visibility = android.view.View.VISIBLE
+                empty.visibility = View.GONE
+                rv.visibility = View.VISIBLE
                 val adapter = ensureLineLyricsAdapter()
                 rv.adapter = adapter
                 adapter.submitLines(lines)
@@ -570,7 +706,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
             val anchor = (active - 1).coerceAtLeast(0)
             if (force || anchor != lastLyricsScrollAnchor) {
                 lastLyricsScrollAnchor = anchor
-                smoothScrollLyricsAnchorToTop(rv, anchor)
+                // Post one frame so highlight transition starts before scroll motion.
+                rv.post { smoothScrollLyricsAnchorToTop(rv, anchor) }
             }
         }
     }
@@ -580,9 +717,25 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
      * as the second row from the top (one context line above), when it exists.
      */
     private fun smoothScrollLyricsAnchorToTop(rv: RecyclerView, anchorPosition: Int) {
+        if (!isAdded || _binding == null) return
         val lm = rv.layoutManager as? LinearLayoutManager ?: return
+        // Avoid stacking competing smooth scrolls (causes hitching on line changes).
+        rv.stopScroll()
         val scroller = object : LinearSmoothScroller(rv.context) {
             override fun getVerticalSnapPreference(): Int = SNAP_TO_START
+
+            override fun calculateSpeedPerPixel(displayMetrics: DisplayMetrics): Float {
+                return LYRICS_SCROLL_MS_PER_INCH / displayMetrics.densityDpi
+            }
+
+            override fun calculateTimeForScrolling(dx: Int): Int {
+                return super.calculateTimeForScrolling(dx)
+                    .coerceAtMost(LYRICS_SCROLL_MAX_DURATION_MS)
+            }
+
+            override fun calculateTimeForDeceleration(dx: Int): Int {
+                return LYRICS_SCROLL_DECELERATION_MS
+            }
         }
         scroller.targetPosition = anchorPosition
         lm.startSmoothScroll(scroller)
@@ -658,6 +811,8 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
     }
 
     override fun onDestroyView() {
+        contentDragHelper?.detach()
+        contentDragHelper = null
         lineLyricsAdapter?.onLineClickListener = null
         singerTabListener?.let { listener ->
             pagerAdapter.singerPageBinding?.tabSingers?.removeOnTabSelectedListener(listener)
@@ -665,6 +820,20 @@ class FragmentMusic : BaseFragment<FragmentMusicBinding>() {
         singerTabListener = null
         lastSingerTabSongId = null
         binding.playerPager.unregisterOnPageChangeCallback(playerPagerCallback)
+        binding.playerPager.adapter = null
+        playerPageBinding = null
+        playerControlsAttached = false
+        pendingInitSongId = null
+        lyricLines = null
+        lineLyricsAdapter = null
+        lastActiveLineIndex = Int.MIN_VALUE
+        lastSeekUiSyncedMs = Int.MIN_VALUE
+        lastDurationLabelMs = -1
+        lastLyricsScrollAnchor = Int.MIN_VALUE
+        lastPlaybackSeekSequence = -1L
+        isUserSeeking = false
+        lastRenderedSongId = null
+        _binding = null
         super.onDestroyView()
     }
 }

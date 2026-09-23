@@ -6,10 +6,10 @@ import com.example.serviceandroid.data.firestore.FirestoreMusicRepository
 import com.example.serviceandroid.database.repository.FavouriteSongRepository
 import com.example.serviceandroid.model.Repeat
 import com.example.serviceandroid.model.Singer
-import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.toDomainSinger
 import com.example.serviceandroid.utils.SharePreferenceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -27,25 +27,18 @@ class FragmentMusicViewModel @Inject constructor(
 ) : ViewModel() {
     private val _isFavourite: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val isFavourite get() = _isFavourite
+    private var favouriteJob: Job? = null
 
     private val _singerUiState = MutableStateFlow(SingerUiState())
     val singerUiState: StateFlow<SingerUiState> = _singerUiState.asStateFlow()
 
-    fun insertSong(song: Song, timeCreate: String, onCallBackInsertSong: () -> Unit) =
-        viewModelScope.launch {
-            repository.insertSong(song, timeCreate)
-            _isFavourite.value = repository.checkSongById(song.id)
-            onCallBackInsertSong.invoke()
+    fun checkSongById(id: String) {
+        favouriteJob?.cancel()
+        favouriteJob = viewModelScope.launch {
+            repository.observeIsFavourite(id).collect { favourite ->
+                _isFavourite.value = favourite
+            }
         }
-
-    fun deleteSongById(id: String, onCallBackDeleteSong: () -> Unit) = viewModelScope.launch {
-        repository.deleteSongById(id)
-        _isFavourite.value = repository.checkSongById(id)
-        onCallBackDeleteSong.invoke()
-    }
-
-    fun checkSongById(id: String) = viewModelScope.launch {
-        _isFavourite.value = repository.checkSongById(id)
     }
 
     fun loadSingersForSong(songId: String, fallbackSingerName: String) {

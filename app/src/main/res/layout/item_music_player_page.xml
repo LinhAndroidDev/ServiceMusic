@@ -6,13 +6,16 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <de.hdodenhof.circleimageview.CircleImageView
+    <ImageView
         android:id="@+id/imgSong"
-        android:layout_width="300dp"
-        android:layout_height="300dp"
+        android:layout_width="@dimen/song_thumbnail_player"
+        android:layout_height="@dimen/song_thumbnail_player"
         android:layout_gravity="center"
         android:layout_marginTop="30dp"
-        android:elevation="10dp" />
+        android:contentDescription="@string/search_section_songs"
+        android:elevation="10dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_grey_circle" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -37,7 +40,7 @@
 
             <TextView
                 android:id="@+id/tvNameSong"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_white"
                 android:textSize="18sp"
@@ -49,8 +52,11 @@
 
             <TextView
                 android:id="@+id/tvNameSinger"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center_horizontal"
+                android:maxLines="1"
                 android:textColor="@color/white"
                 android:textSize="14sp"
                 tools:text="Quang Hùng MasterD" />

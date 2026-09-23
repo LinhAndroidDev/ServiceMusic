@@ -1,6 +1,8 @@
 # ServiceMusic
 
-Ứng dụng Android phát nhạc online lấy catalog từ **Firebase Firestore**, stream audio bằng **Media3 ExoPlayer**, chạy nền qua **Foreground Service** với **MediaStyle notification** và **MediaSession**. Giao diện dùng **Navigation Component**, kiến trúc **MVVM** và **Dagger Hilt**.
+Ứng dụng Android nghe nhạc online. Catalog lấy từ **Firebase Firestore**, audio stream bằng **Media3 ExoPlayer**, phát nền qua **Foreground Service** với **MediaStyle notification** và **MediaSession**. Giao diện dùng **Navigation Component**, kiến trúc **MVVM** và **Dagger Hilt**.
+
+Đăng nhập Google để lưu dữ liệu theo tài khoản: bài yêu thích, playlist, nghệ sĩ quan tâm và lịch sử tìm kiếm.
 
 ## Mục lục
 
@@ -11,13 +13,12 @@
 - [Kiến trúc & luồng dữ liệu](#kiến-trúc--luồng-dữ-liệu)
 - [Cấu trúc thư mục](#cấu-trúc-thư-mục)
 - [Phát nhạc & thông báo](#phát-nhạc--thông-báo)
-- [#zingchart — biểu đồ xếp hạng](#zingchart--biểu-đồ-xếp-hạng)
+- [Tài khoản & dữ liệu người dùng](#tài-khoản--dữ-liệu-người-dùng)
+- [#zingchart](#zingchart)
 - [Firestore & xử lý offline](#firestore--xử-lý-offline)
-- [Quyền (Permissions)](#quyền-permissions)
+- [Quyền](#quyền)
 - [Build & kiểm thử](#build--kiểm-thử)
 - [Tài liệu liên quan](#tài-liệu-liên-quan)
-
----
 
 ## Yêu cầu môi trường
 
@@ -31,48 +32,50 @@
 | Thiết bị / emulator | **API 26+** (`minSdk = 26`) |
 | Firebase | `app/google-services.json` khớp `applicationId` |
 
----
+Firebase cần bật **Firestore** và **Authentication (Google)**. Quảng cáo mở app dùng **Google AdMob** (App Open).
 
 ## Cách chạy dự án
 
-1. Clone hoặc mở thư mục dự án trong Android Studio.
-2. Đặt `app/google-services.json` (Firebase project đã cấu hình Firestore — xem [`app/ANDROID_INTEGRATION.md`](app/ANDROID_INTEGRATION.md)).
+1. Mở thư mục dự án trong Android Studio.
+2. Đặt `app/google-services.json` (xem [`app/ANDROID_INTEGRATION.md`](app/ANDROID_INTEGRATION.md)).
 3. Đồng bộ Gradle (**File → Sync Project with Gradle Files**).
-4. Chọn variant **debug**, thiết bị/emulator có mạng, bấm **Run**.
+4. Chọn variant **debug**, thiết bị có mạng, bấm **Run**.
 
-> **Lưu ý:** Trên Android 13+ cần cấp quyền **POST_NOTIFICATIONS** để hiển thị notification media đầy đủ.
+Bản debug dùng đơn vị quảng cáo thử của Google. Bản release dùng đơn vị App Open thật khai báo trong `AppOpenAdController`.
 
----
+Trên Android 13+ cần cấp **POST_NOTIFICATIONS** để notification media hiện đủ. Tìm bằng giọng nói cần **RECORD_AUDIO**.
 
 ## Tính năng chính
 
-### Điều hướng & màn hình
+### Điều hướng
 
-| Tab / màn hình | Mô tả |
-|----------------|-------|
-| **Splash** | Màn hình khởi động, chuyển sang Home |
-| **Khám phá (Home)** | Banner quảng cáo, chủ đề, bài mới, lọc Việt/Quốc tế, pull-to-refresh |
-| **Thư viện** | Thư viện cá nhân, điều hướng tới bài yêu thích |
-| **#zingchart** | Top bài hát + biểu đồ xếp hạng tương tác |
-| **Radio** | Màn Radio (UI) |
-| **Cá nhân** | Hồ sơ người dùng |
-| **Tìm kiếm** | Prefix search theo tiêu đề trên Firestore |
-| **Phát nhạc** | Màn full player: seek, next/prev, repeat, lyric đồng bộ, tab ca sĩ |
-| **Yêu thích** | Danh sách bài đã lưu (Room) |
+Thanh dưới (`CustomBottomBar`) chuyển năm tab bằng Navigation: **Thư viện**, **Khám phá**, **#zingchart**, **Radio**, **Cá nhân**.
 
-Bottom bar tùy chỉnh (`CustomBottomBar`) + **ViewPager2** trên `MainActivity` để chuyển tab chính.
+| Màn hình | Mô tả |
+|----------|--------|
+| **Splash** | Màn khởi động. Tải quảng cáo App Open, hiện quảng cáo rồi vào Home. Tải lỗi thì vào Home luôn |
+| **Khám phá** | Banner, chủ đề, bài mới, lọc Việt/Quốc tế, kéo để tải lại |
+| **#zingchart** | Top bài hát theo lượt nghe và biểu đồ xếp hạng |
+| **Radio** | Giao diện radio |
+| **Cá nhân** | Hồ sơ, đăng nhập / đăng xuất Google |
+| **Tìm kiếm** | Bài hát và ca sĩ, đề xuất từ cache, lịch sử tìm kiếm, tìm bằng giọng nói |
+| **Ca sĩ** | Ảnh, số bài, giới thiệu rút gọn, Quan tâm, Phát nhạc, danh sách bài |
+| **Phát nhạc** | Player toàn màn: seek, next/prev, repeat, hẹn giờ tắt, lyric, kéo xuống để đóng |
+| **Thư viện** | Yêu thích, đã tải, nghệ sĩ, nghe gần đây, playlist |
+| **Playlist** | Tạo, thêm bài, sửa thứ tự, xóa bài, xóa playlist. Ảnh và tên có shared element khi mở chi tiết |
+| **Yêu thích** | Bài đã lưu theo tài khoản |
+| **Đã tải** | Bài lưu trên máy |
+| **Nghệ sĩ** | Ca sĩ đã bấm Quan tâm |
 
-### Dữ liệu & phát nhạc
+Mini player nằm trên thanh dưới. Tên bài dài chạy ngang, mép chữ được làm mờ khi đang cuộn.
 
-- **Catalog online** — `FirestoreMusicRepository` đọc `songs`, `singers`, `categories`, `advertisements`.
-- **Cache playlist** — `SongRepository` giữ bản sao trong memory (latest / top / playback queue).
-- **Stream audio** — `MusicService` dùng **ExoPlayer** phát `Song.audioUrl`, tăng `views` khi bắt đầu phát.
-- **Mini player** — `MainActivity` đồng bộ với service qua `PlaybackViewModel` + `MusicServiceConnector`.
-- **Lyric LRC** — tải từ `lyricUrl`, parse bằng `LrcLineParser`, highlight theo vị trí phát.
-- **Yêu thích** — Room (`SongEntity`, database version **1**).
-- **Ảnh bìa** — Glide / Coil load `thumbnailUrl`.
+### Dữ liệu
 
----
+- **Catalog** — `FirestoreMusicRepository` đọc `songs`, `singers`, `categories`, `advertisements`.
+- **Hàng đợi phát** — `SongRepository` giữ playlist đang phát trong memory. Bấm một bài thì hàng đợi là danh sách đang nhìn thấy.
+- **Theo tài khoản (Firestore)** — yêu thích, playlist, nghệ sĩ quan tâm, lịch sử tìm kiếm. Chưa đăng nhập thì app yêu cầu đăng nhập trước khi ghi.
+- **Trên máy (Room, version 5)** — bài đã tải và nghe gần đây.
+- **Ảnh** — Coil / Glide tải thumbnail và avatar.
 
 ## Công nghệ sử dụng
 
@@ -82,120 +85,126 @@ Bottom bar tùy chỉnh (`CustomBottomBar`) + **ViewPager2** trên `MainActivity
 | Navigation | Navigation Component 2.7.7 + Safe Args |
 | DI | Dagger Hilt 2.48 |
 | Async | Kotlin Coroutines, Flow, StateFlow |
-| Backend | Firebase Firestore (BoM 33.7.0) |
+| Backend | Firebase Firestore, Firebase Auth (BoM 33.7.0) |
+| Đăng nhập | Credentials + Google Identity |
+| Quảng cáo | Play Services Ads 23.6.0 (App Open) |
 | Local DB | Room 2.6.1 |
+| Tải nền | WorkManager 2.9.0 |
 | Audio | Media3 ExoPlayer 1.4.1, MediaSessionCompat |
 | Image | Glide 4.16, Coil 2.6 |
 | Chart | MPAndroidChart v3.1.0 |
 | Banner dots | ScrollingPagerIndicator 1.2.5 |
 
----
-
 ## Kiến trúc & luồng dữ liệu
 
-### MVVM
-
-- **Activity / Fragment:** binding UI, observe ViewModel, `collect` state.
-- **ViewModel (`@HiltViewModel`):** logic màn hình, coroutine (`viewModelScope`).
-- **Repository:** tách lớp dữ liệu — Firestore, cache playlist, Room favourites, SharedPreferences.
-
-### Luồng dữ liệu (tóm tắt)
+- **Fragment / Activity** gắn UI và `collect` state.
+- **ViewModel** giữ logic màn hình trong `viewModelScope`.
+- **Repository** tách Firestore, cache phát nhạc, Room và SharedPreferences.
 
 ```text
-UI (Home / ZingChart / Search)
-    → ViewModel.refreshPlaylist / search
-        → SongRepository / FirestoreMusicRepository
-            → Firestore (cache offline + fallback)
+Home / ZingChart / Search / Singer
+    → ViewModel
+        → SongRepository hoặc FirestoreMusicRepository
+            → Firestore (cache khi mất mạng)
 
-UI (MainActivity / FragmentMusic)
+Yêu thích / Playlist / Nghệ sĩ / Lịch sử tìm kiếm
+    → Repository
+        → Firestore users/{uid}/...
+        → cần đăng nhập; offline thì không ghi
+
+MainActivity / FragmentMusic
     → PlaybackViewModel
         → MusicServiceConnector
-            → MusicService (ExoPlayer, notification, incrementViews)
-                → PlaybackStateHolder (StateFlow)
+            → MusicService (ExoPlayer, notification)
+                → PlaybackStateHolder
     ← UI collect playbackState
 ```
 
-- **`PlaybackStateHolder`:** snapshot UI (`PlaybackUiState` — bài hát, index, `isPlaying`, `positionMs`, `durationMs`, …).
-- **`MusicService`:** Foreground Service (`mediaPlayback`), ExoPlayer stream, Glide thumbnail cho notification, khôi phục vị trí phát từ SharedPreferences.
+`PlaybackStateHolder` giữ bài đang phát, index, trạng thái play, vị trí và thời lượng. `MusicService` là foreground service loại `mediaPlayback`.
 
-### Dependency Injection (Hilt)
+Hilt:
 
 - `@HiltAndroidApp` — `MyApplication`
-- `@AndroidEntryPoint` — `MainActivity`, Fragment, `MusicService`
-- Modules:
-  - [`AppModule`](app/src/main/java/com/example/serviceandroid/di/AppModule.kt)
-  - [`DatabaseModule`](app/src/main/java/com/example/serviceandroid/di/DatabaseModule.kt)
-  - [`FirebaseModule`](app/src/main/java/com/example/serviceandroid/di/FirebaseModule.kt)
-
----
+- `@AndroidEntryPoint` — `MainActivity`, fragment, `MusicService`
+- Module: [`AppModule`](app/src/main/java/com/example/serviceandroid/di/AppModule.kt), [`DatabaseModule`](app/src/main/java/com/example/serviceandroid/di/DatabaseModule.kt), [`FirebaseModule`](app/src/main/java/com/example/serviceandroid/di/FirebaseModule.kt)
 
 ## Cấu trúc thư mục
 
 ```text
 app/src/main/java/com/example/serviceandroid/
+├── ads/                  # App Open Ad lúc mở app
 ├── data/
-│   ├── firestore/          # FirestoreSong, FirestoreMusicRepository
-│   └── repository/         # SongRepository (cache playlist)
-├── database/               # Room — SongEntity, FavouriteSongDao
-├── playback/               # PlaybackViewModel, PlaybackStateHolder, MusicServiceConnector
-├── service/                # MusicService — ExoPlayer, notification
-├── fragment/               # Home, ZingChart, Music, Search, Library, …
-├── lyrics/                 # SongLyricsLoader, LrcLineParser, LineLyricsAdapter
-├── custom/                 # CustomLineChartRenderer, bottom sheets, dialogs
-├── adapter/                # RecyclerView / ViewPager adapters
-├── model/                  # Song, Singer, Advertisement, Repeat, …
-├── di/                     # Hilt modules
-├── helper/                 # Constants, MyApplication
-└── utils/                  # DateUtils, SharePreferenceRepository, …
+│   ├── artist/           # Nghệ sĩ đã quan tâm
+│   ├── auth/             # Google Sign-In, AuthRepository
+│   ├── firestore/        # Catalog songs, singers, categories
+│   ├── playlist/         # Playlist theo tài khoản
+│   ├── recent/           # Nghe gần đây
+│   ├── repository/       # Cache playlist / hàng đợi phát
+│   ├── search/           # Lịch sử và gợi ý tìm kiếm
+│   └── user/
+├── database/             # Room — bài đã tải, nghe gần đây
+├── download/             # WorkManager tải bài
+├── playback/             # PlaybackViewModel, connector, hẹn giờ tắt
+├── service/              # MusicService
+├── fragment/             # Home, thư viện, playlist, ca sĩ, tìm kiếm, player
+├── lyrics/               # Tải và parse file .lrc
+├── custom/               # Bottom bar, bottom sheet, dialog, marquee
+├── adapter/
+├── model/
+├── di/
+└── utils/
 ```
-
----
 
 ## Phát nhạc & thông báo
 
-- **Audio:** stream HTTPS từ `Song.audioUrl` qua **ExoPlayer**.
-- **Notification:** `MediaStyle` + `MediaSessionCompat` + Glide `thumbnailUrl`; tap mở `FragmentMusic` với `song_id`.
-- **Điều khiển:** play/pause, next/prev, seek; repeat một bài / toàn playlist.
-- **Khôi phục:** lưu `queueIndex` + `positionMs` trong SharedPreferences khi process bị kill.
-- **Mini player:** hiển thị trên `MainActivity`, throttle cập nhật seek để giảm jank.
+- Stream `Song.audioUrl` bằng ExoPlayer.
+- Notification `MediaStyle`: play/pause, next/prev. Bấm notification mở player với `song_id`.
+- Repeat một bài hoặc cả danh sách. Hẹn giờ tắt nhạc từ menu player.
+- Kéo player xuống để đóng. Vuốt xuống có quán tính thì đóng luôn. Kéo chậm chỉ đóng khi qua khoảng 10% chiều cao.
+- Tên bài trên mini player cuộn vòng nếu dài hơn một dòng.
+- Vị trí phát được lưu để khôi phục khi process bị hệ thống dừng.
 
----
+## Tài khoản & dữ liệu người dùng
 
-## #zingchart — biểu đồ xếp hạng
+Đăng nhập Google. Dữ liệu ghi dưới `users/{uid}`:
 
-Màn `#zingchart` hiển thị top bài hát kèm biểu đồ **LineChart** (MPAndroidChart):
+| Dữ liệu | Nơi lưu | Ghi chú |
+|---------|---------|---------|
+| Bài yêu thích | Firestore | Cần mạng và đăng nhập |
+| Playlist | Firestore | Tạo, sửa, sắp xếp, xóa bài |
+| Nghệ sĩ quan tâm | Firestore `followedSingers` | Nút Quan tâm trên màn ca sĩ |
+| Lịch sử tìm kiếm | Firestore | Khi đã đăng nhập |
+| Bài đã tải | Room | Phát được khi không có mạng |
+| Nghe gần đây | Room | Hiện trên Thư viện |
 
-- 3 đường biểu diễn xu hướng xếp hạng (LineChart1 / 2 / 3).
-- Avatar bài hát (thumbnail top 1–3) vẽ trên điểm chart qua `CustomLineChartRenderer`.
-- **Animation chuyển chart:** khi highlight chuyển giữa các line, avatar di chuyển mượt từ vị trí cũ sang vị trí mới (`ValueAnimator` + `ChartAvatarState`).
-- Tự động chuyển highlight mỗi 5 giây hoặc khi tap vào chart.
-- Pull-to-refresh để tải lại top songs từ Firestore.
+Màn ca sĩ: mục **Thông tin** căn trái, tối đa 3 dòng, **xem thêm** / **thu gọn** nếu dài hơn. **Phát nhạc** phát bài đầu tiên và lấy cả danh sách ca sĩ làm hàng đợi.
 
----
+## #zingchart
+
+Top bài hát theo lượt nghe, kèm **LineChart** (MPAndroidChart):
+
+- Ba đường xu hướng. Avatar top bài được vẽ trên điểm chart (`CustomLineChartRenderer`).
+- Highlight tự chuyển hoặc khi chạm chart. Avatar trượt giữa các điểm.
+- Kéo để tải lại.
 
 ## Firestore & xử lý offline
 
-`FirestoreMusicRepository` đọc dữ liệu an toàn khi mất mạng:
+`FirestoreMusicRepository` ưu tiên mạng, rồi dùng cache Firestore khi offline. Refresh thất bại thì giữ cache cũ, không xóa danh sách đang hiện.
 
-- Ưu tiên `Source.DEFAULT`, fallback `Source.CACHE` khi client offline (`UNAVAILABLE`).
-- Trả `null` / `emptyList()` thay vì crash app.
-- `SongRepository` giữ cache cũ nếu refresh từ server thất bại (không xóa playlist khi offline).
-- `incrementViews` bọc `runCatching` — không crash khi không ghi được Firestore.
+Ghi yêu thích, playlist và nghệ sĩ quan tâm cần mạng. Mất mạng thì báo cho người dùng, không crash.
 
-Schema Firestore, query và hướng dẫn tích hợp chi tiết: [`app/ANDROID_INTEGRATION.md`](app/ANDROID_INTEGRATION.md).
+Schema catalog: [`app/ANDROID_INTEGRATION.md`](app/ANDROID_INTEGRATION.md).
 
----
-
-## Quyền (Permissions)
+## Quyền
 
 | Quyền | Mục đích |
 |-------|----------|
-| `INTERNET` | Firestore, stream audio, lyric, ảnh |
+| `INTERNET` | Firestore, stream, lyric, ảnh, quảng cáo |
+| `ACCESS_NETWORK_STATE` | Banner mất mạng / có mạng lại |
 | `POST_NOTIFICATIONS` | Notification media (Android 13+) |
-| `FOREGROUND_SERVICE` | Chạy service phát nhạc nền |
-| `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Loại foreground service media |
-
----
+| `FOREGROUND_SERVICE` | Service phát nhạc |
+| `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Loại service media |
+| `RECORD_AUDIO` | Tìm kiếm bằng giọng nói |
 
 ## Build & kiểm thử
 
@@ -207,26 +216,24 @@ Schema Firestore, query và hướng dẫn tích hợp chi tiết: [`app/ANDROID
 ./gradlew :app:compileDebugKotlin
 ```
 
-**Kiểm thử thủ công gợi ý:**
+Nên thử:
 
-- Phát / pause / seek / next / prev / repeat
-- Mini player ↔ full player ↔ notification
-- Thêm / xóa yêu thích (Room)
-- Tìm kiếm bài hát
-- Pull-to-refresh Home & #zingchart
-- Animation avatar trên chart (#zingchart)
-- Lyric đồng bộ theo thời gian phát
-- Tắt mạng — app không crash, dữ liệu cache vẫn hiển thị
-
----
+- Splash: quảng cáo đóng thì vào Home. Tải quảng cáo lỗi thì vào Home.
+- Phát, pause, seek, next, prev, repeat, hẹn giờ tắt.
+- Mini player, player toàn màn, notification.
+- Kéo player xuống để đóng.
+- Tên bài dài trên mini player.
+- Đăng nhập Google, rồi yêu thích, tạo playlist, quan tâm ca sĩ.
+- Tìm kiếm, gợi ý, giọng nói.
+- Tải một bài và mở mục Đã tải.
+- #zingchart và lyric.
+- Tắt mạng: catalog cache vẫn hiện, thao tác cần tài khoản thì báo offline.
 
 ## Tài liệu liên quan
 
 | File | Nội dung |
 |------|----------|
-| [`app/ANDROID_INTEGRATION.md`](app/ANDROID_INTEGRATION.md) | Schema Firestore, data class, query, banner, offline |
-
----
+| [`app/ANDROID_INTEGRATION.md`](app/ANDROID_INTEGRATION.md) | Schema Firestore catalog, data class, query, banner |
 
 ## Phiên bản ứng dụng
 
@@ -235,9 +242,8 @@ Schema Firestore, query và hướng dẫn tích hợp chi tiết: [`app/ANDROID
 | `applicationId` | `com.example.serviceandroid` |
 | `versionName` | `1.0` |
 | `versionCode` | `1` |
-
----
+| Room | `MusicDatabase.VERSION` = 5 |
 
 ## Tác giả & giấy phép
 
-Dự án mẫu / học tập. Điều chỉnh giấy phép theo nhu cầu nhóm của bạn.
+Dự án học tập. Điều chỉnh giấy phép theo nhu cầu nhóm.

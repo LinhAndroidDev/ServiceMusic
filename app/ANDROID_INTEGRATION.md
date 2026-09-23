@@ -538,3 +538,45 @@ fun advertisementsFlow(): Flow<List<Advertisement>> = callbackFlow {
 - **Bảo mật rules:** Firestore hiện đang mở (`allow read, write: if true`) — chỉ phù hợp dev. Trước khi phát hành app thật, cần siết rules (ví dụ chỉ cho `read` công khai, chặn `write` từ client; việc tăng `views` nên qua Cloud Function hoặc rule riêng cho field `views`).
 - **Offline:** Firestore Android tự bật cache offline. Có thể cấu hình `db.firestoreSettings` nếu cần kiểm soát.
 - **URL media:** `audioUrl` / `thumbnailUrl` / `lyricUrl` / `image` (banner) là link Cloudinary hoặc URL nhập tay — dùng trực tiếp với ExoPlayer/Coil/Glide, không cần qua Firebase Storage.
+
+---
+
+## 11. Lịch sử nghe theo tài khoản
+
+Lịch sử của người dùng đã đăng nhập được lưu tại:
+
+```text
+users/{uid}/recentSongs/{songId}
+```
+
+Subcollection cần rule riêng; rule của document `users/{uid}` không tự áp dụng cho document con:
+
+```javascript
+match /users/{userId}/recentSongs/{songId} {
+  allow read, write: if request.auth != null
+                     && request.auth.uid == userId;
+}
+```
+
+Khi chưa đăng nhập, ứng dụng lưu tối đa 100 bài trong Room. Sau đăng nhập, người dùng chọn đồng bộ hoặc xóa lịch sử local; giao diện Thư viện chỉ hiển thị 20 bài gần nhất.
+
+---
+
+## 12. Bài hát yêu thích theo tài khoản
+
+Bài hát yêu thích chỉ được lưu trên Firestore tại:
+
+```text
+users/{uid}/favouriteSongs/{songId}
+```
+
+Ứng dụng yêu cầu đăng nhập và kết nối mạng đã được xác thực trước khi thêm hoặc xóa. Firestore Rules cần bảo vệ subcollection theo UID:
+
+```javascript
+match /users/{userId}/favouriteSongs/{songId} {
+  allow read, write: if request.auth != null
+                     && request.auth.uid == userId;
+}
+```
+
+Room version 5 không còn bảng `songEntity`; migration `4 → 5` xóa dữ liệu yêu thích local cũ nhưng giữ nguyên nhạc tải xuống và lịch sử nghe.

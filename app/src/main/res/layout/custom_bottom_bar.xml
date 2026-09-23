@@ -130,6 +130,14 @@
             android:gravity="center"
             android:orientation="vertical">
 
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:id="@+id/avatarMail"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:visibility="gone"
+                tools:src="@drawable/img_avatar"
+                tools:visibility="visible" />
+
             <ImageView
                 android:id="@+id/imgProfile"
                 android:layout_width="25dp"

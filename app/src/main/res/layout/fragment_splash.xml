@@ -1,15 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
+    android:background="@color/splash_background"
     tools:context=".fragment.SplashFragment">
 
-    <ImageView
+    <View
+        android:id="@+id/splashGlow"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        android:background="@drawable/bg_splash_glow"
         android:importantForAccessibility="no"
-        android:src="@drawable/img_splash"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        app:layout_constraintBottom_toBottomOf="@id/splashMark"
+        app:layout_constraintEnd_toEndOf="@id/splashMark"
+        app:layout_constraintStart_toStartOf="@id/splashMark"
+        app:layout_constraintTop_toTopOf="@id/splashMark" />
 
-</FrameLayout>
+    <FrameLayout
+        android:id="@+id/splashMark"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:background="@drawable/bg_splash_mark"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.42">
+
+        <ImageView
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/ic_music" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/splashTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.02"
+        android:text="@string/app_name"
+        android:textColor="@color/white"
+        android:textSize="28sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/splashMark" />
+
+    <TextView
+        android:id="@+id/splashSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:letterSpacing="0.04"
+        android:text="@string/splash_tagline"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/splashTitle" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

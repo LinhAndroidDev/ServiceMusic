@@ -3,6 +3,7 @@ package com.example.serviceandroid.fragment.zingchart
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -18,15 +19,14 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.fragment.findNavController
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import com.bumptech.glide.Glide
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
@@ -36,12 +36,17 @@ import com.example.serviceandroid.custom.ChartAvatarState
 import com.example.serviceandroid.custom.CustomLineChartRenderer
 import com.example.serviceandroid.custom.CustomXAxisFormatter
 import com.example.serviceandroid.custom.DialogConfirm
+import com.example.serviceandroid.custom.VoiceSearch
 import com.example.serviceandroid.databinding.FragmentZingChartBinding
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.PositionChart
 import com.example.serviceandroid.model.Song
+import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.DateUtils
 import com.example.serviceandroid.utils.ExtensionFunctions.setColorTint
+import com.example.serviceandroid.utils.loadSongThumbnail
+import com.example.serviceandroid.utils.loadSongThumbnailBitmap
 import com.github.mikephil.charting.components.Description
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.Entry
@@ -65,6 +70,12 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     private var avatarTransitionAnimator: ValueAnimator? = null
     private var avatarAnimationProgress = 1f
     private val viewModel by viewModels<ZingChartViewModel>()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
+    private val voiceSearch = VoiceSearch(this) { query ->
+        findNavController().navigate(
+            ZingChartFragmentDirections.actionZingchartFragmentToFragmentSearchSong(query),
+        )
+    }
 
     private data class ChartData(
         val lineData: LineData,
@@ -152,6 +163,10 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     }
 
     override fun onClickView() {
+        binding.header.search.setOnClickListener {
+            findNavController().navigate(R.id.action_zingchartFragment_to_fragmentSearchSong)
+        }
+        binding.header.micro.setOnClickListener { voiceSearch.start() }
         binding.removeSongSuggest.setOnClickListener {
             binding.songSuggestView.isVisible = false
         }
@@ -179,29 +194,24 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         val song = suggestedSongId
             ?.let { id -> playlist.find { it.id == id } }
             ?: playlist[Random.nextInt(playlist.size)].also { suggestedSongId = it.id }
-        Glide.with(requireActivity())
-            .load(song.thumbnailUrl)
-            .placeholder(R.mipmap.ic_launcher)
-            .error(R.mipmap.ic_launcher)
-            .into(binding.imgSong)
+        binding.imgSong.loadSongThumbnail(song.thumbnailUrl)
         binding.tvNameSong.text = song.title
         binding.tvNameSinger.text = song.nameSinger
         binding.songSuggestView.setOnClickListener {
-            val action = ZingChartFragmentDirections.actionZingchartFragmentToFragmentMusic(songId = song.id)
-            findNavController().navigate(action)
+            playVisibleChartSong(song.id)
         }
     }
 
     private var lastBoundChartIds: List<String> = emptyList()
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun bindSongChartList(playlist: List<Song>, force: Boolean = false) {
         val adapter = songChartAdapter ?: PagerNewReleaseAdapter(
             requireActivity(),
             type = TypeList.TYPE_NEW_UPDATE,
         ).also { created ->
             created.onClickItem = { songId ->
-                val action = ZingChartFragmentDirections.actionZingchartFragmentToFragmentMusic(songId = songId)
-                findNavController().navigate(action)
+                playVisibleChartSong(songId)
             }
             created.onClickMoreOption = { song -> showMoreOptions(song) }
             songChartAdapter = created
@@ -214,6 +224,13 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         }
         if (binding.rcvSongChart.adapter !== adapter) {
             binding.rcvSongChart.adapter = adapter
+        }
+    }
+
+    private fun playVisibleChartSong(songId: String) {
+        val songs = viewModel.getPlaylist()
+        if (playbackViewModel.playFromVisibleList(requireContext(), songs, songId)) {
+            MusicPlayerLauncher.open(this, songId)
         }
     }
 
@@ -232,7 +249,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         DialogConfirm().apply {
             title = song.title
             onClickRemove = {
-                viewModel.deleteSongById(song.id) {
+                (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
                     Toast.makeText(
                         requireActivity(),
                         "Đã xoá khỏi bài hát yêu thích",
@@ -424,7 +441,8 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
         if (url.isNullOrBlank()) return
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val loaded = withContext(Dispatchers.IO) { loadChartAvatarBlocking(url) }
+            val loaded = loadSongThumbnailBitmap(requireContext(), url, sizePx = 90)
+                ?: defaultChartBitmap()
             if (!isAdded || view == null || positionChart.ordinal != entryIndex) return@launch
             if (binding.chart.data == null) return@launch
             bitmap = loaded
@@ -517,18 +535,6 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
     override fun onDestroy() {
         runnable?.let { handler.removeCallbacks(it) }
         super.onDestroy()
-    }
-
-    private fun loadChartAvatarBlocking(url: String): Bitmap {
-        return try {
-            Glide.with(requireActivity())
-                .asBitmap()
-                .load(url)
-                .submit()
-                .get()
-        } catch (_: Exception) {
-            createBitmap(90, 90)
-        }
     }
 
     override fun getFragmentBinding(inflater: LayoutInflater)

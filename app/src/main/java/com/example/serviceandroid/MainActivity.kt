@@ -1,19 +1,23 @@
 package com.example.serviceandroid
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.viewpager2.widget.ViewPager2
 import com.example.serviceandroid.adapter.InformationSongAdapter
@@ -22,17 +26,33 @@ import com.example.serviceandroid.custom.ActionBottomBar
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.databinding.ActivityMainBinding
 import com.example.serviceandroid.fragment.music.FragmentMusic
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.helper.Constants
+import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.data.repository.SongRepository
 import com.example.serviceandroid.playback.PlaybackUiState
 import com.example.serviceandroid.playback.PlaybackViewModel
-import com.example.serviceandroid.utils.getCurrentFragment
+import com.example.serviceandroid.utils.NetworkMonitor
+import com.example.serviceandroid.utils.NetworkUiState
+import com.example.serviceandroid.utils.loadSongThumbnail
 import com.example.serviceandroid.utils.moveTo
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
+import com.example.serviceandroid.data.auth.AuthRepository
+import com.example.serviceandroid.data.auth.AuthUser
+import com.example.serviceandroid.data.auth.GoogleSignInHelper
+import com.example.serviceandroid.data.auth.GoogleSignInRequestResult
+import com.example.serviceandroid.data.user.UserRepository
+import com.example.serviceandroid.data.playlist.PlaylistMutationResult
+import com.example.serviceandroid.data.playlist.PlaylistRepository
+import com.example.serviceandroid.data.playlist.UserPlaylist
+import com.example.serviceandroid.database.repository.FavouriteMutationResult
+import com.example.serviceandroid.database.repository.FavouriteSongRepository
 
 @AndroidEntryPoint
 @Suppress("DEPRECATION")
@@ -44,15 +64,39 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     @Inject
     lateinit var songRepository: SongRepository
 
+    @Inject
+    lateinit var networkMonitor: NetworkMonitor
+
+    @Inject
+    lateinit var authRepository: AuthRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
+
+    @Inject
+    lateinit var favouriteSongRepository: FavouriteSongRepository
+
+    @Inject
+    lateinit var playlistRepository: PlaylistRepository
+
     /** Avoid mini-player work every playback tick (reduces layout jank in FragmentMusic). */
     private var lastMiniPlayerSongId: String? = null
     private var lastMiniPlayerSeekSyncedMs: Int = Int.MIN_VALUE
     private var lastMiniPlayerSeekSequence: Long = -1L
     private lateinit var miniPlayerSongAdapter: InformationSongAdapter
+    private var lastNetworkBannerVisible = false
+    private var bannerHideAnimation: Animation? = null
+    private var networkBannerAllowed = false
+    private var hasCompletedStartupOfflineDelay = false
+    private var isStartupOfflineDelayScheduled = false
+    private val offlineBannerStartupHandler = Handler(Looper.getMainLooper())
+    private var offlineBannerStartupRunnable: Runnable? = null
 
     companion object {
         const val MESSAGE_MAIN = "MESSAGE_MAIN"
+        private const val TAG = "NetworkBanner"
         private const val MINI_SEEK_UI_THROTTLE_MS = 200
+        private const val OFFLINE_BANNER_STARTUP_DELAY_MS = 2000L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,6 +116,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     override fun initView() {
+        binding.bottomBar.showProfileAvatar(authRepository.currentUser())
+        updateNetworkBannerPosition()
+        observeNetworkState()
+        registerMusicPlayerSheetCallbacks()
+
         lifecycleScope.launch(Dispatchers.IO) {
             if (songRepository.getTopPlaylist().isEmpty()) {
                 songRepository.refreshTopPlaylist()
@@ -110,29 +159,259 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         })
     }
 
+    private fun updateNetworkBannerPosition() {
+        val bannerRoot = binding.networkBanner.root
+        val lp = bannerRoot.layoutParams as ConstraintLayout.LayoutParams
+        val gap = resources.getDimensionPixelSize(R.dimen.network_banner_bottom_gap)
+        lp.bottomToBottom = ConstraintLayout.LayoutParams.UNSET
+        lp.bottomToTop = if (binding.bottomPlay.isVisible) {
+            R.id.bottomPlay
+        } else {
+            R.id.bottomBar
+        }
+        lp.bottomMargin = gap
+        bannerRoot.layoutParams = lp
+    }
+
+    private fun observeNetworkState() {
+        Log.d(TAG, "observeNetworkState: start collecting")
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                Log.d(TAG, "observeNetworkState: lifecycle STARTED, collect active")
+                networkMonitor.state.collect { uiState ->
+                    applyNetworkBanner(uiState)
+                }
+            }
+        }
+    }
+
+    private fun applyNetworkBanner(uiState: NetworkUiState) {
+        if (!networkBannerAllowed) {
+            cancelOfflineBannerStartupDelay()
+            hideNetworkBannerImmediately()
+            return
+        }
+
+        if (shouldDelayInitialOfflineBanner(uiState)) {
+            if (!isStartupOfflineDelayScheduled) {
+                isStartupOfflineDelayScheduled = true
+                hideNetworkBannerViewOnly()
+                offlineBannerStartupRunnable = Runnable {
+                    offlineBannerStartupRunnable = null
+                    isStartupOfflineDelayScheduled = false
+                    hasCompletedStartupOfflineDelay = true
+                    if (networkBannerAllowed) {
+                        applyNetworkBannerImmediate(networkMonitor.state.value)
+                    }
+                }.also { runnable ->
+                    offlineBannerStartupHandler.postDelayed(runnable, OFFLINE_BANNER_STARTUP_DELAY_MS)
+                }
+            }
+            return
+        }
+
+        if (isStartupOfflineDelayScheduled && uiState.isOnline) {
+            cancelOfflineBannerStartupDelay()
+            hasCompletedStartupOfflineDelay = true
+        }
+
+        applyNetworkBannerImmediate(uiState)
+    }
+
+    private fun shouldDelayInitialOfflineBanner(uiState: NetworkUiState): Boolean {
+        return !hasCompletedStartupOfflineDelay &&
+            !uiState.isOnline &&
+            uiState.showBanner
+    }
+
+    private fun cancelOfflineBannerStartupDelay() {
+        offlineBannerStartupRunnable?.let { offlineBannerStartupHandler.removeCallbacks(it) }
+        offlineBannerStartupRunnable = null
+        isStartupOfflineDelayScheduled = false
+    }
+
+    private fun applyNetworkBannerImmediate(uiState: NetworkUiState) {
+        val banner = binding.networkBanner
+        val root = banner.root
+        val content = banner.bannerContent
+
+        if (uiState.showBanner) {
+            bannerHideAnimation?.cancel()
+            root.clearAnimation()
+
+            val isOnline = uiState.isOnline
+            content.setBackgroundResource(
+                if (isOnline) R.drawable.bg_network_banner_online else R.drawable.bg_network_banner_offline,
+            )
+            content.invalidateOutline()
+            banner.iconContainer.setBackgroundResource(
+                if (isOnline) R.drawable.bg_network_icon_online else R.drawable.bg_network_icon_offline,
+            )
+            banner.imgIcon.setImageResource(
+                if (isOnline) R.drawable.ic_wifi_connected else R.drawable.ic_wifi_off,
+            )
+            banner.tvMessage.text = uiState.message
+            banner.tvSubtitle.text = getString(
+                if (isOnline) R.string.network_online_subtitle else R.string.network_offline_subtitle,
+            )
+            banner.btnOfflineDownloads.isVisible = !isOnline
+            banner.btnOfflineDownloads.setOnClickListener {
+                if (!isOnline) {
+                    navigateToDownloadedSongs()
+                }
+            }
+            updateNetworkBannerPosition()
+
+            if (!lastNetworkBannerVisible) {
+                root.isVisible = true
+                root.startAnimation(AnimationUtils.loadAnimation(this, R.anim.network_banner_slide_in))
+            }
+        } else if (lastNetworkBannerVisible) {
+            val slideOut = AnimationUtils.loadAnimation(this, R.anim.network_banner_slide_out)
+            bannerHideAnimation = slideOut
+            slideOut.setAnimationListener(object : Animation.AnimationListener {
+                override fun onAnimationStart(animation: Animation?) = Unit
+
+                override fun onAnimationEnd(animation: Animation?) {
+                    if (!networkMonitor.state.value.showBanner) {
+                        root.isVisible = false
+                    }
+                    bannerHideAnimation = null
+                }
+
+                override fun onAnimationRepeat(animation: Animation?) = Unit
+            })
+            root.startAnimation(slideOut)
+        } else {
+            root.isVisible = false
+        }
+
+        lastNetworkBannerVisible = uiState.showBanner
+        Log.d(
+            TAG,
+            "applyNetworkBanner: isOnline=${uiState.isOnline} showBanner=${uiState.showBanner} " +
+                "viewVisible=${root.isVisible} viewHeight=${root.height}",
+        )
+    }
+
+    private fun hideNetworkBannerImmediately() {
+        cancelOfflineBannerStartupDelay()
+        hideNetworkBannerViewOnly()
+    }
+
+    private fun hideNetworkBannerViewOnly() {
+        bannerHideAnimation?.cancel()
+        binding.networkBanner.root.clearAnimation()
+        binding.networkBanner.root.isVisible = false
+        lastNetworkBannerVisible = false
+    }
+
+    private fun navigateToDownloadedSongs() {
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.navHostFragment) as? NavHostFragment
+                ?: return
+        val navController = navHostFragment.navController
+        if (navController.currentDestination?.id == R.id.downloadedSongsFragment) return
+        runCatching {
+            navController.navigate(R.id.downloadedSongsFragment)
+        }
+    }
+
+    private fun registerMusicPlayerSheetCallbacks() {
+        supportFragmentManager.registerFragmentLifecycleCallbacks(
+            object : FragmentManager.FragmentLifecycleCallbacks() {
+                override fun onFragmentStarted(fm: FragmentManager, f: Fragment) {
+                    if (f is FragmentMusic) {
+                        applyMusicPlayerChrome(playerOpen = true)
+                    }
+                }
+
+                override fun onFragmentStopped(fm: FragmentManager, f: Fragment) {
+                    if (f is FragmentMusic) {
+                        applyMusicPlayerChrome(playerOpen = false)
+                    }
+                }
+            },
+            false,
+        )
+    }
+
+    private fun isMusicPlayerOpen(): Boolean =
+        MusicPlayerLauncher.find(supportFragmentManager)?.dialog?.isShowing == true
+
+    private fun applyMusicPlayerChrome(playerOpen: Boolean) {
+        updateNetworkBannerAllowedForChrome(playerOpen)
+        if (playerOpen) {
+            binding.bottomBar.isVisible = false
+            binding.bottomPlay.visibility = View.GONE
+            updateNetworkBannerPosition()
+            return
+        }
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.navHostFragment) as? NavHostFragment
+                ?: return
+        val destinationId = navHostFragment.navController.currentDestination?.id ?: return
+        updateNetworkBannerAllowed(destinationId)
+        when (destinationId) {
+            R.id.splashFragment -> {
+                binding.bottomBar.isVisible = false
+                binding.bottomPlay.visibility = View.GONE
+            }
+            else -> {
+                binding.bottomBar.isVisible = true
+                applyBottomPlayVisibilityForDestination(destinationId)
+            }
+        }
+        updateNetworkBannerPosition()
+    }
+
+    private fun updateNetworkBannerAllowedForChrome(playerOpen: Boolean) {
+        if (playerOpen) {
+            if (networkBannerAllowed) {
+                networkBannerAllowed = false
+                hideNetworkBannerImmediately()
+            }
+        }
+    }
+
+    private fun updateNetworkBannerAllowed(destinationId: Int) {
+        val allowed = destinationId != R.id.splashFragment && !isMusicPlayerOpen()
+        if (networkBannerAllowed == allowed) return
+        networkBannerAllowed = allowed
+        if (!allowed) {
+            hideNetworkBannerImmediately()
+        } else {
+            applyNetworkBanner(networkMonitor.state.value)
+        }
+    }
+
     override fun onClickView() {
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
 
         navController.addOnDestinationChangedListener { _, destination, _ ->
+            if (isMusicPlayerOpen()) {
+                applyMusicPlayerChrome(playerOpen = true)
+                return@addOnDestinationChangedListener
+            }
+            updateNetworkBannerAllowed(destination.id)
             when (destination.id) {
-                R.id.fragmentMusic -> {
-                    binding.bottomBar.isVisible = false
-                    binding.bottomPlay.visibility = View.INVISIBLE
-                }
-
                 R.id.splashFragment -> {
                     binding.bottomBar.isVisible = false
-                    binding.bottomPlay.visibility = View.INVISIBLE
+                    binding.bottomPlay.visibility = View.GONE
+                    updateNetworkBannerPosition()
                 }
 
                 else -> {
                     applyBottomPlayVisibilityForDestination(destination.id)
                     binding.bottomBar.isVisible = true
+                    updateNetworkBannerPosition()
                 }
             }
         }
+
+        updateNetworkBannerAllowed(navController.currentDestination?.id ?: R.id.splashFragment)
 
         binding.bottomBar.selectedItem = { action ->
             when (action) {
@@ -172,27 +451,17 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 DialogConfirm().apply {
                     title = song.title
                     onClickRemove = {
-                        playbackViewModel.toggleCurrentSongFavourite(song) { stillFavourite ->
-                            if (!stillFavourite) {
-                                Toast.makeText(
-                                    this@MainActivity,
-                                    this@MainActivity.getString(R.string.toast_removed_favourite),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
+                        requestRemoveFavourite(song.id) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                this@MainActivity.getString(R.string.toast_removed_favourite),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 }.show(supportFragmentManager, null)
             } else {
-                playbackViewModel.toggleCurrentSongFavourite(song) { added ->
-                    if (added) {
-                        Toast.makeText(
-                            this,
-                            getString(R.string.toast_added_favourite),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
+                requestAddFavourite(song)
             }
         }
     }
@@ -206,14 +475,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             ?: playbackViewModel.playbackState.value.currentSong?.id
             ?: return
         binding.root.post {
-            val navHost =
-                supportFragmentManager.findFragmentById(R.id.navHostFragment) as? NavHostFragment
-                    ?: return@post
-            val navController = navHost.navController
-            if (navController.currentDestination?.id == R.id.fragmentMusic) {
-                // Đã ở màn player — chỉ mở lại app (task đã lên foreground); không navigate để tránh chồng FragmentMusic.
-                return@post
-            }
+            if (isMusicPlayerOpen()) return@post
             navigateToFragmentMusic(resolvedId, preservePlaybackWhenOpening = true)
         }
     }
@@ -225,19 +487,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         if (preservePlaybackWhenOpening) {
             playbackViewModel.setPendingOpenFromMiniPlayer()
         }
-        val options = NavOptions.Builder()
-            .setEnterAnim(R.anim.slide_up)
-            .setExitAnim(R.anim.anim_normal)
-            .setPopEnterAnim(R.anim.anim_normal)
-            .setPopExitAnim(R.anim.slide_down)
-            .build()
-        val bundle = Bundle().apply {
-            putString("song_id", song.id)
-        }
-        val navHostFragment =
-            supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
-        val navController = navHostFragment.navController
-        navController.navigate(R.id.fragmentMusic, bundle, options)
+        MusicPlayerLauncher.open(
+            this,
+            song.id,
+            preservePlayback = preservePlaybackWhenOpening,
+        )
     }
 
     private fun openMusicFromBottomPlay() {
@@ -250,8 +504,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController
         val destId = navController.currentDestination?.id
+        val playerOpen = isMusicPlayerOpen()
 
-        if (destId != R.id.fragmentMusic && destId != R.id.splashFragment) {
+        if (!playerOpen && destId != R.id.splashFragment) {
             applyBottomPlayVisibilityForDestination(destId ?: 0)
         }
 
@@ -263,11 +518,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         state.currentSong?.let { song ->
             if (song.id != lastMiniPlayerSongId) {
                 lastMiniPlayerSongId = song.id
-                com.bumptech.glide.Glide.with(this)
-                    .load(song.thumbnailUrl)
-                    .placeholder(R.drawable.ic_circle)
-                    .error(R.drawable.ic_circle)
-                    .into(binding.avatar)
+                binding.avatar.loadSongThumbnail(song.thumbnailUrl)
                 lastMiniPlayerSeekSyncedMs = Int.MIN_VALUE
             }
             syncMiniPlayerSongInfo(state)
@@ -293,7 +544,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             if (state.isPlaying) R.drawable.pause else R.drawable.play
         )
 
-        (getCurrentFragment() as? FragmentMusic)?.onPlaybackStateChanged(state)
+        MusicPlayerLauncher.find(supportFragmentManager)?.onPlaybackStateChanged(state)
     }
 
     /**
@@ -302,6 +553,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
      * When Home vs ZingChart refresh different playlists into [SongRepository],
      * the adapter must be re-synced or text at [queueIndex] no longer matches the playing track.
      */
+    @SuppressLint("NotifyDataSetChanged")
     private fun syncMiniPlayerSongInfo(state: PlaybackUiState) {
         val song = state.currentSong ?: return
         val playlist = playbackViewModel.getPlaylist()
@@ -326,7 +578,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         if (favourite) {
             binding.favourite.setImageResource(R.drawable.ic_favourite_fill)
             binding.favourite.imageTintList =
-                ColorStateList.valueOf(getColor(R.color.red))
+                ColorStateList.valueOf(getColor(R.color.bg_pink))
         } else {
             binding.favourite.setImageResource(R.drawable.ic_favourite_thin)
             binding.favourite.imageTintList =
@@ -335,19 +587,206 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun applyBottomPlayVisibilityForDestination(destinationId: Int) {
+        if (isMusicPlayerOpen()) {
+            binding.bottomPlay.visibility = View.GONE
+            updateNetworkBannerPosition()
+            return
+        }
         val st = playbackViewModel.playbackState.value
         binding.bottomPlay.visibility =
-            if (destinationId != R.id.fragmentMusic && st.hasActivePlayer) {
+            if (destinationId != R.id.splashFragment && st.hasActivePlayer) {
                 View.VISIBLE
             } else {
-                View.INVISIBLE
+                View.GONE
             }
+        updateNetworkBannerPosition()
+    }
+
+    fun requestAddFavourite(song: Song) {
+        lifecycleScope.launch {
+            when (val result = favouriteSongRepository.insertSong(song)) {
+                FavouriteMutationResult.Success -> Toast.makeText(
+                    this@MainActivity,
+                    R.string.toast_added_favourite,
+                    Toast.LENGTH_SHORT,
+                ).show()
+                FavouriteMutationResult.RequiresLogin -> showFavouriteLoginDialog(song)
+                FavouriteMutationResult.Offline -> showFavouriteToast(R.string.favourite_offline)
+                is FavouriteMutationResult.Failure ->
+                    showFavouriteToast(result.message, R.string.favourite_operation_failed)
+            }
+        }
+    }
+
+    fun requestRemoveFavourite(songId: String, onSuccess: () -> Unit = {}) {
+        lifecycleScope.launch {
+            when (val result = favouriteSongRepository.deleteSongById(songId)) {
+                FavouriteMutationResult.Success -> onSuccess()
+                FavouriteMutationResult.RequiresLogin ->
+                    showFavouriteToast(R.string.favourite_login_required)
+                FavouriteMutationResult.Offline -> showFavouriteToast(R.string.favourite_offline)
+                is FavouriteMutationResult.Failure ->
+                    showFavouriteToast(result.message, R.string.favourite_operation_failed)
+            }
+        }
+    }
+
+    fun ensureSignedInForArtist(onReady: () -> Unit) {
+        if (authRepository.currentUser() != null) {
+            onReady()
+            return
+        }
+        val loginTitle = getString(R.string.artist_login_title)
+        val loginMessage = getString(R.string.artist_login_message)
+        val loginConfirm = getString(R.string.favourite_login_action)
+        val loginCancel = getString(R.string.favourite_login_later)
+        DialogConfirm().apply {
+            title = loginTitle
+            message = loginMessage
+            confirmText = loginConfirm
+            cancelText = loginCancel
+            onClickRemove = {
+                signInWithGoogleThen(
+                    offlineMessageRes = R.string.artist_offline,
+                    onReady = onReady,
+                )
+            }
+        }.show(supportFragmentManager, "artist_login")
+    }
+
+    fun ensureSignedInForPlaylist(onReady: () -> Unit) {
+        if (authRepository.currentUser() != null) {
+            onReady()
+            return
+        }
+        val loginTitle = getString(R.string.playlist_login_title)
+        val loginMessage = getString(R.string.playlist_login_message)
+        val loginConfirm = getString(R.string.favourite_login_action)
+        val loginCancel = getString(R.string.favourite_login_later)
+        DialogConfirm().apply {
+            title = loginTitle
+            message = loginMessage
+            confirmText = loginConfirm
+            cancelText = loginCancel
+            onClickRemove = {
+                signInWithGoogleThen(
+                    offlineMessageRes = R.string.playlist_offline,
+                    onReady = onReady,
+                )
+            }
+        }.show(supportFragmentManager, "playlist_login")
+    }
+
+    fun addSongToPlaylist(playlist: UserPlaylist, song: Song) {
+        lifecycleScope.launch {
+            showPlaylistMutation(
+                playlistRepository.addSong(playlist.id, song, playlist.coverUrl),
+                playlist.title,
+            )
+        }
+    }
+
+    fun createPlaylistAndAddSong(title: String, isPublic: Boolean, song: Song) {
+        lifecycleScope.launch {
+            when (val created = playlistRepository.createPlaylist(title, isPublic)) {
+                is PlaylistMutationResult.Success -> showPlaylistMutation(
+                    playlistRepository.addSong(created.playlistId, song),
+                    title,
+                )
+                else -> showPlaylistMutation(created)
+            }
+        }
+    }
+
+    fun showPlaylistMutation(result: PlaylistMutationResult, playlistTitle: String? = null) {
+        when (result) {
+            is PlaylistMutationResult.Success -> Toast.makeText(
+                this,
+                if (playlistTitle.isNullOrBlank()) {
+                    getString(R.string.playlist_created)
+                } else {
+                    getString(R.string.playlist_added, playlistTitle)
+                },
+                Toast.LENGTH_SHORT,
+            ).show()
+            PlaylistMutationResult.AlreadyExists -> Toast.makeText(
+                this,
+                R.string.playlist_already_added,
+                Toast.LENGTH_SHORT,
+            ).show()
+            PlaylistMutationResult.RequiresLogin -> ensureSignedInForPlaylist {}
+            PlaylistMutationResult.Offline -> showFavouriteToast(R.string.playlist_offline)
+            is PlaylistMutationResult.Failure -> showFavouriteToast(
+                result.message,
+                R.string.playlist_operation_failed,
+            )
+        }
+    }
+
+    private fun showFavouriteLoginDialog(song: Song) {
+        val loginTitle = getString(R.string.favourite_login_title)
+        val loginMessage = getString(R.string.favourite_login_message)
+        val loginConfirm = getString(R.string.favourite_login_action)
+        val loginCancel = getString(R.string.favourite_login_later)
+        DialogConfirm().apply {
+            title = loginTitle
+            message = loginMessage
+            confirmText = loginConfirm
+            cancelText = loginCancel
+            onClickRemove = {
+                signInWithGoogleThen(
+                    offlineMessageRes = R.string.favourite_offline,
+                    onReady = { requestAddFavourite(song) },
+                )
+            }
+        }.show(supportFragmentManager, "favourite_login")
+    }
+
+    private fun signInWithGoogleThen(offlineMessageRes: Int, onReady: () -> Unit) {
+        if (!networkMonitor.isOnlineNow()) {
+            showFavouriteToast(offlineMessageRes)
+            return
+        }
+        lifecycleScope.launch {
+            when (val request = GoogleSignInHelper.requestIdToken(this@MainActivity)) {
+                is GoogleSignInRequestResult.IdToken -> {
+                    val user = runCatching {
+                        authRepository.signInWithGoogle(request.value)
+                    }.getOrElse {
+                        showFavouriteToast(it.message.orEmpty(), R.string.auth_invalid_credential)
+                        return@launch
+                    }
+                    runCatching { userRepository.upsertAfterLogin(user) }
+                    updateProfileTabAvatar(user)
+                    onReady()
+                }
+                is GoogleSignInRequestResult.Error -> showFavouriteToast(request.messageRes)
+                GoogleSignInRequestResult.Cancelled -> Unit
+            }
+        }
+    }
+
+    private fun showFavouriteToast(messageRes: Int) {
+        Toast.makeText(this, messageRes, Toast.LENGTH_LONG).show()
+    }
+
+    private fun showFavouriteToast(message: String, fallbackRes: Int) {
+        Toast.makeText(
+            this,
+            message.ifBlank { getString(fallbackRes) },
+            Toast.LENGTH_LONG,
+        ).show()
+    }
+
+    internal fun updateProfileTabAvatar(user: AuthUser?) {
+        binding.bottomBar.showProfileAvatar(user)
     }
 
     override fun onDestroy() {
+        cancelOfflineBannerStartupDelay()
         if (isFinishing && !isChangingConfigurations) {
             playbackViewModel.unbind(this)
-            val intent = android.content.Intent(this, com.example.serviceandroid.service.MusicService::class.java)
+            val intent = Intent(this, com.example.serviceandroid.service.MusicService::class.java)
             stopService(intent)
         }
         super.onDestroy()
@@ -358,6 +797,11 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        if (isMusicPlayerOpen()) {
+            MusicPlayerLauncher.find(supportFragmentManager)?.dismiss()
+            return
+        }
+
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.navHostFragment) as NavHostFragment
         val navController = navHostFragment.navController

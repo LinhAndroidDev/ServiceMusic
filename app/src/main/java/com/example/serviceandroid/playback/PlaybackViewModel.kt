@@ -7,11 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.serviceandroid.data.repository.SongRepository
 import com.example.serviceandroid.database.repository.FavouriteSongRepository
 import com.example.serviceandroid.model.Song
-import com.example.serviceandroid.utils.DateUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,6 +24,7 @@ class PlaybackViewModel @Inject constructor(
 ) : ViewModel() {
 
     val playbackState: StateFlow<PlaybackUiState> = stateHolder.state
+    val sleepTimerState: StateFlow<SleepTimerState> = stateHolder.sleepTimer
 
     private val _miniPlayerIsFavourite = MutableStateFlow(false)
     val miniPlayerIsFavourite: StateFlow<Boolean> = _miniPlayerIsFavourite.asStateFlow()
@@ -31,18 +32,17 @@ class PlaybackViewModel @Inject constructor(
     private val _playlistLoading = MutableStateFlow(false)
     val playlistLoading: StateFlow<Boolean> = _playlistLoading.asStateFlow()
 
-    private var lastSongIdForFavouriteCheck: String? = null
-
     init {
         refreshPlaylist()
         viewModelScope.launch {
-            playbackState.collect { st ->
-                val id = st.currentSong?.id
-                if (id != lastSongIdForFavouriteCheck) {
-                    lastSongIdForFavouriteCheck = id
-                    _miniPlayerIsFavourite.value =
-                        id?.let { favouriteSongRepository.checkSongById(it) } ?: false
-                }
+            combine(
+                playbackState,
+                favouriteSongRepository.observeAllRecords(),
+            ) { state, favourites ->
+                val songId = state.currentSong?.id
+                songId != null && favourites.any { it.song.id == songId }
+            }.collect { favourite ->
+                _miniPlayerIsFavourite.value = favourite
             }
         }
     }
@@ -66,10 +66,18 @@ class PlaybackViewModel @Inject constructor(
 
     fun getPlaylist(): List<Song> = songRepository.getPlaylist()
 
+    fun setPlaybackQueue(songs: List<Song>) = songRepository.setPlaybackQueue(songs)
+
+    fun playFromVisibleList(context: Context, songs: List<Song>, songId: String): Boolean {
+        val song = songs.find { it.id == songId } ?: return false
+        setPlaybackQueue(songs)
+        playSong(context, song)
+        return true
+    }
+
     fun resolveQueueIndexForSongId(songId: String): Int {
-        if (songId.isBlank()) return 0
-        val idx = songRepository.getPlaylist().indexOfFirst { it.id == songId }
-        return if (idx < 0) 0 else idx
+        if (songId.isBlank()) return -1
+        return songRepository.ensureQueueForSongId(songId)
     }
 
     fun playSong(context: Context, song: Song) = connector.playSong(context, song)
@@ -83,6 +91,14 @@ class PlaybackViewModel @Inject constructor(
     }
 
     fun playFirstSong(context: Context) = playSongAtIndex(context, 0)
+
+    fun setSleepTimer(
+        context: Context,
+        option: SleepTimerOption,
+        durationMs: Long? = null,
+    ) = connector.setSleepTimer(context, option, durationMs)
+
+    fun cancelSleepTimer(context: Context) = connector.cancelSleepTimer(context)
 
     fun pause(context: Context) = connector.pause(context)
 
@@ -109,25 +125,4 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
-    fun refreshMiniPlayerFavouriteForCurrentSong() {
-        viewModelScope.launch {
-            val id = stateHolder.state.value.currentSong?.id
-            _miniPlayerIsFavourite.value =
-                id?.let { favouriteSongRepository.checkSongById(it) } ?: false
-        }
-    }
-
-    fun toggleCurrentSongFavourite(song: Song, onFinished: (Boolean) -> Unit = {}) {
-        viewModelScope.launch {
-            val nowFavourite = if (favouriteSongRepository.checkSongById(song.id)) {
-                favouriteSongRepository.deleteSongById(song.id)
-                false
-            } else {
-                favouriteSongRepository.insertSong(song, DateUtils.getTimeCurrent())
-                true
-            }
-            _miniPlayerIsFavourite.value = nowFavourite
-            onFinished(nowFavourite)
-        }
-    }
 }

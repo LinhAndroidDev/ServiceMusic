@@ -1,37 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_width="116dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp"
+        android:orientation="vertical">
 
-        <FrameLayout
-            android:background="@drawable/bg_listen_recent"
-            android:layout_width="80dp"
-            android:layout_height="80dp">
-            
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="108dp"
+            android:layout_height="108dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp">
+
             <ImageView
-                android:layout_gravity="center"
-                android:src="@drawable/ic_recent"
-                android:layout_width="60dp"
-                android:layout_height="60dp" />
+                android:id="@+id/recentSongThumbnail"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@null"
+                android:scaleType="centerCrop"
+                tools:src="@drawable/ic_music" />
 
-            <androidx.cardview.widget.CardView
-                android:id="@+id/iconMV"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="8dp"
-                android:layout_gravity="bottom|end"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="25dp">
-                <ImageView
-                    android:layout_margin="2dp"
-                    android:src="@drawable/play"
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
-                    app:tint="@color/black"/>
-            </androidx.cardview.widget.CardView>
-        </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/recentSongTitle"
+            android:layout_width="108dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text_black"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="Tên bài hát" />
+
+        <TextView
+            android:id="@+id/recentSongSinger"
+            android:layout_width="108dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/txt_hint"
+            android:textSize="11sp"
+            tools:text="Tên ca sĩ" />
     </LinearLayout>
 </layout>

@@ -4,11 +4,10 @@ object Constants {
     /** Same string as legacy [com.example.serviceandroid.MainActivity.MESSAGE_MAIN] for intents. */
     const val EXTRA_START_SONG = "MESSAGE_MAIN"
     const val EXTRA_SEEK_POSITION_MS = "EXTRA_SEEK_POSITION_MS"
+    const val EXTRA_SLEEP_TIMER_OPTION = "EXTRA_SLEEP_TIMER_OPTION"
+    const val EXTRA_SLEEP_TIMER_DURATION_MS = "EXTRA_SLEEP_TIMER_DURATION_MS"
+    const val EXTRA_SLEEP_TIMER_CANCEL = "EXTRA_SLEEP_TIMER_CANCEL"
 
-    const val OBJECT_SONG = "OBJECT_SONG"
-    const val STATUS_PLAYING = "STATUS_PLAYING"
-    const val ACTION_MUSIC = "ACTION_MUSIC"
-    const val SEND_DATA_TO_ACTIVITY = "SEND_DATA_TO_ACTIVITY"
     const val RECEIVER_ACTION_MUSIC = "RECEIVER_ACTION_MUSIC"
 
     /** Mở [com.example.serviceandroid.fragment.music.FragmentMusic] khi user tap vùng nội dung notification (không phải nút điều khiển). */

@@ -15,21 +15,23 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
+import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.data.firestore.FirestoreMusicRepository
+import com.example.serviceandroid.data.recent.RecentHistoryRepository
 import com.example.serviceandroid.data.repository.SongRepository
+import com.example.serviceandroid.database.repository.DownloadedSongRepository
 import com.example.serviceandroid.helper.Constants
 import com.example.serviceandroid.helper.MyApplication
 import com.example.serviceandroid.model.Action
@@ -37,7 +39,10 @@ import com.example.serviceandroid.model.Repeat
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.playback.PlaybackStateHolder
 import com.example.serviceandroid.playback.PlaybackUiState
+import com.example.serviceandroid.playback.SleepTimerOption
+import com.example.serviceandroid.playback.SleepTimerState
 import com.example.serviceandroid.utils.SharePreferenceRepository
+import com.example.serviceandroid.utils.loadSongThumbnailBitmap
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -63,6 +68,12 @@ class MusicService : Service() {
     @Inject
     lateinit var firestoreMusicRepository: FirestoreMusicRepository
 
+    @Inject
+    lateinit var downloadedSongRepository: DownloadedSongRepository
+
+    @Inject
+    lateinit var recentHistoryRepository: RecentHistoryRepository
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var prepareGeneration = 0
 
@@ -82,6 +93,8 @@ class MusicService : Service() {
     private var pendingSong: Song? = null
     private var pendingGeneration: Int = 0
     private var viewsIncrementedForSongId: String? = null
+    private var playbackNeedsReprepare = false
+    private val sleepTimerRunnable = Runnable { onSleepTimerExpired() }
 
     /** Frequent position updates for UI (lyrics); notification refreshed at [NOTIFICATION_REFRESH_MS]. */
     private val tickIntervalMs = 80L
@@ -104,8 +117,24 @@ class MusicService : Service() {
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            Log.e(TAG, "ExoPlayer error", error)
-            playbackStateHolder.update { it.copy(isPlaying = false) }
+            Log.e(
+                TAG,
+                "ExoPlayer error code=${error.errorCode} message=${error.message}",
+                error,
+            )
+            playbackNeedsReprepare = true
+            stopProgressTicker()
+            val player = exoPlayer
+            val pos = player?.currentPosition?.toInt()?.coerceAtLeast(0)
+                ?: playbackStateHolder.state.value.positionMs
+            playbackStateHolder.update { st ->
+                st.copy(
+                    isPlaying = false,
+                    positionMs = pos.coerceAtLeast(st.positionMs),
+                )
+            }
+            updateMediaSessionPlaybackState()
+            refreshNotification()
         }
     }
 
@@ -160,6 +189,13 @@ class MusicService : Service() {
         override fun onSkipToPrevious() {
             handler.post { previousInternal() }
         }
+
+        override fun onSeekTo(pos: Long) {
+            val positionMs = pos
+                .coerceIn(0L, Int.MAX_VALUE.toLong())
+                .toInt()
+            handler.post { seekToInternal(positionMs) }
+        }
     }
 
     inner class MusicBinder : Binder() {
@@ -171,6 +207,9 @@ class MusicService : Service() {
         fun clear() = clearInternal()
         fun seekTo(positionMs: Int) = seekToInternal(positionMs)
         fun syncRepeatFromPrefs() = applyRepeatFromPrefs()
+        fun setSleepTimer(option: SleepTimerOption, durationMs: Long? = null) =
+            setSleepTimerInternal(option, durationMs)
+        fun cancelSleepTimer() = cancelSleepTimerInternal()
     }
 
     private fun ensureMediaSession(): MediaSessionCompat {
@@ -217,6 +256,22 @@ class MusicService : Service() {
 
         if (intent.hasExtra(Constants.EXTRA_SEEK_POSITION_MS)) {
             seekToInternal(intent.getIntExtra(Constants.EXTRA_SEEK_POSITION_MS, 0))
+            return START_STICKY
+        }
+
+        if (intent.getBooleanExtra(Constants.EXTRA_SLEEP_TIMER_CANCEL, false)) {
+            cancelSleepTimerInternal()
+            return START_STICKY
+        }
+
+        val sleepOptionName = intent.getStringExtra(Constants.EXTRA_SLEEP_TIMER_OPTION)
+        if (!sleepOptionName.isNullOrBlank()) {
+            val option = runCatching { SleepTimerOption.valueOf(sleepOptionName) }.getOrNull()
+            if (option != null) {
+                val durationMs = intent.getLongExtra(Constants.EXTRA_SLEEP_TIMER_DURATION_MS, -1L)
+                    .takeIf { it > 0L }
+                setSleepTimerInternal(option, durationMs)
+            }
             return START_STICKY
         }
 
@@ -290,9 +345,21 @@ class MusicService : Service() {
     fun playSongInternal(song: Song) {
         ensureMediaSession()
         stopProgressTicker()
+        playbackNeedsReprepare = false
 
-        index = songRepository.indexOf(song).let { if (it < 0) 0 else it }
-        val resolved = songRepository.getSong(index)
+        var resolvedIndex = songRepository.indexOf(song)
+        if (resolvedIndex < 0) {
+            resolvedIndex = songRepository.ensureQueueForSongId(song.id)
+        }
+        val resolved = if (resolvedIndex >= 0) {
+            index = resolvedIndex
+            songRepository.getSong(resolvedIndex)
+        } else {
+            // Song not in any known playlist — play the requested item as a one-song queue.
+            songRepository.setPlaybackQueue(listOf(song))
+            index = 0
+            song
+        }
         val estimatedDurationMs = (resolved.durationSec * 1000L).toInt().coerceAtLeast(0)
 
         playbackStateHolder.update {
@@ -311,10 +378,12 @@ class MusicService : Service() {
     }
 
     private fun startStreaming(resolved: Song, startPositionMs: Int, autoStart: Boolean) {
-        if (resolved.audioUrl.isBlank()) {
-            Log.e(TAG, "Missing audioUrl for song ${resolved.id}")
+        val playableUri = resolvePlayableUri(resolved)
+        if (playableUri.isNullOrBlank()) {
+            Log.e(TAG, "Missing audio for song ${resolved.id}")
             return
         }
+        playbackNeedsReprepare = false
         val generation = ++prepareGeneration
         pendingGeneration = generation
         pendingSong = resolved
@@ -324,11 +393,21 @@ class MusicService : Service() {
         val player = ensureExoPlayer()
         try {
             player.stop()
-            player.setMediaItem(MediaItem.fromUri(resolved.audioUrl))
+            player.setMediaItem(MediaItem.fromUri(playableUri))
             player.prepare()
         } catch (e: Exception) {
-            Log.e(TAG, "ExoPlayer prepare failed url=${resolved.audioUrl}", e)
+            Log.e(TAG, "ExoPlayer prepare failed url=$playableUri", e)
+            playbackNeedsReprepare = true
             playbackStateHolder.update { it.copy(isPlaying = false) }
+        }
+    }
+
+    private fun resolvePlayableUri(song: Song): String? {
+        return runBlocking {
+            withContext(Dispatchers.IO) {
+                downloadedSongRepository.resolveLocalPlayableUri(song.id)
+                    ?: song.audioUrl.takeIf { it.isNotBlank() }
+            }
         }
     }
 
@@ -337,6 +416,7 @@ class MusicService : Service() {
         if (pendingGeneration != prepareGeneration) return
 
         val resolved = pendingSong ?: playbackStateHolder.state.value.currentSong ?: return
+        playbackNeedsReprepare = false
         applyRepeatMode()
 
         val dur = playerDurationMs(player)
@@ -374,6 +454,7 @@ class MusicService : Service() {
             viewsIncrementedForSongId = resolved.id
             serviceScope.launch {
                 runCatching { firestoreMusicRepository.incrementViews(resolved.id) }
+                runCatching { recentHistoryRepository.recordSong(resolved) }
             }
             startProgressTicker()
         }
@@ -400,20 +481,20 @@ class MusicService : Service() {
         }
     }
 
-    private suspend fun loadThumbnailBitmap(url: String): Bitmap? = withContext(Dispatchers.IO) {
-        if (url.isBlank()) return@withContext null
-        runCatching {
-            Glide.with(applicationContext)
-                .asBitmap()
-                .load(url)
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .submit()
-                .get()
-        }.getOrNull()
-    }
+    private suspend fun loadThumbnailBitmap(url: String): Bitmap? =
+        loadSongThumbnailBitmap(applicationContext, url)
 
     private fun onTrackCompleted() {
         val player = exoPlayer ?: return
+        if (playbackStateHolder.sleepTimer.value.stopAtEndOfTrack) {
+            cancelSleepTimerCallbacks()
+            playbackStateHolder.resetSleepTimer()
+            player.seekTo(0)
+            pauseInternal()
+            playbackStateHolder.update { it.copy(positionMs = 0) }
+            Toast.makeText(this, R.string.sleep_timer_expired, Toast.LENGTH_SHORT).show()
+            return
+        }
         if (player.repeatMode == Player.REPEAT_MODE_ONE) return
         if (index < songRepository.lastIndex()) {
             index++
@@ -444,14 +525,54 @@ class MusicService : Service() {
             return
         }
         val player = exoPlayer ?: return
+        val song = currentSongOrNull() ?: return
+
+        if (needsPlayerReprepare(player)) {
+            val playerPos = player.currentPosition.toInt()
+            val pos = if (playerPos > 0) {
+                playerPos
+            } else {
+                playbackStateHolder.state.value.positionMs
+            }
+            reprepareAndPlay(song, pos, autoStart = true)
+            return
+        }
+
         if (!player.isPlaying) {
             player.play()
         }
-        playbackStateHolder.update { it.copy(isPlaying = true) }
-        updateMediaSessionPlaybackState()
-        refreshNotification()
-        persistPlaybackSnapshot()
-        startProgressTicker()
+        if (player.isPlaying) {
+            playbackStateHolder.update { it.copy(isPlaying = true) }
+            updateMediaSessionPlaybackState()
+            refreshNotification()
+            persistPlaybackSnapshot()
+            startProgressTicker()
+        }
+    }
+
+    private fun hasActivePlaybackSession(): Boolean {
+        return index >= 0 || playbackStateHolder.state.value.hasActivePlayer
+    }
+
+    private fun needsPlayerReprepare(player: ExoPlayer): Boolean {
+        if (!hasActivePlaybackSession()) return false
+        return playbackNeedsReprepare ||
+            player.playerError != null ||
+            player.playbackState == Player.STATE_IDLE
+    }
+
+    private fun currentSongOrNull(): Song? {
+        playbackStateHolder.state.value.currentSong?.let { return it }
+        if (index < 0 || !songRepository.isLoaded()) return null
+        return runCatching { songRepository.getSong(index) }.getOrNull()
+    }
+
+    private fun reprepareAndPlay(resolved: Song, startPositionMs: Int, autoStart: Boolean) {
+        Log.d(
+            TAG,
+            "reprepareAndPlay: song=${resolved.id} pos=$startPositionMs autoStart=$autoStart",
+        )
+        startStreaming(resolved, startPositionMs, autoStart)
     }
 
     private fun nextInternal() {
@@ -493,6 +614,7 @@ class MusicService : Service() {
 
     private fun seekToInternal(positionMs: Int) {
         val player = exoPlayer ?: return
+        val song = currentSongOrNull() ?: return
         val dur = playerDurationMs(player)
         val safe = if (dur > 0) positionMs.coerceIn(0, dur) else positionMs.coerceAtLeast(0)
         val now = SystemClock.elapsedRealtime()
@@ -501,6 +623,21 @@ class MusicService : Service() {
         }
         lastSeekPositionMs = safe
         lastSeekElapsedMs = now
+
+        if (needsPlayerReprepare(player)) {
+            reprepareAndPlay(song, safe, autoStart = false)
+            playbackStateHolder.update {
+                it.copy(
+                    positionMs = safe,
+                    seekSequence = it.seekSequence + 1L,
+                )
+            }
+            updateMediaSessionPlaybackState()
+            refreshNotification()
+            persistPlaybackSnapshot()
+            return
+        }
+
         player.seekTo(safe.toLong())
         playbackStateHolder.update {
             it.copy(
@@ -509,6 +646,7 @@ class MusicService : Service() {
             )
         }
         updateMediaSessionPlaybackState()
+        refreshNotification()
         persistPlaybackSnapshot()
     }
 
@@ -517,8 +655,52 @@ class MusicService : Service() {
         stopSelf()
     }
 
+    private fun setSleepTimerInternal(option: SleepTimerOption, durationMs: Long?) {
+        cancelSleepTimerCallbacks()
+        when (option) {
+            SleepTimerOption.END_OF_TRACK -> {
+                playbackStateHolder.updateSleepTimer(
+                    SleepTimerState(
+                        option = option,
+                        stopAtEndOfTrack = true,
+                    ),
+                )
+            }
+            else -> {
+                val duration = durationMs ?: option.presetDurationMs() ?: return
+                if (duration < MIN_SLEEP_TIMER_DURATION_MS) return
+                val endsAt = SystemClock.elapsedRealtime() + duration
+                playbackStateHolder.updateSleepTimer(
+                    SleepTimerState(
+                        option = option,
+                        endsAtElapsedRealtime = endsAt,
+                    ),
+                )
+                handler.postDelayed(sleepTimerRunnable, duration)
+            }
+        }
+    }
+
+    private fun cancelSleepTimerInternal() {
+        cancelSleepTimerCallbacks()
+        playbackStateHolder.resetSleepTimer()
+    }
+
+    private fun cancelSleepTimerCallbacks() {
+        handler.removeCallbacks(sleepTimerRunnable)
+    }
+
+    private fun onSleepTimerExpired() {
+        cancelSleepTimerCallbacks()
+        playbackStateHolder.resetSleepTimer()
+        pauseInternal()
+        Toast.makeText(this, R.string.sleep_timer_expired, Toast.LENGTH_SHORT).show()
+    }
+
     private fun tearDownServicePlayback() {
+        cancelSleepTimerCallbacks()
         stopProgressTicker()
+        playbackNeedsReprepare = false
         prepareGeneration++
         exoPlayer?.run {
             stop()
@@ -563,26 +745,35 @@ class MusicService : Service() {
         )
     }
 
+    private fun updateMediaSessionMetadata(
+        song: Song,
+        durationMs: Int,
+        artwork: Bitmap?,
+    ) {
+        val metadata = MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, song.id)
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, song.nameSinger)
+            .putLong(
+                MediaMetadataCompat.METADATA_KEY_DURATION,
+                durationMs.coerceAtLeast(0).toLong(),
+            )
+            .apply {
+                artwork?.let {
+                    putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, it)
+                    putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, it)
+                }
+            }
+            .build()
+        ensureMediaSession().setMetadata(metadata)
+    }
+
     @SuppressLint("ForegroundServiceType")
     private fun buildNotification(song: Song, bitmap: Bitmap?): NotificationCompat.Builder {
         val largeIcon = bitmap ?: BitmapFactory.decodeResource(resources, R.drawable.ic_circle)
         val session = ensureMediaSession()
         val openPlayer = openPlayerContentPendingIntent(song)
         session.setSessionActivity(openPlayer)
-
-        val builder = NotificationCompat.Builder(this, MyApplication.CHANNEL_ID)
-            .setSmallIcon(R.drawable.music)
-            .setSubText("Linh Nguyen")
-            .setContentTitle(song.title)
-            .setContentText("Ca sĩ: ${song.nameSinger}")
-            .setLargeIcon(largeIcon)
-            .setContentIntent(openPlayer)
-            .setOnlyAlertOnce(true)
-            .setStyle(
-                androidx.media.app.NotificationCompat.MediaStyle()
-                    .setShowActionsInCompactView(0, 1, 2)
-                    .setMediaSession(session.sessionToken)
-            )
 
         val player = exoPlayer
         val duration = playerDurationMs(player)
@@ -591,19 +782,38 @@ class MusicService : Service() {
         } else {
             0
         }
+        updateMediaSessionMetadata(song, duration, largeIcon)
+
+        val builder = NotificationCompat.Builder(this, MyApplication.CHANNEL_ID)
+            .setSmallIcon(R.drawable.music)
+            .setSubText("Linh Nguyen")
+            .setContentTitle(song.title)
+            .setContentText("Ca sĩ: ${song.nameSinger}")
+            .setLargeIcon(largeIcon)
+            .setContentIntent(openPlayer)
+            .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setShowWhen(false)
+            .setOnlyAlertOnce(true)
+            .setStyle(
+                androidx.media.app.NotificationCompat.MediaStyle()
+                    .setShowActionsInCompactView(0, 1, 2)
+                    .setMediaSession(session.sessionToken)
+            )
 
         if (player != null && player.isPlaying) {
             builder
                 .addAction(R.drawable.skip_previous, "Previous", pending(Action.ACTION_PREVIOUS))
                 .addAction(R.drawable.pause, "Pause", pending(Action.ACTION_PAUSE))
                 .addAction(R.drawable.skip_next, "Next", pending(Action.ACTION_NEXT))
-                .setProgress(duration, position, false)
         } else {
             builder
                 .addAction(R.drawable.skip_previous, "Previous", pending(Action.ACTION_PREVIOUS))
                 .addAction(R.drawable.play, "Play", pending(Action.ACTION_RESUME))
                 .addAction(R.drawable.skip_next, "Next", pending(Action.ACTION_NEXT))
-                .setProgress(duration, position, false)
+        }
+        if (duration > 0) {
+            builder.setProgress(duration, position, false)
         }
         return builder
     }
@@ -728,5 +938,6 @@ class MusicService : Service() {
         private const val REQUEST_CODE_OPEN_PLAYER_FROM_NOTIFICATION = 3100
         private const val TAG = "MusicService"
         private const val SEEK_DEBOUNCE_MS = 80L
+        private const val MIN_SLEEP_TIMER_DURATION_MS = 60_000L
     }
 }

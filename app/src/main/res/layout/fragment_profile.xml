@@ -22,46 +22,70 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"/>
 
-        <LinearLayout
+        <FrameLayout
+            android:id="@+id/accountContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="15dp"
             android:layout_marginTop="20dp"
-            android:layout_marginStart="15dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
-            <de.hdodenhof.circleimageview.CircleImageView
-                android:src="@drawable/img_avatar"
-                android:layout_width="80dp"
-                android:layout_height="80dp"/>
+            android:background="@drawable/bg_white_corner_10_stroke_1"
+            android:padding="15dp">
 
             <LinearLayout
-                android:layout_marginStart="15dp"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_gravity="center_vertical">
+                android:gravity="center_vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Nguyễn Hữu Linh"
-                    android:textColor="@color/text_black"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                <de.hdodenhof.circleimageview.CircleImageView
+                    android:id="@+id/profileAvatar"
+                    android:layout_width="70dp"
+                    android:layout_height="70dp"
+                    android:src="@drawable/img_avatar" />
 
-                <TextView
-                    android:layout_marginTop="5dp"
-                    android:text="Basic"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_white"
-                    android:textStyle="bold"
-                    android:paddingVertical="1dp"
-                    android:paddingHorizontal="8dp"
-                    android:background="@drawable/bg_boder_grey_corner_5"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:textAllCaps="true"/>
+                    android:layout_marginStart="15dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/profileName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/profile_signed_out_title"
+                        android:textColor="@color/text_black"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/profileEmail"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:text="@string/profile_signed_out_subtitle"
+                        android:textColor="@color/grey_1"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/buttonAuth"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/profile_sign_in_google"
+                        android:textAllCaps="false" />
+                </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/authProgress"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_marginTop="25dp"

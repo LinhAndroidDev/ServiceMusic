@@ -7,6 +7,7 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.core.view.isVisible
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -18,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.AdvertisementAdapter
 import com.example.serviceandroid.adapter.PagerNationalAdapter
@@ -27,11 +29,16 @@ import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.custom.BottomSheetOptionMusic
 import com.example.serviceandroid.custom.DialogConfirm
+import com.example.serviceandroid.custom.VoiceSearch
 import com.example.serviceandroid.databinding.FragmentHomeBinding
+import com.example.serviceandroid.fragment.category.CategorySongsMode
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
 import com.example.serviceandroid.model.Advertisement
 import com.example.serviceandroid.model.National
 import com.example.serviceandroid.model.Song
 import com.example.serviceandroid.model.Topic
+import com.example.serviceandroid.model.TopicType
+import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
 import com.example.serviceandroid.utils.ExtensionFunctions
 import com.example.serviceandroid.utils.ExtensionFunctions.isViewVisible
@@ -63,6 +70,13 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     private var bannerScrollListener: RecyclerView.OnScrollListener? = null
     private var stickTile = Title.TITLE_TOPIC
     private val viewModel by viewModels<HomeViewModel>()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
+    private var topicAdapter: TopicAdapter? = null
+    private val voiceSearch = VoiceSearch(this) { query ->
+        findNavController().navigate(
+            HomeFragmentDirections.actionHomeFragmentToFragmentSearchSong(query),
+        )
+    }
 
     override fun initView() {
         binding.titleCover.isVisible = binding.scrollHome.isViewVisible(binding.titleTopic)
@@ -77,6 +91,8 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         setupSwipeRefresh()
         observeAdvertisements()
         observePlaylist()
+        observeTopSongs()
+        observeTopics()
     }
 
     private fun setupSwipeRefresh() {
@@ -108,6 +124,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             applyPlaylistToUi(songs)
         }
         bindAdvertisements(viewModel.getAdvertisements(), force = true)
+        val topSongs = viewModel.getTopSongs()
+        if (topSongs.isNotEmpty()) {
+            applyTopChartToUi(topSongs)
+        }
     }
 
     private fun observeAdvertisements() {
@@ -336,8 +356,10 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             type = TypeList.TYPE_NATIONAL,
         ).also { adapter ->
             adapter.onClickItem = { songId ->
-                val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = songId)
-                findNavController().navigate(action)
+                val songs = viewModel.getPlaylist().filter { it.checkMusicNational(national) }
+                if (playbackViewModel.playFromVisibleList(requireContext(), songs, songId)) {
+                    MusicPlayerLauncher.open(this, songId)
+                }
             }
             adapter.onClickMoreOption = { song -> showMoreOptions(song) }
             adapterNational = adapter
@@ -350,14 +372,31 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
             setUpViewPagerTransformer(binding.pagerNewRelease, 5, 1f, 0f)
             newReleasePagerConfigured = true
         }
+    }
 
+    private fun observeTopSongs() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.ensureTopSongsLoaded()
+                viewModel.topSongs.collect { songs ->
+                    if (songs.isEmpty()) return@collect
+                    applyTopChartToUi(songs)
+                }
+            }
+        }
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    private fun applyTopChartToUi(songs: List<Song>) {
         val chartAdapter = newUpdateAdapter ?: PagerNewReleaseAdapter(
             requireActivity(),
             type = TypeList.TYPE_NEW_UPDATE,
         ).also { adapter ->
             adapter.onClickItem = { songId ->
-                val action = HomeFragmentDirections.actionHomeFragmentToFragmentMusic(songId = songId)
-                findNavController().navigate(action)
+                val songs = viewModel.getTopSongs().take(5)
+                if (playbackViewModel.playFromVisibleList(requireContext(), songs, songId)) {
+                    MusicPlayerLauncher.open(this, songId)
+                }
             }
             adapter.onClickMoreOption = { song -> showMoreOptions(song) }
             newUpdateAdapter = adapter
@@ -440,6 +479,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.header.search.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_fragmentSearchSong)
         }
+        binding.header.micro.setOnClickListener { voiceSearch.start() }
 
         binding.tvSeeAll.setOnClickListener {
             findNavController().navigate(R.id.action_homeFragment_to_zingchartFragment)
@@ -455,7 +495,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         DialogConfirm().apply {
             title = song.title
             onClickRemove = {
-                viewModel.deleteSongById(song.id) {
+                (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
                     Toast.makeText(
                         requireActivity(),
                         "Đã xoá khỏi bài hát yêu thích",
@@ -493,17 +533,36 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
     }
 
     private fun initTopic() {
-        val topic = arrayListOf<Topic>()
-        topic.add(Topic(R.drawable.ic_music, "BXH Nhạc Mới", R.color.bg_blue))
-        topic.add(Topic(R.drawable.ic_star, "Top 100", R.color.bg_purple))
-        topic.add(Topic(null, "Nhạc Việt", R.color.bg_orange))
-        topic.add(Topic(null, "Nhạc Hoa", R.color.bg_pink))
-        topic.add(Topic(null, "Nhạc Âu Mỹ", R.color.bg_green1))
-        topic.add(Topic(null, "Nhạc Hàn", R.color.bg_green2))
-        topic.add(Topic(null, null, null))
-        val adapter = TopicAdapter(requireActivity())
-        adapter.items = topic
-        binding.rcvTopic.adapter = adapter
+        topicAdapter = TopicAdapter(requireActivity()).apply {
+            onClickItem = { topic -> openTopic(topic) }
+        }
+        binding.rcvTopic.adapter = topicAdapter
+    }
+
+    private fun observeTopics() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.topics.collect { topics ->
+                    topicAdapter?.resetList(ArrayList(topics))
+                }
+            }
+        }
+    }
+
+    private fun openTopic(topic: Topic) {
+        val mode = when (topic.type) {
+            TopicType.NEW_CHART -> CategorySongsMode.LATEST
+            TopicType.TOP_100 -> CategorySongsMode.TOP
+            TopicType.CATEGORY -> CategorySongsMode.CATEGORY
+            TopicType.SEE_ALL -> return
+        }
+        findNavController().navigate(
+            HomeFragmentDirections.actionHomeFragmentToCategorySongsFragment(
+                title = topic.topic.orEmpty(),
+                mode = mode.name,
+                categoryId = topic.categoryId,
+            )
+        )
     }
 
     private fun setUpViewPagerTransformer(vpg2: ViewPager2, margin: Int, a: Float, b: Float) {

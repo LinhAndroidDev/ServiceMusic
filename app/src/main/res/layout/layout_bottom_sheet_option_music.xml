@@ -67,6 +67,59 @@
             android:layout_height="0.8dp"/>
 
         <LinearLayout
+            android:id="@+id/removeFromPlaylist"
+            android:layout_marginTop="10dp"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:src="@drawable/ic_remove"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                app:tint="@color/black"/>
+
+            <TextView
+                android:layout_marginStart="20dp"
+                android:text="@string/playlist_remove_song"
+                android:textSize="16sp"
+                android:textColor="@color/text_black"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/sleepTimer"
+            android:layout_marginTop="10dp"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/imgSleepTimer"
+                android:src="@drawable/ic_timer"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                app:tint="@color/black"/>
+
+            <TextView
+                android:id="@+id/tvSleepTimer"
+                android:layout_marginStart="20dp"
+                android:text="@string/sleep_timer_menu"
+                android:textSize="16sp"
+                android:textColor="@color/text_black"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/downloadSong"
             android:layout_marginTop="10dp"
             android:paddingHorizontal="20dp"
             android:paddingVertical="10dp"
@@ -75,12 +128,14 @@
             android:gravity="center_vertical">
 
             <ImageView
+                android:id="@+id/imgDownload"
                 android:src="@drawable/ic_download_thin"
                 android:layout_width="25dp"
                 android:layout_height="25dp"
                 app:tint="@color/black"/>
 
             <TextView
+                android:id="@+id/tvDownload"
                 android:layout_marginStart="20dp"
                 android:text="Tải về"
                 android:textSize="16sp"
@@ -115,6 +170,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/addToPlaylist"
             android:paddingHorizontal="20dp"
             android:paddingVertical="10dp"
             android:layout_width="match_parent"
@@ -129,7 +185,7 @@
 
             <TextView
                 android:layout_marginStart="20dp"
-                android:text="Thêm vào playlist"
+                android:text="@string/playlist_add_title"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"

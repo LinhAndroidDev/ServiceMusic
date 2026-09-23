@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.example.serviceandroid.MainActivity
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
@@ -16,6 +17,8 @@ import com.example.serviceandroid.custom.BottomSheetSongArrangement
 import com.example.serviceandroid.custom.DialogConfirm
 import com.example.serviceandroid.database.repository.ArrangeMusic
 import com.example.serviceandroid.databinding.FragmentFavouriteSongBinding
+import com.example.serviceandroid.fragment.music.MusicPlayerLauncher
+import com.example.serviceandroid.playback.PlaybackViewModel
 import com.example.serviceandroid.utils.Constant
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +30,7 @@ import kotlinx.coroutines.withContext
 @AndroidEntryPoint
 class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
     private val viewModel: FragmentFavouriteSongViewModel by activityViewModels()
+    private val playbackViewModel by activityViewModels<PlaybackViewModel>()
     private lateinit var adapterFavouriteSong: PagerNewReleaseAdapter
 
     override fun initView() {
@@ -79,11 +83,23 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
     private fun initListSong() {
         adapterFavouriteSong = PagerNewReleaseAdapter(requireActivity(), TypeList.TYPE_NATIONAL).apply {
             isFavourite = true
+            onClickItem = { songId ->
+                val songs = adapterFavouriteSong.items.toList()
+                if (playbackViewModel.playFromVisibleList(requireContext(), songs, songId)) {
+                    MusicPlayerLauncher.open(
+                        this@FavouriteSongFragment,
+                        songId,
+                        preservePlayback = true,
+                    )
+                }
+            }
             onClickUnFavourite = { index ->
                 DialogConfirm().apply {
                     title = adapterFavouriteSong.items[index].title
                     onClickRemove = {
-                        viewModel.deleteSongById(adapterFavouriteSong.items[index].id) {
+                        (activity as? MainActivity)?.requestRemoveFavourite(
+                            adapterFavouriteSong.items[index].id
+                        ) {
                             notifyDataSetChanged()
                         }
                     }
@@ -95,7 +111,7 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
                     DialogConfirm().apply {
                         title = song.title
                         onClickRemove = {
-                            viewModel.deleteSongById(song.id) {
+                            (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
                                 Toast.makeText(
                                     requireActivity(),
                                     "Đã xoá khỏi bài hát yêu thích",

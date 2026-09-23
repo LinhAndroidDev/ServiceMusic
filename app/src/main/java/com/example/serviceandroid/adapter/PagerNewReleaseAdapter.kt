@@ -4,8 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
 import androidx.core.view.isVisible
-import coil.load
 import com.example.serviceandroid.R
+import com.example.serviceandroid.utils.loadSongThumbnail
 import com.example.serviceandroid.base.BaseAdapter
 import com.example.serviceandroid.databinding.ItemPagerNewReleaseBinding
 import com.example.serviceandroid.databinding.PagerNewReleaseBinding
@@ -56,6 +56,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
     var onClickUnFavourite: ((Int) -> Unit)? = null
     var isFavourite = false
     var onClickMoreOption: ((Song) -> Unit)? = null
+    var showMoreOption: Boolean = true
 
     override fun getLayout(): Int = R.layout.item_pager_new_release
 
@@ -66,10 +67,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
     ) {
         with(holder.v) {
             items[position].let { item ->
-                imgSong.load(item.thumbnailUrl) {
-                    crossfade(true)
-                    placeholder(R.drawable.bg_grey_corner_5)
-                }
+                imgSong.loadSongThumbnail(item.thumbnailUrl)
                 tvNameSong.text = item.title
                 tvNameSinger.text = item.nameSinger
                 holder.itemView.setOnClickListener {
@@ -78,6 +76,7 @@ class PagerNewReleaseAdapter(private val context: Context, private val type: Typ
                 holder.v.imgFavourite.setOnClickListener {
                     onClickUnFavourite?.invoke(position)
                 }
+                holder.v.moreOption.isVisible = showMoreOption
                 holder.v.moreOption.setOnClickListener {
                     onClickMoreOption?.invoke(item)
                 }

@@ -8,11 +8,19 @@ import com.example.serviceandroid.model.Song
  */
 interface SongRepository {
     suspend fun refreshPlaylist(): Result<Unit>
-    suspend fun refreshTopPlaylist(): Result<Unit>
+    suspend fun refreshTopPlaylist(fromServer: Boolean = true): Result<Unit>
     /** Active queue used by [MusicService] / playback. */
     fun getPlaylist(): List<Song>
     fun getLatestPlaylist(): List<Song>
     fun getTopPlaylist(): List<Song>
+    /** Replace the active playback queue when the user plays a visible list. */
+    fun setPlaybackQueue(songs: List<Song>)
+    /**
+     * Ensures [songId] is in the active playback queue.
+     * If missing from the current queue but present in latest/top cache, restores that cache as queue.
+     * @return index in the active queue, or -1 if not found in any known list.
+     */
+    fun ensureQueueForSongId(songId: String): Int
     fun getSong(index: Int): Song
     fun getSongById(id: String): Song?
     fun indexOf(song: Song): Int
