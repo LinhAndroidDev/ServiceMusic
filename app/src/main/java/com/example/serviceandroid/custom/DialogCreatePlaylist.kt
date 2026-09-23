@@ -6,7 +6,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.Toast
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import com.example.serviceandroid.R
 import com.example.serviceandroid.databinding.LayoutDialogCreatePlaylistBinding
@@ -41,6 +44,18 @@ class DialogCreatePlaylist : DialogFragment() {
         dialog?.window?.apply {
             setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+        }
+        focusPlaylistName()
+    }
+
+    private fun focusPlaylistName() {
+        val name = binding?.edtPlaylistName ?: return
+        name.requestFocus()
+        name.post {
+            val window = dialog?.window ?: return@post
+            if (!name.isFocused) name.requestFocus()
+            WindowCompat.getInsetsController(window, name).show(WindowInsetsCompat.Type.ime())
         }
     }
 

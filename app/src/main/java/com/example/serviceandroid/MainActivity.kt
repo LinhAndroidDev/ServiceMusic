@@ -636,11 +636,15 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             onReady()
             return
         }
+        val loginTitle = getString(R.string.playlist_login_title)
+        val loginMessage = getString(R.string.playlist_login_message)
+        val loginConfirm = getString(R.string.favourite_login_action)
+        val loginCancel = getString(R.string.favourite_login_later)
         DialogConfirm().apply {
-            title = getString(R.string.playlist_login_title)
-            message = getString(R.string.playlist_login_message)
-            confirmText = getString(R.string.favourite_login_action)
-            cancelText = getString(R.string.favourite_login_later)
+            title = loginTitle
+            message = loginMessage
+            confirmText = loginConfirm
+            cancelText = loginCancel
             onClickRemove = {
                 signInWithGoogleThen(
                     offlineMessageRes = R.string.playlist_offline,
@@ -697,11 +701,15 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun showFavouriteLoginDialog(song: Song) {
+        val loginTitle = getString(R.string.favourite_login_title)
+        val loginMessage = getString(R.string.favourite_login_message)
+        val loginConfirm = getString(R.string.favourite_login_action)
+        val loginCancel = getString(R.string.favourite_login_later)
         DialogConfirm().apply {
-            title = getString(R.string.favourite_login_title)
-            message = getString(R.string.favourite_login_message)
-            confirmText = getString(R.string.favourite_login_action)
-            cancelText = getString(R.string.favourite_login_later)
+            title = loginTitle
+            message = loginMessage
+            confirmText = loginConfirm
+            cancelText = loginCancel
             onClickRemove = {
                 signInWithGoogleThen(
                     offlineMessageRes = R.string.favourite_offline,
