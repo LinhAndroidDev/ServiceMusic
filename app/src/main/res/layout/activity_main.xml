@@ -5,6 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     tools:context=".MainActivity">
 
     <androidx.fragment.app.FragmentContainerView
@@ -48,6 +50,8 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="10dp"
         android:layout_marginBottom="10dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@+id/bottomBar"
         app:layout_constraintEnd_toEndOf="parent"
@@ -63,6 +67,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_music"
+                android:elevation="8dp"
                 android:gravity="center"
                 android:orientation="horizontal"
                 android:paddingVertical="5dp">
@@ -119,7 +124,8 @@
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_marginStart="10dp"
-            app:cardCornerRadius="8dp">
+            app:cardCornerRadius="8dp"
+            app:cardElevation="8dp">
 
             <ImageView
                 android:id="@+id/avatar"
