@@ -354,7 +354,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         updateNetworkBannerAllowed(destinationId)
         when (destinationId) {
             R.id.splashFragment,
-            R.id.followedSingersFragment,
             R.id.addArtistFragment,
             -> {
                 binding.bottomBar.isVisible = false
@@ -401,7 +400,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             updateNetworkBannerAllowed(destination.id)
             when (destination.id) {
                 R.id.splashFragment,
-                R.id.followedSingersFragment,
                 R.id.addArtistFragment,
                 -> {
                     binding.bottomBar.isVisible = false
@@ -593,7 +591,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
     }
 
     private fun hidesPlayerChrome(destinationId: Int?): Boolean =
-        destinationId == R.id.followedSingersFragment || destinationId == R.id.addArtistFragment
+        destinationId == R.id.addArtistFragment
 
     private fun applyBottomPlayVisibilityForDestination(destinationId: Int) {
         if (isMusicPlayerOpen()) {

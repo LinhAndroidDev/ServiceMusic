@@ -58,7 +58,7 @@
         android:layout_marginHorizontal="20dp"
         android:layout_marginTop="12dp"
         android:clipToPadding="false"
-        android:paddingBottom="24dp"
+        android:paddingBottom="80dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:listitem="@layout/item_search_singer" />
 </LinearLayout>
