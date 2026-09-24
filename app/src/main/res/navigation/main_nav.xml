@@ -81,7 +81,20 @@
         <action
             android:id="@+id/action_followedSingersFragment_to_singerDetailFragment"
             app:destination="@id/singerDetailFragment" />
+        <action
+            android:id="@+id/action_followedSingersFragment_to_addArtistFragment"
+            app:destination="@id/addArtistFragment"
+            app:enterAnim="@anim/slide_up"
+            app:exitAnim="@anim/anim_normal"
+            app:popEnterAnim="@anim/anim_normal"
+            app:popExitAnim="@anim/slide_down" />
     </fragment>
+
+    <fragment
+        android:id="@+id/addArtistFragment"
+        android:name="com.example.serviceandroid.fragment.library.AddArtistFragment"
+        android:label="add_artist_fragment"
+        tools:layout="@layout/fragment_add_artist" />
 
     <fragment
         android:id="@+id/recentHistoryFragment"

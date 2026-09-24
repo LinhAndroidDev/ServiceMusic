@@ -138,4 +138,9 @@
     <string name="artist_empty">Chưa quan tâm nghệ sĩ nào</string>
     <string name="artist_play_empty">Ca sĩ này chưa có bài hát</string>
     <string name="artist_screen_title">Nghệ sĩ</string>
+    <string name="artist_add">Thêm nghệ sĩ</string>
+    <string name="artist_add_search_hint">Tìm kiếm nghệ sĩ</string>
+    <string name="artist_add_empty">Không có nghệ sĩ</string>
+    <string name="artist_add_complete">Hoàn thành</string>
+    <string name="artist_add_select_required">Chọn 1 nghệ sĩ mà bạn quan tâm yêu thích trở lên</string>
 </resources>

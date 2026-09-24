@@ -6,7 +6,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import com.example.serviceandroid.adapter.SearchSingerAdapter
+import com.example.serviceandroid.MainActivity
+import com.example.serviceandroid.adapter.FollowedSingersAdapter
 import com.example.serviceandroid.base.BaseFragment
 import com.example.serviceandroid.data.artist.FollowedSingerRepository
 import com.example.serviceandroid.databinding.FragmentFollowedSingersBinding
@@ -21,7 +22,7 @@ class FollowedSingersFragment : BaseFragment<FragmentFollowedSingersBinding>() {
     @Inject
     lateinit var followedSingerRepository: FollowedSingerRepository
 
-    private val adapter = SearchSingerAdapter()
+    private val adapter = FollowedSingersAdapter()
 
     override fun getFragmentBinding(inflater: LayoutInflater) =
         FragmentFollowedSingersBinding.inflate(inflater)
@@ -33,12 +34,12 @@ class FollowedSingersFragment : BaseFragment<FragmentFollowedSingersBinding>() {
                     .actionFollowedSingersFragmentToSingerDetailFragment(singer.id),
             )
         }
+        adapter.onClickAdd = { openAddArtist() }
         binding.rcvFollowedSingers.adapter = adapter
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 followedSingerRepository.observeFollowed().collect { singers ->
                     binding.followedEmpty.isVisible = singers.isEmpty()
-                    binding.rcvFollowedSingers.isVisible = singers.isNotEmpty()
                     adapter.submit(
                         singers.map { Singer(id = it.id, name = it.name, avatarUrl = it.avatarUrl, description = "") },
                     )
@@ -50,6 +51,16 @@ class FollowedSingersFragment : BaseFragment<FragmentFollowedSingersBinding>() {
     override fun onClickView() {
         binding.backFollowedSingers.setOnClickListener {
             activity?.onBackPressed()
+        }
+    }
+
+    private fun openAddArtist() {
+        (activity as? MainActivity)?.ensureSignedInForArtist {
+            if (!isAdded) return@ensureSignedInForArtist
+            findNavController().navigate(
+                FollowedSingersFragmentDirections
+                    .actionFollowedSingersFragmentToAddArtistFragment(),
+            )
         }
     }
 }

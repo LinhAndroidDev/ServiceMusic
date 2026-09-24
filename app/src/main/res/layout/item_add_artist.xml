@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingHorizontal="4dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="12dp">
+
+    <FrameLayout
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <ImageView
+            android:id="@+id/imgSingerAvatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/search_section_artists"
+            android:padding="3dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/bg_grey_circle"
+            tools:src="@drawable/bg_grey_circle" />
+
+        <ImageView
+            android:id="@+id/imgSelected"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="end|top"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/bg_artist_check_badge"
+            android:contentDescription="@null"
+            android:padding="4dp"
+            android:src="@drawable/ic_check"
+            android:visibility="gone"
+            app:tint="@color/white"
+            tools:visibility="visible" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tvSingerName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="2"
+        android:textColor="@color/text_black"
+        android:textSize="14sp"
+        tools:text="Sơn Tùng M-TP" />
+</LinearLayout>

@@ -353,7 +353,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         val destinationId = navHostFragment.navController.currentDestination?.id ?: return
         updateNetworkBannerAllowed(destinationId)
         when (destinationId) {
-            R.id.splashFragment -> {
+            R.id.splashFragment,
+            R.id.followedSingersFragment,
+            R.id.addArtistFragment,
+            -> {
                 binding.bottomBar.isVisible = false
                 binding.bottomPlay.visibility = View.GONE
             }
@@ -397,7 +400,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
             }
             updateNetworkBannerAllowed(destination.id)
             when (destination.id) {
-                R.id.splashFragment -> {
+                R.id.splashFragment,
+                R.id.followedSingersFragment,
+                R.id.addArtistFragment,
+                -> {
                     binding.bottomBar.isVisible = false
                     binding.bottomPlay.visibility = View.GONE
                     updateNetworkBannerPosition()
@@ -506,7 +512,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         val destId = navController.currentDestination?.id
         val playerOpen = isMusicPlayerOpen()
 
-        if (!playerOpen && destId != R.id.splashFragment) {
+        if (!playerOpen && destId != R.id.splashFragment && !hidesPlayerChrome(destId)) {
             applyBottomPlayVisibilityForDestination(destId ?: 0)
         }
 
@@ -586,6 +592,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
     }
 
+    private fun hidesPlayerChrome(destinationId: Int?): Boolean =
+        destinationId == R.id.followedSingersFragment || destinationId == R.id.addArtistFragment
+
     private fun applyBottomPlayVisibilityForDestination(destinationId: Int) {
         if (isMusicPlayerOpen()) {
             binding.bottomPlay.visibility = View.GONE
@@ -594,7 +603,10 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         }
         val st = playbackViewModel.playbackState.value
         binding.bottomPlay.visibility =
-            if (destinationId != R.id.splashFragment && st.hasActivePlayer) {
+            if (destinationId != R.id.splashFragment &&
+                !hidesPlayerChrome(destinationId) &&
+                st.hasActivePlayer
+            ) {
                 View.VISIBLE
             } else {
                 View.GONE
