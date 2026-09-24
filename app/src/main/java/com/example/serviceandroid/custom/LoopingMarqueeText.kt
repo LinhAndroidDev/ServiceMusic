@@ -17,6 +17,8 @@ import android.text.TextPaint
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.LinearInterpolator
+import androidx.core.content.res.ResourcesCompat
+import com.example.serviceandroid.R
 import kotlin.math.ceil
 
 @SuppressLint("ResourceType")
@@ -51,19 +53,20 @@ class LoopingMarqueeText @JvmOverloads constructor(
         val styled = context.obtainStyledAttributes(
             attrs,
             intArrayOf(
-                android.R.attr.text,
-                android.R.attr.textColor,
                 android.R.attr.textSize,
                 android.R.attr.textStyle,
+                android.R.attr.textColor,
+                android.R.attr.text,
             ),
         )
-        val text = styled.getText(0)
-        textPaint.color = styled.getColor(1, Color.WHITE)
-        textPaint.textSize = styled.getDimension(2, 14f * resources.displayMetrics.scaledDensity)
+        textPaint.textSize = styled.getDimension(0, 14f * resources.displayMetrics.scaledDensity)
+        val fontNotoSans = ResourcesCompat.getFont(context, R.font.font_noto_sans)
         textPaint.typeface = Typeface.create(
-            Typeface.DEFAULT,
-            styled.getInt(3, Typeface.NORMAL),
+            fontNotoSans,
+            styled.getInt(1, Typeface.NORMAL),
         )
+        textPaint.color = styled.getColor(2, Color.BLACK)
+        val text = styled.getText(3)
         styled.recycle()
         if (!text.isNullOrEmpty()) setText(text)
     }

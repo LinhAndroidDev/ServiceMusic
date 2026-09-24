@@ -19,7 +19,7 @@ class InformationSongAdapter : BaseAdapter<Song, ItemInfomationSongBinding>() {
         val item = items[position]
         holder.v.apply {
             title.setText(item.title)
-            nameSingle.text = "Ca sĩ: ${item.nameSinger}"
+            nameSingle.text = item.nameSinger
         }
 
         holder.itemView.setOnClickListener {

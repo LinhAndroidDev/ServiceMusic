@@ -586,7 +586,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
         } else {
             binding.favourite.setImageResource(R.drawable.ic_favourite_thin)
             binding.favourite.imageTintList =
-                ColorStateList.valueOf(getColor(R.color.white))
+                ColorStateList.valueOf(getColor(R.color.text_black))
         }
     }
 
