@@ -9,4 +9,5 @@
     <dimen name="singer_avatar_detail">140dp</dimen>
     <dimen name="song_thumbnail_list">60dp</dimen>
     <dimen name="song_thumbnail_player">300dp</dimen>
+    <dimen name="player_list_bottom_inset">156dp</dimen>
 </resources>

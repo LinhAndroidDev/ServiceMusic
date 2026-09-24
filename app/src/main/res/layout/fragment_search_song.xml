@@ -44,7 +44,7 @@
         android:paddingStart="15dp"
         android:paddingTop="8dp"
         android:paddingEnd="15dp"
-        android:paddingBottom="80dp"
+        android:paddingBottom="@dimen/player_list_bottom_inset"
         android:visibility="gone" />
 
     <LinearLayout
@@ -106,7 +106,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingBottom="24dp">
+                android:paddingBottom="@dimen/player_list_bottom_inset">
 
                 <LinearLayout
                     android:id="@+id/recentHistorySection"

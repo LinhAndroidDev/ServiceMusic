@@ -90,7 +90,7 @@
         android:layout_weight="1"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:paddingBottom="100dp"
+        android:paddingBottom="@dimen/player_list_bottom_inset"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:listitem="@layout/item_edit_playlist_song" />
 </LinearLayout>

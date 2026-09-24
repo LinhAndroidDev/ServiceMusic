@@ -328,6 +328,6 @@
 
         <View
             android:layout_width="match_parent"
-            android:layout_height="80dp"/>
+            android:layout_height="@dimen/player_list_bottom_inset"/>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

@@ -12,7 +12,7 @@
         android:paddingStart="15dp"
         android:paddingTop="8dp"
         android:paddingEnd="15dp"
-        android:paddingBottom="80dp" />
+        android:paddingBottom="@dimen/player_list_bottom_inset" />
 
     <TextView
         android:id="@+id/tvSearchPageEmpty"
