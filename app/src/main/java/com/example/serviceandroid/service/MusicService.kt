@@ -449,6 +449,7 @@ class MusicService : Service() {
         }
 
         val shouldPlay = pendingAutoStart
+        pendingAutoStart = false
         pendingStartPositionMs = 0
 
         if (shouldPlay) {
@@ -523,9 +524,7 @@ class MusicService : Service() {
             index = 0
             playSongInternal(songRepository.getSong(0))
         } else {
-            player.seekTo(0)
-            pauseInternal()
-            playbackStateHolder.update { it.copy(positionMs = 0) }
+            stopAtEndOfQueue()
         }
     }
 
@@ -627,6 +626,11 @@ class MusicService : Service() {
     }
 
     private fun cancelNextAtEnd() {
+        stopAtEndOfQueue()
+    }
+
+    private fun stopAtEndOfQueue() {
+        pendingAutoStart = false
         exoPlayer?.seekTo(0)
         pauseInternal()
         playbackStateHolder.update { it.copy(positionMs = 0) }
