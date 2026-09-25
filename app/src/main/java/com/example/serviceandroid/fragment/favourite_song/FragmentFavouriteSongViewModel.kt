@@ -51,4 +51,10 @@ class FragmentFavouriteSongViewModel @Inject constructor(
     }
 
     fun getTypeArrangement() = shared.getTypeArrangement()
+
+    fun isFilterGuideDismissed(): Boolean = shared.isFavouriteFilterGuideDismissed()
+
+    fun dismissFilterGuide() {
+        shared.setFavouriteFilterGuideDismissed()
+    }
 }

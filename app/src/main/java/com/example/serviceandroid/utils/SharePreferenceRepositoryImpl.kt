@@ -24,4 +24,11 @@ class SharePreferenceRepositoryImpl(private val ctx: Context) : SharePreferenceR
     override fun getTypeRepeat(): Repeat {
         return Repeat.of(prefs[SharePreferenceRepository.TYPE_REPEAT] ?: 0)
     }
+
+    override fun isFavouriteFilterGuideDismissed(): Boolean =
+        prefs[SharePreferenceRepository.FAVOURITE_FILTER_GUIDE_DISMISSED] ?: false
+
+    override fun setFavouriteFilterGuideDismissed() {
+        prefs[SharePreferenceRepository.FAVOURITE_FILTER_GUIDE_DISMISSED] = true
+    }
 }

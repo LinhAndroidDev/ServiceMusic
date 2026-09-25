@@ -66,6 +66,7 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
         }
 
         binding.understood.setOnClickListener {
+            viewModel.dismissFilterGuide()
             binding.filterGuide.isVisible = false
         }
 
@@ -141,9 +142,11 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
         }
 
         lifecycleScope.launch {
+            if (viewModel.isFilterGuideDismissed()) return@launch
             delay(3000)
             withContext(Dispatchers.Main) {
-                if(!binding.notFoundSong.isVisible) {
+                if (!isAdded || viewModel.isFilterGuideDismissed()) return@withContext
+                if (!binding.notFoundSong.isVisible) {
                     binding.filterGuide.isVisible = true
                 }
             }
