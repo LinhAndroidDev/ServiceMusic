@@ -27,4 +27,7 @@ interface SongRepository {
     fun lastIndex(): Int
     fun size(): Int
     fun isLoaded(): Boolean
+    fun isShuffleEnabled(): Boolean
+    /** Reorders the active queue for shuffle on/off; returns index of [currentSongId] in the new queue. */
+    fun setShuffleEnabled(enabled: Boolean, currentSongId: String): Int
 }

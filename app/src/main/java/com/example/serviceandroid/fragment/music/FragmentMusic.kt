@@ -418,6 +418,10 @@ class FragmentMusic : BottomSheetDialogFragment() {
             handleRepeat()
         }
 
+        transport.imgRandom.setOnClickListener {
+            playbackViewModel.toggleShuffle(requireContext())
+        }
+
         transport.progressMusic.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(p0: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
@@ -774,7 +778,14 @@ class FragmentMusic : BottomSheetDialogFragment() {
             }
         }
         if (state.isPlaying) startMusic() else pauseMusic()
+        applyShuffleIcon(state.isShuffleEnabled)
         updateLineLyricsPlayback(state.positionMs)
+    }
+
+    private fun applyShuffleIcon(enabled: Boolean) {
+        val colorRes = if (enabled) R.color.purple_1 else R.color.white
+        binding.playerTransport.imgRandom.imageTintList =
+            ColorStateList.valueOf(requireContext().getColor(colorRes))
     }
 
     @SuppressLint("SimpleDateFormat")

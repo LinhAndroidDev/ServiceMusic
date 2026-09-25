@@ -130,4 +130,8 @@ class MusicServiceConnector @Inject constructor() {
     fun syncRepeatMode(context: Context) {
         musicBinder?.syncRepeatFromPrefs() ?: dispatchAction(context, Action.ACTION_SYNC_REPEAT)
     }
+
+    fun toggleShuffle(context: Context) {
+        musicBinder?.toggleShuffle() ?: dispatchAction(context, Action.ACTION_TOGGLE_SHUFFLE)
+    }
 }

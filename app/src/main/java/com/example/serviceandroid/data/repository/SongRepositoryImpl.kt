@@ -15,6 +15,8 @@ class SongRepositoryImpl @Inject constructor(
     private val topCache = mutableListOf<Song>()
     /** Playback queue — set only when the user plays a visible list. */
     private val playbackQueue = mutableListOf<Song>()
+    private val sequentialQueue = mutableListOf<Song>()
+    private var shuffleEnabled = false
 
     override suspend fun refreshPlaylist(): Result<Unit> = runCatching {
         val songs = firestore.getLatestSongs(limit = 100, fromServer = true)
@@ -44,6 +46,7 @@ class SongRepositoryImpl @Inject constructor(
 
     override fun setPlaybackQueue(songs: List<Song>) {
         synchronized(this) {
+            clearShuffleStateLocked()
             playbackQueue.clear()
             playbackQueue.addAll(songs)
         }
@@ -57,6 +60,7 @@ class SongRepositoryImpl @Inject constructor(
 
             val inLatest = latestCache.indexOfFirst { it.id == songId }
             if (inLatest >= 0) {
+                clearShuffleStateLocked()
                 playbackQueue.clear()
                 playbackQueue.addAll(latestCache)
                 return inLatest
@@ -64,11 +68,45 @@ class SongRepositoryImpl @Inject constructor(
 
             val inTop = topCache.indexOfFirst { it.id == songId }
             if (inTop >= 0) {
+                clearShuffleStateLocked()
                 playbackQueue.clear()
                 playbackQueue.addAll(topCache)
                 return inTop
             }
             return -1
+        }
+    }
+
+    override fun isShuffleEnabled(): Boolean = synchronized(this) { shuffleEnabled }
+
+    override fun setShuffleEnabled(enabled: Boolean, currentSongId: String): Int {
+        synchronized(this) {
+            if (playbackQueue.isEmpty()) {
+                shuffleEnabled = false
+                sequentialQueue.clear()
+                return -1
+            }
+            if (enabled) {
+                if (!shuffleEnabled) {
+                    sequentialQueue.clear()
+                    sequentialQueue.addAll(playbackQueue)
+                }
+                val source = if (sequentialQueue.isNotEmpty()) {
+                    sequentialQueue
+                } else {
+                    playbackQueue.toList()
+                }
+                playbackQueue.clear()
+                playbackQueue.addAll(source.shuffled())
+                shuffleEnabled = true
+            } else {
+                if (sequentialQueue.isNotEmpty()) {
+                    playbackQueue.clear()
+                    playbackQueue.addAll(sequentialQueue)
+                }
+                clearShuffleStateLocked()
+            }
+            return playbackQueue.indexOfFirst { it.id == currentSongId }
         }
     }
 
@@ -96,4 +134,9 @@ class SongRepositoryImpl @Inject constructor(
     override fun size(): Int = getPlaylist().size
 
     override fun isLoaded(): Boolean = getPlaylist().isNotEmpty()
+
+    private fun clearShuffleStateLocked() {
+        shuffleEnabled = false
+        sequentialQueue.clear()
+    }
 }

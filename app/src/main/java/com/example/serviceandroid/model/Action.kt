@@ -10,4 +10,5 @@ enum class Action {
     ACTION_FINISH,
     /** UI changed repeat mode; service refreshes ExoPlayer repeat mode from prefs. */
     ACTION_SYNC_REPEAT,
+    ACTION_TOGGLE_SHUFFLE,
 }

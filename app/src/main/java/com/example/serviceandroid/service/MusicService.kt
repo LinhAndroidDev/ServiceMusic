@@ -210,6 +210,7 @@ class MusicService : Service() {
         fun setSleepTimer(option: SleepTimerOption, durationMs: Long? = null) =
             setSleepTimerInternal(option, durationMs)
         fun cancelSleepTimer() = cancelSleepTimerInternal()
+        fun toggleShuffle() = toggleShuffleInternal()
     }
 
     private fun ensureMediaSession(): MediaSessionCompat {
@@ -310,6 +311,7 @@ class MusicService : Service() {
             Action.ACTION_CLEAR -> clearInternal()
             Action.ACTION_START -> resumeInternal()
             Action.ACTION_SYNC_REPEAT -> applyRepeatFromPrefs()
+            Action.ACTION_TOGGLE_SHUFFLE -> toggleShuffleInternal()
             Action.ACTION_FINISH -> { /* reserved */ }
         }
     }
@@ -370,11 +372,28 @@ class MusicService : Service() {
                 positionMs = 0,
                 durationMs = estimatedDurationMs,
                 hasActivePlayer = true,
+                isShuffleEnabled = songRepository.isShuffleEnabled(),
             )
         }
         updateMediaSessionPlaybackState()
         showForegroundWithPlaceholder(resolved)
         startStreaming(resolved, startPositionMs = 0, autoStart = true)
+    }
+
+    private fun toggleShuffleInternal() {
+        ensureActiveSessionOrRestore()
+        val songId = currentSongOrNull()?.id.orEmpty()
+        val enabled = !songRepository.isShuffleEnabled()
+        val newIndex = songRepository.setShuffleEnabled(enabled, songId)
+        if (newIndex >= 0) {
+            index = newIndex
+        }
+        playbackStateHolder.update {
+            it.copy(
+                queueIndex = if (newIndex >= 0) newIndex else it.queueIndex,
+                isShuffleEnabled = songRepository.isShuffleEnabled(),
+            )
+        }
     }
 
     private fun startStreaming(resolved: Song, startPositionMs: Int, autoStart: Boolean) {
@@ -444,6 +463,7 @@ class MusicService : Service() {
                 positionMs = player.currentPosition.toInt().coerceAtLeast(safePos),
                 durationMs = dur,
                 hasActivePlayer = true,
+                isShuffleEnabled = songRepository.isShuffleEnabled(),
             )
         }
         updateMediaSessionPlaybackState()
@@ -863,6 +883,7 @@ class MusicService : Service() {
                 positionMs = posMs.coerceAtLeast(0),
                 durationMs = estimatedDurationMs,
                 hasActivePlayer = true,
+                isShuffleEnabled = songRepository.isShuffleEnabled(),
             )
         }
         updateMediaSessionPlaybackState()

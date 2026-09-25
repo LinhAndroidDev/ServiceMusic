@@ -114,6 +114,8 @@ class PlaybackViewModel @Inject constructor(
 
     fun syncRepeatMode(context: Context) = connector.syncRepeatMode(context)
 
+    fun toggleShuffle(context: Context) = connector.toggleShuffle(context)
+
     fun toggleBottomPlayPause(context: Context, progress: Int, max: Int, isPlaying: Boolean) {
         when {
             max in 1..progress && !isPlaying -> {
