@@ -9,6 +9,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.example.serviceandroid.MainActivity
+import com.example.serviceandroid.R
 import com.example.serviceandroid.adapter.PagerNewReleaseAdapter
 import com.example.serviceandroid.adapter.TypeList
 import com.example.serviceandroid.base.BaseFragment
@@ -42,19 +43,19 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
         viewModel.getTypeArrangement().let { type ->
             when(type) {
                 ArrangeMusic.NEWEST -> {
-                    binding.tvTypeArrange.text = "Mới nhất"
+                    binding.tvTypeArrange.text = getString(R.string.arrange_newest)
                 }
 
                 ArrangeMusic.OLDEST -> {
-                    binding.tvTypeArrange.text = "Cũ nhất"
+                    binding.tvTypeArrange.text = getString(R.string.arrange_oldest)
                 }
 
                 ArrangeMusic.BY_NAME_SONG -> {
-                    binding.tvTypeArrange.text = "Tên bài hát (A-Z)"
+                    binding.tvTypeArrange.text = getString(R.string.arrange_by_song_name)
                 }
 
                 ArrangeMusic.BY_NAME_SINGLE -> {
-                    binding.tvTypeArrange.text = "Tên nghệ sĩ (A-Z)"
+                    binding.tvTypeArrange.text = getString(R.string.arrange_by_artist_name)
                 }
             }
         }
@@ -115,7 +116,7 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
                             (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
                                 Toast.makeText(
                                     requireActivity(),
-                                    "Đã xoá khỏi bài hát yêu thích",
+                                    getString(R.string.toast_removed_favourite),
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 notifyDataSetChanged()
@@ -133,7 +134,8 @@ class FavouriteSongFragment : BaseFragment<FragmentFavouriteSongBinding>() {
         lifecycleScope.launch {
             viewModel.songs.collect { songs ->
                 songs?.let {
-                    binding.numberSong.text = "${songs.size} bài hát . Đã lưu vào thư viện"
+                    binding.numberSong.text =
+                        getString(R.string.favourite_songs_count, songs.size)
                     binding.notFoundSong.visibility = if(songs.size > 0) View.GONE else View.VISIBLE
                     adapterFavouriteSong.items = songs
                     binding.rcvFavouriteSong.adapter = adapterFavouriteSong

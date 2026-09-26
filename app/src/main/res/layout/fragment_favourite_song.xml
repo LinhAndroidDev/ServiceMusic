@@ -53,7 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="10dp"
-            android:text="Bài hát yêu thích"
+            android:text="@string/favourite_songs_title"
             android:textColor="@color/text_black"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -75,7 +75,7 @@
             android:background="@drawable/bg_corner_25_purple"
             android:paddingHorizontal="30dp"
             android:paddingVertical="7dp"
-            android:text="PHÁT NGẪU NHIÊN"
+            android:text="@string/play_shuffle"
             android:textColor="@color/white"
             android:textSize="14sp" />
 
@@ -100,7 +100,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
-                    android:text="Lọc"
+                    android:text="@string/filter_label"
                     android:textColor="@color/text_black"
                     android:textSize="14sp" />
 
@@ -118,7 +118,7 @@
                         android:id="@+id/tvTypeArrange"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Mới nhất"
+                        android:text="@string/arrange_newest"
                         android:textColor="@color/text_black"
                         android:textSize="14sp" />
                     <com.example.serviceandroid.custom.TrialView
@@ -170,7 +170,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Lọc bài hát theo nghệ sĩ, thể loại... \nđể bạn dễ dàng lựa chọn"
+                            android:text="@string/filter_guide_message"
                             android:textColor="@color/text_white"
                             android:textSize="12sp" />
 
@@ -180,7 +180,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
                             android:gravity="end"
-                            android:text="Đã hiểu"
+                            android:text="@string/filter_guide_understood"
                             android:textColor="@color/text_white"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -208,7 +208,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="30dp"
-                android:text="Bạn chưa có bài hát ưa thích nào"
+                android:text="@string/favourite_empty_title"
                 android:textColor="@color/text_black"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -218,7 +218,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:gravity="center"
-                android:text="Hãy lưu về bài hát bạn yêu thích để \ncó thể nghe lại bất cứ lúc nào"
+                android:text="@string/favourite_empty_subtitle"
                 android:textColor="@color/txt_hint"
                 android:textSize="14sp" />
         </LinearLayout>

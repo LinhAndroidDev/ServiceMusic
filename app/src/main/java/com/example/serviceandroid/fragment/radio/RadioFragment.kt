@@ -29,7 +29,7 @@ class RadioFragment : BaseFragment<FragmentRadioBinding>() {
 
     @SuppressLint("ClickableViewAccessibility", "ResourceAsColor")
     override fun initView() {
-        binding.header.title.text = "Radio"
+        binding.header.title.text = getString(R.string.nav_radio)
         binding.header.title.setTextColor(requireActivity().getColor(R.color.white))
         setColorTint(binding.header.search, R.color.white)
         setColorTint(binding.header.micro, R.color.white)

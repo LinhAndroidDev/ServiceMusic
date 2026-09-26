@@ -43,7 +43,8 @@
                 android:id="@+id/timeCurrent"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="09.08.2024 - 00:00"
+                tools:text="@string/preview_chart_date"
+                android:text=""
                 android:textColor="@color/text_white"
                 android:textSize="12sp" />
 
@@ -115,7 +116,7 @@
                             android:id="@+id/tvIndex"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="•"
+                            android:text="@string/text_bullet"
                             android:textColor="@color/text_white"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -123,7 +124,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Gợi ý"
+                            android:text="@string/zingchart_suggested"
                             android:textColor="@color/orange"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -144,7 +145,8 @@
                             android:layout_height="wrap_content"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Hà Nội Chiều Tháng Ba"
+                            tools:text="@string/preview_song_title_long"
+                            android:text=""
                             android:textColor="@color/text_white"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -156,7 +158,8 @@
                             android:layout_marginTop="3dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Hà Trần"
+                            tools:text="@string/preview_artist_name"
+                            android:text=""
                             android:textColor="@color/txt_hint"
                             android:textSize="12sp" />
                     </LinearLayout>

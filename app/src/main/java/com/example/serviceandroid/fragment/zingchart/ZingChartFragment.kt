@@ -86,7 +86,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
 
     override fun initView() {
         initGradientText()
-        binding.header.title.text = "#zingchart"
+        binding.header.title.text = getString(R.string.nav_zingchart)
         setColorTint(binding.header.search, R.color.white)
         setColorTint(binding.header.micro, R.color.white)
         binding.timeCurrent.text = DateUtils.getTimeWithHourCurrent()
@@ -252,7 +252,7 @@ class ZingChartFragment : BaseFragment<FragmentZingChartBinding>() {
                 (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
                     Toast.makeText(
                         requireActivity(),
-                        "Đã xoá khỏi bài hát yêu thích",
+                        getString(R.string.toast_removed_favourite),
                         Toast.LENGTH_SHORT
                     ).show()
                 }

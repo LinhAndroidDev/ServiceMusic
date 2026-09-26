@@ -29,7 +29,7 @@ class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
     private val viewModel by viewModels<ProfileViewModel>()
 
     override fun initView() {
-        binding.header.title.text = "Cá nhân"
+        binding.header.title.text = getString(R.string.nav_profile)
         binding.header.viewProfile.isVisible = true
         binding.header.micro.isVisible = false
 

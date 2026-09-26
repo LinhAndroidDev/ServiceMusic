@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout>
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
         android:id="@+id/viewContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -18,7 +19,8 @@
 
             <TextView
                 android:id="@+id/textZingMP3"
-                android:text="Zing MP3"
+                tools:text="@string/preview_plus_brand"
+                android:text=""
                 android:textColor="@color/purple_1"
                 android:textSize="25dp"
                 android:textStyle="bold"
@@ -28,7 +30,8 @@
             <TextView
                 android:id="@+id/textQuality"
                 android:layout_marginStart="5dp"
-                android:text="PLUS"
+                tools:text="@string/preview_plus_label"
+                android:text=""
                 android:textSize="13sp"
                 android:textColor="@color/text_white"
                 android:textStyle="bold"
@@ -56,7 +59,8 @@
         <TextView
             android:id="@+id/textPrice"
             android:layout_marginTop="15dp"
-            android:text="19,000đ"
+            tools:text="@string/preview_plus_price"
+            android:text=""
             android:textSize="18sp"
             android:textColor="@color/text_black"
             android:textStyle="bold"
@@ -66,7 +70,8 @@
         <TextView
             android:id="@+id/textNote"
             android:layout_marginTop="10dp"
-            android:text="Nghe nhạc với chất lượng cao nhất, không \nquảng cáo"
+            tools:text="@string/preview_plus_tagline"
+            android:text=""
             android:textColor="@color/txt_hint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
@@ -100,7 +105,8 @@
                 <TextView
                     android:id="@+id/ability1"
                     android:layout_marginTop="10dp"
-                    android:text="Loại bỏ quảng cáo"
+                    tools:text="@string/preview_plus_no_ads"
+                    android:text=""
                     android:textSize="12sp"
                     android:textColor="@color/grey_1"
                     android:layout_width="wrap_content"
@@ -133,7 +139,8 @@
                 <TextView
                     android:id="@+id/ability2"
                     android:layout_marginTop="10dp"
-                    android:text="Lưu trữ nhạc không giới hạn"
+                    tools:text="@string/preview_plus_storage"
+                    android:text=""
                     android:textSize="12sp"
                     android:textColor="@color/grey_1"
                     android:layout_width="wrap_content"
@@ -166,7 +173,8 @@
                 <TextView
                     android:id="@+id/ability3"
                     android:layout_marginTop="10dp"
-                    android:text="Tuỳ chỉnh chế độ phát nhạc"
+                    tools:text="@string/preview_plus_playback"
+                    android:text=""
                     android:textSize="12sp"
                     android:textColor="@color/grey_1"
                     android:layout_width="wrap_content"

@@ -43,7 +43,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="15dp"
-                    android:text="Bài hát yêu thích"
+                    android:text="@string/favourite_songs_title"
                     android:textColor="@color/black"
                     android:textSize="14sp"
                     android:textStyle="bold" />

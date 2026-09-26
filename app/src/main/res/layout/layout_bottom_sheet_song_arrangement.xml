@@ -9,7 +9,7 @@
 
         <TextView
             android:layout_marginVertical="20dp"
-            android:text="Sắp xếp theo"
+            android:text="@string/arrange_title"
             android:textSize="16sp"
             android:textColor="@color/text_black"
             android:textStyle="bold"
@@ -33,7 +33,7 @@
             android:gravity="center_vertical">
 
             <TextView
-                android:text="Mới nhất"
+                android:text="@string/arrange_newest"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_weight="1"
@@ -58,7 +58,7 @@
             android:gravity="center_vertical">
 
             <TextView
-                android:text="Cũ nhất"
+                android:text="@string/arrange_oldest"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_weight="1"
@@ -84,7 +84,7 @@
             android:gravity="center_vertical">
 
             <TextView
-                android:text="Tên bài hát (A-Z)"
+                android:text="@string/arrange_by_song_name"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_weight="1"
@@ -111,7 +111,7 @@
             android:gravity="center_vertical">
 
             <TextView
-                android:text="Tên nghệ sĩ (A-Z)"
+                android:text="@string/arrange_by_artist_name"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_weight="1"

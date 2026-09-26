@@ -824,7 +824,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
                 }
 
                 this.doubleBackToExitPressedOnce = true
-                Toast.makeText(this, "Nhấn thêm lần nữa để thoát", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.press_back_again_to_exit), Toast.LENGTH_SHORT).show()
 
                 Handler(Looper.getMainLooper()).postDelayed({
                     doubleBackToExitPressedOnce = false

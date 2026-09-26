@@ -8,15 +8,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.DialogFragment
+import com.example.serviceandroid.R
 import com.example.serviceandroid.databinding.LayoutDialogConfirmBinding
+import androidx.core.graphics.drawable.toDrawable
 
 @SuppressLint("UseGetLayoutInflater", "InflateParams")
 class DialogConfirm : DialogFragment() {
     private var v: LayoutDialogConfirmBinding? = null
     var title = ""
-    var message = "Xoá bài hát khỏi thư viện?"
-    var confirmText = "Xoá"
-    var cancelText = "Huỷ"
+    var message: String? = null
+    var confirmText: String? = null
+    var cancelText: String? = null
     var onClickRemove: (() -> Unit)? = null
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -30,9 +32,10 @@ class DialogConfirm : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         v?.titleDialog?.text = title
-        v?.messageDialog?.text = message
-        v?.removeSong?.text = confirmText
-        v?.cancelDialog?.text = cancelText
+        v?.messageDialog?.text =
+            message ?: getString(R.string.delete_song_from_library_message)
+        v?.removeSong?.text = confirmText ?: getString(R.string.action_delete)
+        v?.cancelDialog?.text = cancelText ?: getString(R.string.action_cancel)
         v?.cancelDialog?.setOnClickListener { dismiss() }
         v?.removeSong?.setOnClickListener {
             onClickRemove?.invoke()
@@ -40,7 +43,7 @@ class DialogConfirm : DialogFragment() {
         }
         dialog?.window?.apply {
             setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
         }
     }
 }

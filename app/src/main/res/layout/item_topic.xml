@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <LinearLayout
@@ -43,7 +44,8 @@
                     android:layout_marginStart="10dp"
                     android:layout_marginTop="15dp"
                     android:layout_marginBottom="10dp"
-                    android:text="BXH Nhac Moi"
+                    tools:text="@string/preview_topic_title"
+                    android:text=""
                     android:textColor="@color/white"
                     android:textSize="16sp"
                     android:textStyle="bold"

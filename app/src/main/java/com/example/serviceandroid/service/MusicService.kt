@@ -810,9 +810,9 @@ class MusicService : Service() {
 
         val builder = NotificationCompat.Builder(this, MyApplication.CHANNEL_ID)
             .setSmallIcon(R.drawable.music)
-            .setSubText("Linh Nguyen")
+            .setSubText(getString(R.string.app_name))
             .setContentTitle(song.title)
-            .setContentText("Ca sĩ: ${song.nameSinger}")
+            .setContentText(getString(R.string.mini_player_singer_format, song.nameSinger))
             .setLargeIcon(largeIcon)
             .setContentIntent(openPlayer)
             .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
@@ -827,14 +827,38 @@ class MusicService : Service() {
 
         if (player != null && player.isPlaying) {
             builder
-                .addAction(R.drawable.skip_previous, "Previous", pending(Action.ACTION_PREVIOUS))
-                .addAction(R.drawable.pause, "Pause", pending(Action.ACTION_PAUSE))
-                .addAction(R.drawable.skip_next, "Next", pending(Action.ACTION_NEXT))
+                .addAction(
+                    R.drawable.skip_previous,
+                    getString(R.string.notification_action_previous),
+                    pending(Action.ACTION_PREVIOUS),
+                )
+                .addAction(
+                    R.drawable.pause,
+                    getString(R.string.notification_action_pause),
+                    pending(Action.ACTION_PAUSE),
+                )
+                .addAction(
+                    R.drawable.skip_next,
+                    getString(R.string.notification_action_next),
+                    pending(Action.ACTION_NEXT),
+                )
         } else {
             builder
-                .addAction(R.drawable.skip_previous, "Previous", pending(Action.ACTION_PREVIOUS))
-                .addAction(R.drawable.play, "Play", pending(Action.ACTION_RESUME))
-                .addAction(R.drawable.skip_next, "Next", pending(Action.ACTION_NEXT))
+                .addAction(
+                    R.drawable.skip_previous,
+                    getString(R.string.notification_action_previous),
+                    pending(Action.ACTION_PREVIOUS),
+                )
+                .addAction(
+                    R.drawable.play,
+                    getString(R.string.notification_action_play),
+                    pending(Action.ACTION_RESUME),
+                )
+                .addAction(
+                    R.drawable.skip_next,
+                    getString(R.string.notification_action_next),
+                    pending(Action.ACTION_NEXT),
+                )
         }
         if (duration > 0) {
             builder.setProgress(duration, position, false)

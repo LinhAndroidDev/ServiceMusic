@@ -71,7 +71,7 @@
             android:paddingHorizontal="30dp"
             android:paddingVertical="7dp"
             android:visibility="gone"
-            android:text="PHÁT NGẪU NHIÊN"
+            android:text="@string/play_shuffle"
             android:textColor="@color/white"
             android:textSize="14sp" />
 
@@ -97,7 +97,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
-                    android:text="Lọc"
+                    android:text="@string/filter_label"
                     android:textColor="@color/text_black"
                     android:textSize="14sp" />
 
@@ -115,7 +115,7 @@
                         android:id="@+id/tvTypeArrange"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Mới nhất"
+                        android:text="@string/arrange_newest"
                         android:textColor="@color/text_black"
                         android:textSize="14sp" />
                     <com.example.serviceandroid.custom.TrialView
@@ -167,7 +167,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Lọc bài hát theo nghệ sĩ, thể loại... \nđể bạn dễ dàng lựa chọn"
+                            android:text="@string/filter_guide_message"
                             android:textColor="@color/text_white"
                             android:textSize="12sp" />
 
@@ -177,7 +177,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
                             android:gravity="end"
-                            android:text="Đã hiểu"
+                            android:text="@string/filter_guide_understood"
                             android:textColor="@color/text_white"
                             android:textSize="12sp"
                             android:textStyle="bold" />

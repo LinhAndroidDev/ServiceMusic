@@ -98,7 +98,7 @@
 
             <TextView
                 android:id="@+id/titleListenRecent"
-                android:text="Nâng cấp tài khoản"
+                android:text="@string/profile_upgrade_account"
                 android:textSize="16sp"
                 android:textColor="@color/black"
                 android:textStyle="bold"
@@ -123,7 +123,7 @@
         <TextView
             android:layout_marginTop="20dp"
             android:layout_marginStart="15dp"
-            android:text="Trải nghiệm nghe nhạc nâng cao"
+            android:text="@string/profile_premium_experience"
             android:textSize="16sp"
             android:textColor="@color/black"
             android:textStyle="bold"
@@ -160,7 +160,7 @@
 
                 <TextView
                     android:layout_marginTop="10dp"
-                    android:text="Âm thanh vượt trội \n(Lossless)"
+                    android:text="@string/profile_lossless"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
             </LinearLayout>
@@ -190,7 +190,7 @@
 
                 <TextView
                     android:layout_marginTop="10dp"
-                    android:text="Chuyển bài mượt mà \n(Crossfade)"
+                    android:text="@string/profile_crossfade"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"/>
             </LinearLayout>
@@ -199,7 +199,7 @@
         <TextView
             android:layout_marginTop="20dp"
             android:layout_marginStart="15dp"
-            android:text="Dịch vụ"
+            android:text="@string/profile_services_section"
             android:textSize="16sp"
             android:textColor="@color/black"
             android:textStyle="bold"
@@ -221,7 +221,7 @@
 
             <TextView
                 android:layout_marginStart="15dp"
-                android:text="Tiết kiệm 3G/4G truy cập"
+                android:text="@string/profile_save_data"
                 android:textSize="14sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -243,7 +243,7 @@
 
             <TextView
                 android:layout_marginStart="15dp"
-                android:text="Nhập code"
+                android:text="@string/profile_enter_code"
                 android:textSize="14sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -253,7 +253,7 @@
         <TextView
             android:layout_marginTop="40dp"
             android:layout_marginStart="15dp"
-            android:text="Cá nhân"
+            android:text="@string/nav_profile"
             android:textSize="16sp"
             android:textColor="@color/black"
             android:textStyle="bold"
@@ -275,7 +275,7 @@
 
             <TextView
                 android:layout_marginStart="15dp"
-                android:text="Danh sách quan tâm"
+                android:text="@string/profile_following_list"
                 android:textSize="14sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -297,7 +297,7 @@
 
             <TextView
                 android:layout_marginStart="15dp"
-                android:text="Danh sách chặn"
+                android:text="@string/profile_block_list"
                 android:textSize="14sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -319,7 +319,7 @@
 
             <TextView
                 android:layout_marginStart="15dp"
-                android:text="Danh sách tạm ẩn"
+                android:text="@string/profile_hidden_list"
                 android:textSize="14sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"

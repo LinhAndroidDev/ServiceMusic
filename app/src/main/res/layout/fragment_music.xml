@@ -52,14 +52,14 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="PHÁT TỪ"
+                        android:text="@string/player_play_from"
                         android:textColor="@color/white"
                         android:textSize="12sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="#zingchart"
+                        android:text="@string/nav_zingchart"
                         android:textColor="@color/text_white"
                         android:textSize="12sp"
                         android:textStyle="bold" />

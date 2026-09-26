@@ -78,7 +78,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="15dp"
-                    android:text="Chủ đề &amp; thể loại"
+                    android:text="@string/home_topics_title"
                     android:textColor="@color/text_black"
                     android:textSize="23sp"
                     android:textStyle="bold" />
@@ -117,7 +117,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="15dp"
-                    android:text="Mới phát hành"
+                    android:text="@string/home_new_releases"
                     android:textColor="@color/text_black"
                     android:textSize="23sp"
                     android:textStyle="bold" />
@@ -147,7 +147,7 @@
                     android:background="@drawable/bg_tv_national"
                     android:paddingHorizontal="20dp"
                     android:paddingVertical="3dp"
-                    android:text="Tất cả"
+                    android:text="@string/tab_all"
                     android:textColor="@drawable/color_tv_national"
                     android:textSize="12sp" />
 
@@ -159,7 +159,7 @@
                     android:background="@drawable/bg_tv_national"
                     android:paddingHorizontal="20dp"
                     android:paddingVertical="3dp"
-                    android:text="Việt Nam"
+                    android:text="@string/tab_vietnam"
                     android:textColor="@drawable/color_tv_national"
                     android:textSize="12sp" />
 
@@ -171,7 +171,7 @@
                     android:background="@drawable/bg_tv_national"
                     android:paddingHorizontal="20dp"
                     android:paddingVertical="3dp"
-                    android:text="Quốc Tế"
+                    android:text="@string/tab_international"
                     android:textColor="@drawable/color_tv_national"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -215,7 +215,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Cập nhật"
+                            android:text="@string/home_update_label"
                             android:textColor="@color/txt_hint"
                             android:textSize="12sp" />
 
@@ -223,7 +223,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="5dp"
-                            android:text="09.03.2024 - 22:21"
+                            tools:text="@string/preview_home_chart_date"
+                            android:text=""
                             android:textColor="@color/txt_hint"
                             android:textSize="12sp"
                             android:textStyle="bold" />
@@ -234,7 +235,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="5dp"
-                        android:text="#zingchart"
+                        android:text="@string/nav_zingchart"
                         android:textSize="22sp"
                         android:textStyle="bold" />
 
@@ -258,7 +259,7 @@
                         android:layout_height="wrap_content"
                         android:gravity="center"
                         android:paddingTop="10dp"
-                        android:text="Xem tất cả"
+                        android:text="@string/see_all"
                         android:textColor="@color/txt_hint"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -293,7 +294,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="15dp"
-            android:text="Chủ đề &amp; thể loại"
+            android:text="@string/home_topics_title"
             android:textColor="@color/text_black"
             android:textSize="23sp"
             android:textStyle="bold" />

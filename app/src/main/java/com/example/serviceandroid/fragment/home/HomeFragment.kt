@@ -425,7 +425,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
         binding.scrollHome.setOnScrollChangeListener { _, _, _, _, _ ->
             when (stickTile) {
                 Title.TITLE_TOPIC -> {
-                    binding.tvCover.text = "Chủ đề & thể loại"
+                    binding.tvCover.text = getString(R.string.home_topics_title)
                     binding.titleCover.isVisible =
                         if (binding.scrollHome.isViewVisible(binding.titleTopic)) {
                             stickTile = Title.TITLE_NEW_RELEASE
@@ -498,7 +498,7 @@ class HomeFragment : BaseFragment<FragmentHomeBinding>() {
                 (activity as? MainActivity)?.requestRemoveFavourite(song.id) {
                     Toast.makeText(
                         requireActivity(),
-                        "Đã xoá khỏi bài hát yêu thích",
+                        getString(R.string.toast_removed_favourite),
                         Toast.LENGTH_SHORT
                     ).show()
                 }

@@ -143,4 +143,139 @@
     <string name="artist_add_empty">Không có nghệ sĩ</string>
     <string name="artist_add_complete">Hoàn thành</string>
     <string name="artist_add_select_required">Chọn 1 nghệ sĩ mà bạn quan tâm yêu thích trở lên</string>
+
+    <!-- Navigation -->
+    <string name="nav_library">Thư viện</string>
+    <string name="nav_discover">Khám phá</string>
+    <string name="nav_zingchart">#zingchart</string>
+    <string name="nav_radio">Radio</string>
+    <string name="nav_profile">Cá nhân</string>
+
+    <!-- Home -->
+    <string name="home_topics_title">Chủ đề &amp; thể loại</string>
+    <string name="home_new_releases">Mới phát hành</string>
+    <string name="tab_all">Tất cả</string>
+    <string name="tab_vietnam">Việt Nam</string>
+    <string name="tab_international">Quốc Tế</string>
+    <string name="home_update_label">Cập nhật</string>
+    <string name="see_all">Xem tất cả</string>
+
+    <!-- Library &amp; favourites -->
+    <string name="favourite_songs_title">Bài hát yêu thích</string>
+    <string name="play_shuffle">PHÁT NGẪU NHIÊN</string>
+    <string name="filter_label">Lọc</string>
+    <string name="filter_guide_message">Lọc bài hát theo nghệ sĩ, thể loại…\nđể bạn dễ dàng lựa chọn</string>
+    <string name="filter_guide_understood">Đã hiểu</string>
+    <string name="favourite_empty_title">Bạn chưa có bài hát ưa thích nào</string>
+    <string name="favourite_empty_subtitle">Hãy lưu về bài hát bạn yêu thích để\ncó thể nghe lại bất cứ lúc nào</string>
+    <string name="favourite_songs_count">%d bài hát . Đã lưu vào thư viện</string>
+
+    <!-- Sort -->
+    <string name="arrange_title">Sắp xếp theo</string>
+    <string name="arrange_newest">Mới nhất</string>
+    <string name="arrange_oldest">Cũ nhất</string>
+    <string name="arrange_by_song_name">Tên bài hát (A-Z)</string>
+    <string name="arrange_by_artist_name">Tên nghệ sĩ (A-Z)</string>
+
+    <!-- Player -->
+    <string name="player_time_placeholder">0:00</string>
+    <string name="player_play_from">PHÁT TỪ</string>
+    <string name="mini_player_singer_format">Ca sĩ: %1$s</string>
+    <string name="song_options_add_library">Thêm vào thư viện</string>
+    <string name="song_options_added_library">Đã thêm vào thư viện</string>
+    <string name="song_options_play_similar">Phát nội dung tương tự</string>
+    <string name="song_options_add_playlist">Thêm vào danh sách phát</string>
+    <string name="song_options_play_next">Phát kế tiếp</string>
+    <string name="song_options_ringtone">Cài nhạc chờ &amp; nhạc chuông</string>
+    <string name="song_options_view_album">Xem album</string>
+    <string name="song_options_view_artist">Xem nghệ sĩ</string>
+    <string name="song_options_block">Chặn</string>
+
+    <!-- Dialog -->
+    <string name="delete_song_from_library_title">Mua Thang Sau</string>
+    <string name="delete_song_from_library_message">Xoá bài hát khỏi thư viện?</string>
+    <string name="action_delete">Xoá</string>
+
+    <!-- Profile -->
+    <string name="profile_upgrade_account">Nâng cấp tài khoản</string>
+    <string name="profile_premium_experience">Trải nghiệm nghe nhạc nâng cao</string>
+    <string name="profile_lossless">Âm thanh vượt trội\n(Lossless)</string>
+    <string name="profile_crossfade">Chuyển bài mượt mà\n(Crossfade)</string>
+    <string name="profile_services_section">Dịch vụ</string>
+    <string name="profile_save_data">Tiết kiệm 3G/4G truy cập</string>
+    <string name="profile_enter_code">Nhập code</string>
+    <string name="profile_personal_section">Cá nhân</string>
+    <string name="profile_following_list">Danh sách quan tâm</string>
+    <string name="profile_block_list">Danh sách chặn</string>
+    <string name="profile_hidden_list">Danh sách tạm ẩn</string>
+
+    <!-- Radio -->
+    <string name="radio_schedule">Lịch Phát Sóng</string>
+    <string name="radio_mood_activity">Tâm trạng &amp; hoạt động</string>
+    <string name="radio_live_badge">LIVE</string>
+    <string name="radio_label">RADIO</string>
+
+    <!-- Zing chart -->
+    <string name="zingchart_suggested">Gợi ý</string>
+    <string name="text_bullet">•</string>
+    <string name="release_today">Hôm nay</string>
+
+    <!-- Library shortcuts -->
+    <string name="library_item_favourite">Bài hát yêu thích</string>
+    <string name="library_item_artists">Nghệ sĩ</string>
+    <string name="library_item_upload">Upload</string>
+    <string name="library_item_mv">MV</string>
+
+    <!-- Profile errors & subscriptions -->
+    <string name="error_google_sign_in">Không thể đăng nhập bằng Google</string>
+    <string name="error_profile_sync_after_login">Đăng nhập thành công nhưng chưa thể đồng bộ hồ sơ lên Firestore</string>
+    <string name="error_history_sync">Không thể đồng bộ lịch sử. Dữ liệu local vẫn được giữ lại.</string>
+    <string name="error_history_discard">Không thể xóa lịch sử nghe local</string>
+    <string name="error_profile_ensure">Chưa thể đồng bộ hồ sơ người dùng lên Firestore</string>
+    <string name="subscription_plus_name">Plus</string>
+    <string name="subscription_plus_price">19,000đ</string>
+    <string name="subscription_premium_name">Premium</string>
+    <string name="subscription_premium_price">49,000đ</string>
+    <string name="subscription_premium_tagline">Toàn bộ đăc quyền Plus cùng kho nhạc Premium</string>
+    <string name="subscription_premium_feature_all">Nghe và tải tất cả</string>
+    <string name="action_cancel">Huỷ</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_playback">Phát nhạc</string>
+    <string name="notification_channel_download">Tải bài hát</string>
+    <string name="notification_action_previous">Trước</string>
+    <string name="notification_action_pause">Tạm dừng</string>
+    <string name="notification_action_play">Phát</string>
+    <string name="notification_action_next">Tiếp</string>
+
+    <!-- App -->
+    <string name="press_back_again_to_exit">Nhấn thêm lần nữa để thoát</string>
+    <string name="debug_start_music">start Music</string>
+
+    <!-- Layout previews (tools / placeholders) -->
+    <string name="preview_song_title">Phố đèn đỏ</string>
+    <string name="preview_singer_name">Đan Trường</string>
+    <string name="preview_singer_line">Ca sĩ: Đan Trường</string>
+    <string name="preview_chart_date">09.08.2024 - 00:00</string>
+    <string name="preview_home_chart_date">09.03.2024 - 22:21</string>
+    <string name="preview_song_title_long">Hà Nội Chiều Tháng Ba</string>
+    <string name="preview_artist_name">Hà Trần</string>
+    <string name="preview_radio_title">Acoustic Radio</string>
+    <string name="preview_radio_subtitle">Phòng nhạc Acoustic</string>
+    <string name="preview_mood_song">Nhạc Buồn</string>
+    <string name="preview_topic_title">BXH Nhac Moi</string>
+    <string name="preview_ad_title">Hay nhất của V-Pop</string>
+    <string name="preview_ad_badge_top">TOP BXH</string>
+    <string name="preview_ad_badge_trending">trending</string>
+    <string name="preview_ad_description">Thiên Lý Ơi đưa Jack -J97 trở lại với Top Trending</string>
+    <string name="preview_plus_brand">Zing MP3</string>
+    <string name="preview_plus_label">PLUS</string>
+    <string name="preview_plus_price">19,000đ</string>
+    <string name="preview_plus_tagline">Nghe nhạc với chất lượng cao nhất, không \nquảng cáo</string>
+    <string name="preview_plus_no_ads">Loại bỏ quảng cáo</string>
+    <string name="preview_plus_storage">Lưu trữ nhạc không giới hạn</string>
+    <string name="preview_plus_playback">Tuỳ chỉnh chế độ phát nhạc</string>
+    <string name="preview_song_list_item">1  Sau Lời Từ Khước(Theme Song…</string>
+    <string name="preview_listen_count">65</string>
+    <string name="preview_rank">1</string>
 </resources>

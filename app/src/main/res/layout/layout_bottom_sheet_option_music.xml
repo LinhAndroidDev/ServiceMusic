@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout>
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -36,7 +37,8 @@
 
                 <TextView
                     android:id="@+id/titleSong"
-                    android:text="Hay Đe Anh Yeu Em Them Lan Nua"
+                    tools:text="@string/preview_song_title_long"
+                    android:text=""
                     android:textSize="16sp"
                     android:textColor="@color/text_black"
                     android:textStyle="bold"
@@ -46,7 +48,8 @@
                 <TextView
                     android:id="@+id/tvNameSinger"
                     android:layout_marginTop="3dp"
-                    android:text="The Men"
+                    tools:text="@string/preview_artist_name"
+                    android:text=""
                     android:textSize="14sp"
                     android:textColor="@color/txt_hint"
                     android:layout_width="wrap_content"
@@ -137,7 +140,7 @@
             <TextView
                 android:id="@+id/tvDownload"
                 android:layout_marginStart="20dp"
-                android:text="Tải về"
+                android:text="@string/download_action"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -162,7 +165,7 @@
             <TextView
                 android:id="@+id/tvFavourite"
                 android:layout_marginStart="20dp"
-                android:text="Thêm vào thư viện"
+                android:text="@string/song_options_add_library"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -207,7 +210,7 @@
 
             <TextView
                 android:layout_marginStart="20dp"
-                android:text="Phát nội dụng tương tự"
+                android:text="@string/song_options_play_similar"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -229,7 +232,7 @@
 
             <TextView
                 android:layout_marginStart="20dp"
-                android:text="Thêm vào danh sách phát"
+                android:text="@string/song_options_add_playlist"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -251,7 +254,7 @@
 
             <TextView
                 android:layout_marginStart="20dp"
-                android:text="Phát kế tiếp"
+                android:text="@string/song_options_play_next"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -273,7 +276,7 @@
 
             <TextView
                 android:layout_marginStart="20dp"
-                android:text="Cài nhạc chờ &amp; nhạc chuông"
+                android:text="@string/song_options_ringtone"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -295,7 +298,7 @@
 
             <TextView
                 android:layout_marginStart="20dp"
-                android:text="Xem album"
+                android:text="@string/song_options_view_album"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -317,7 +320,7 @@
 
             <TextView
                 android:layout_marginStart="20dp"
-                android:text="Xem nghệ sĩ"
+                android:text="@string/song_options_view_artist"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"
@@ -340,7 +343,7 @@
 
             <TextView
                 android:layout_marginStart="20dp"
-                android:text="Chặn"
+                android:text="@string/song_options_block"
                 android:textSize="16sp"
                 android:textColor="@color/text_black"
                 android:layout_width="wrap_content"

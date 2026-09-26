@@ -23,7 +23,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:text="Xem tất cả"
+        android:text="@string/see_all"
         android:textColor="@color/txt_hint"
         android:textSize="14sp" />
 </LinearLayout>

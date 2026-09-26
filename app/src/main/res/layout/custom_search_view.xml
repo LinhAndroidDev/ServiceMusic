@@ -6,7 +6,7 @@
     <EditText
         android:id="@+id/search"
         android:background="@drawable/bg_corner_45_grey"
-        android:hint="Tìm kiếm bài hát, nghệ sĩ..."
+        android:hint="@string/playlist_search_hint"
         android:textColorHint="@color/txt_hint"
         android:textSize="14sp"
         android:paddingVertical="3dp"

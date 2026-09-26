@@ -52,7 +52,8 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="150dp"
-                        android:text="Acoustic Radio"
+                        tools:text="@string/preview_radio_title"
+                        android:text=""
                         android:textColor="@color/text_black"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -62,7 +63,8 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="10dp"
-                        android:text="Phòng nhạc Acoustic"
+                        tools:text="@string/preview_radio_subtitle"
+                        android:text=""
                         android:textColor="@color/text_black"
                         android:textSize="14sp" />
 
@@ -85,7 +87,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="10dp"
-                            android:text="Lịch Phát Sóng"
+                            android:text="@string/radio_schedule"
                             android:textAllCaps="true"
                             android:textColor="@color/text_black"
                             android:textSize="12sp" />
@@ -96,7 +98,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="15dp"
                         android:layout_marginTop="40dp"
-                        android:text="Tâm trạng &amp; hoạt động"
+                        android:text="@string/radio_mood_activity"
                         android:textColor="@color/text_black"
                         android:textSize="25sp"
                         android:textStyle="bold" />

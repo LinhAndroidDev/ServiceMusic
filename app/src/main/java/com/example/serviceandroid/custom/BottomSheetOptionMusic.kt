@@ -68,12 +68,12 @@ class BottomSheetOptionMusic :
                     binding.imgFavourite.setImageResource(R.drawable.ic_favourite_fill)
                     binding.imgFavourite.imageTintList =
                         ColorStateList.valueOf(requireActivity().getColor(R.color.purple_1))
-                    binding.tvFavourite.text = "Đã thêm vào thư viện"
+                    binding.tvFavourite.text = getString(R.string.song_options_added_library)
                 } else {
                     binding.imgFavourite.setImageResource(R.drawable.ic_favourite_thin)
                     binding.imgFavourite.imageTintList =
                         ColorStateList.valueOf(requireActivity().getColor(R.color.black))
-                    binding.tvFavourite.text = "Thêm vào thư viện"
+                    binding.tvFavourite.text = getString(R.string.song_options_add_library)
                 }
             }
         }

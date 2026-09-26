@@ -68,7 +68,7 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
     }
 
     override fun initView() {
-        binding.header.title.text = "Thư viện"
+        binding.header.title.text = getString(R.string.nav_library)
         initLibrary()
         initRecentHistory()
         initPlaylists()
@@ -181,11 +181,36 @@ class LibraryFragment : BaseFragment<FragmentLibraryBinding>() {
                     Triple(favouriteCount, downloadedCount, artistCount)
                 }.collect { (favouriteCount, downloadedCount, artistCount) ->
                     val librarys = arrayListOf(
-                        Library(R.drawable.favourite, "Bài hát yêu thích", favouriteCount, R.color.bg_blue),
-                        Library(R.drawable.ic_download, "Đã tải", downloadedCount, R.color.bg_purple),
-                        Library(R.drawable.ic_artist, "Nghệ sĩ", artistCount, R.color.bg_orange),
-                        Library(R.drawable.ic_upload, "Upload", 0, R.color.yellow_dark),
-                        Library(R.drawable.ic_mv, "MV", 0, R.color.bg_purple),
+                        Library(
+                            R.drawable.favourite,
+                            getString(R.string.library_item_favourite),
+                            favouriteCount,
+                            R.color.bg_blue,
+                        ),
+                        Library(
+                            R.drawable.ic_download,
+                            getString(R.string.downloaded_songs_title),
+                            downloadedCount,
+                            R.color.bg_purple,
+                        ),
+                        Library(
+                            R.drawable.ic_artist,
+                            getString(R.string.library_item_artists),
+                            artistCount,
+                            R.color.bg_orange,
+                        ),
+                        Library(
+                            R.drawable.ic_upload,
+                            getString(R.string.library_item_upload),
+                            0,
+                            R.color.yellow_dark,
+                        ),
+                        Library(
+                            R.drawable.ic_mv,
+                            getString(R.string.library_item_mv),
+                            0,
+                            R.color.bg_purple,
+                        ),
                     )
                     val libraryAdapter = LibraryAdapter(requireActivity())
                     libraryAdapter.items = librarys

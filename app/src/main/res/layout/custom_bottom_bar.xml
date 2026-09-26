@@ -38,7 +38,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:text="Thư viện"
+                android:text="@string/nav_library"
                 android:textColor="@drawable/text_selected"
                 android:textSize="10sp"
                 tools:ignore="SmallSp" />
@@ -64,7 +64,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:text="Khám phá"
+                android:text="@string/nav_discover"
                 android:textColor="@color/txt_hint"
                 android:textSize="10sp"
                 tools:ignore="SmallSp" />
@@ -90,7 +90,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:text="#zingchart"
+                android:text="@string/nav_zingchart"
                 android:textColor="@color/txt_hint"
                 android:textSize="10sp"
                 tools:ignore="SmallSp" />
@@ -116,7 +116,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:text="Radio"
+                android:text="@string/nav_radio"
                 android:textColor="@color/txt_hint"
                 android:textSize="10sp"
                 tools:ignore="SmallSp" />
@@ -150,7 +150,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:text="Cá nhân"
+                android:text="@string/nav_profile"
                 android:textColor="@color/txt_hint"
                 android:textSize="10sp"
                 tools:ignore="SmallSp" />

@@ -2,6 +2,7 @@
 <layout>
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
 
@@ -35,7 +36,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="2dp"
-                    android:text="65"
+                    tools:text="@string/preview_listen_count"
+                    android:text=""
                     android:textColor="@color/white"
                     android:textSize="10sp"
                     android:textStyle="bold" />
@@ -67,7 +69,7 @@
                     android:background="@drawable/bg_red_corner_5_stroke_1"
                     android:paddingHorizontal="5dp"
                     android:paddingVertical="3dp"
-                    android:text="RADIO"
+                    android:text="@string/radio_label"
                     android:textColor="@color/white"
                     android:textSize="8sp"
                     android:textStyle="bold" />
@@ -79,7 +81,8 @@
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="15dp"
                 android:layout_marginBottom="20dp"
-                android:text="Nhạc Buồn"
+                tools:text="@string/preview_mood_song"
+                android:text=""
                 android:textColor="@color/white"
                 android:textSize="14sp" />
         </LinearLayout>

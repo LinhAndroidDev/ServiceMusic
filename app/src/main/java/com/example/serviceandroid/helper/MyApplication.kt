@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.google.android.gms.ads.MobileAds
+import com.example.serviceandroid.R
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -38,13 +39,13 @@ class MyApplication : Application(), Configuration.Provider {
             // IMPORTANCE_MIN can hide or limit media notification actions on some devices/OS versions.
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "channel id",
+                getString(R.string.notification_channel_playback),
                 NotificationManager.IMPORTANCE_LOW
             )
             channel.setSound(null, null)
             val downloadChannel = NotificationChannel(
                 DOWNLOAD_CHANNEL_ID,
-                "Tải bài hát",
+                getString(R.string.notification_channel_download),
                 NotificationManager.IMPORTANCE_LOW
             )
             getSystemService(NotificationManager::class.java)?.apply {

@@ -25,7 +25,8 @@
 
         <TextView
             android:id="@+id/title"
-            android:text="Phố đèn đỏ"
+            tools:text="@string/preview_song_title"
+            android:text=""
             android:textSize="16sp"
             android:textColor="@color/white"
             android:textStyle="bold"
@@ -36,7 +37,8 @@
 
         <TextView
             android:id="@+id/nameSingle"
-            android:text="Ca sĩ: Đan Trường"
+            tools:text="@string/preview_singer_line"
+            android:text=""
             android:layout_marginTop="5dp"
             android:textSize="14sp"
             android:textColor="@color/white"

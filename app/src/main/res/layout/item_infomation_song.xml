@@ -2,6 +2,7 @@
 <layout>
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -10,7 +11,8 @@
             android:id="@+id/title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Phố đèn đỏ"
+            tools:text="@string/preview_song_title"
+            android:text=""
             android:textColor="@color/text_black"
             android:textSize="13sp"
             android:textStyle="bold" />
@@ -22,7 +24,8 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Ca sĩ: Đan Trường"
+            tools:text="@string/preview_singer_line"
+            android:text=""
             android:textColor="@color/txt_hint"
             android:textSize="12sp" />
     </LinearLayout>
